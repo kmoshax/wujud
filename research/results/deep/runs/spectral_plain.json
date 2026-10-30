@@ -1,0 +1,55 @@
+{
+ "config": {
+  "name": "spectral_plain",
+  "encoder": "spectral",
+  "inputs": [
+   "amp"
+  ],
+  "augment": 0.0,
+  "warp": false,
+  "dann": 0.0,
+  "ssl": 0,
+  "steps": 4000,
+  "batch": 128,
+  "lr": 0.001,
+  "seed": 0,
+  "holdout": false
+ },
+ "sim_validation": {
+  "accuracy": 0.6426666666666667,
+  "still_vs_empty_auc": 0.6962814814814815
+ },
+ "minutes": 3.1636070370674134,
+ "parameters": 268197,
+ "selection": {
+  "motion_recall": 0.8166666666666667,
+  "motion_false_alarm": 0.06285072951739619,
+  "still_vs_empty_auc": 0.4719564061669325,
+  "still_vs_empty_auc_recording": 0.6428571428571428,
+  "still_vs_empty_auc_recording_all_windows": 0.4107142857142857,
+  "n_windows": 1011,
+  "n_recordings": 23,
+  "per_device": {
+   "0x0000acebe64ae708": {
+    "auc": 0.6695526695526695,
+    "empty": 1,
+    "still": 1
+   },
+   "5566279062754e5b": {
+    "auc": 0.3746438746438746,
+    "empty": 1,
+    "still": 2
+   },
+   "6b67adafa4a27076": {
+    "auc": 0.6713286713286715,
+    "empty": 1,
+    "still": 1
+   },
+   "ec65a3e95955ccd8": {
+    "auc": 0.08333333333333334,
+    "empty": 2,
+    "still": 1
+   }
+  }
+ }
+}

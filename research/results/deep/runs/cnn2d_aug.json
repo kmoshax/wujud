@@ -1,0 +1,55 @@
+{
+ "config": {
+  "name": "cnn2d_aug",
+  "encoder": "cnn2d",
+  "inputs": [
+   "amp"
+  ],
+  "augment": 1.0,
+  "warp": true,
+  "dann": 0.0,
+  "ssl": 0,
+  "steps": 4000,
+  "batch": 128,
+  "lr": 0.001,
+  "seed": 0,
+  "holdout": false
+ },
+ "sim_validation": {
+  "accuracy": 0.696,
+  "still_vs_empty_auc": 0.8488962962962963
+ },
+ "minutes": 5.6364761670430505,
+ "parameters": 462117,
+ "selection": {
+  "motion_recall": 1.0,
+  "motion_false_alarm": 0.003367003367003367,
+  "still_vs_empty_auc": 0.4479483833550819,
+  "still_vs_empty_auc_recording": 0.5178571428571428,
+  "still_vs_empty_auc_recording_all_windows": 0.375,
+  "n_windows": 1011,
+  "n_recordings": 23,
+  "per_device": {
+   "0x0000acebe64ae708": {
+    "auc": 0.9018759018759019,
+    "empty": 1,
+    "still": 1
+   },
+   "5566279062754e5b": {
+    "auc": 0.5819088319088319,
+    "empty": 1,
+    "still": 2
+   },
+   "6b67adafa4a27076": {
+    "auc": 0.9125874125874126,
+    "empty": 1,
+    "still": 1
+   },
+   "ec65a3e95955ccd8": {
+    "auc": 0.002415458937198068,
+    "empty": 2,
+    "still": 1
+   }
+  }
+ }
+}

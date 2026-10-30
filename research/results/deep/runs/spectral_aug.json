@@ -1,0 +1,55 @@
+{
+ "config": {
+  "name": "spectral_aug",
+  "encoder": "spectral",
+  "inputs": [
+   "amp"
+  ],
+  "augment": 1.0,
+  "warp": true,
+  "dann": 0.0,
+  "ssl": 0,
+  "steps": 4000,
+  "batch": 128,
+  "lr": 0.001,
+  "seed": 0,
+  "holdout": false
+ },
+ "sim_validation": {
+  "accuracy": 0.496,
+  "still_vs_empty_auc": 0.6673037037037036
+ },
+ "minutes": 2.938424281279246,
+ "parameters": 268197,
+ "selection": {
+  "motion_recall": 1.0,
+  "motion_false_alarm": 0.04377104377104377,
+  "still_vs_empty_auc": 0.43631893093615576,
+  "still_vs_empty_auc_recording": 0.5,
+  "still_vs_empty_auc_recording_all_windows": 0.375,
+  "n_windows": 1011,
+  "n_recordings": 23,
+  "per_device": {
+   "0x0000acebe64ae708": {
+    "auc": 0.3787878787878788,
+    "empty": 1,
+    "still": 1
+   },
+   "5566279062754e5b": {
+    "auc": 0.5812613312613313,
+    "empty": 1,
+    "still": 2
+   },
+   "6b67adafa4a27076": {
+    "auc": 0.2003367003367003,
+    "empty": 1,
+    "still": 1
+   },
+   "ec65a3e95955ccd8": {
+    "auc": 0.1419631093544137,
+    "empty": 2,
+    "still": 1
+   }
+  }
+ }
+}

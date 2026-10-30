@@ -1,0 +1,55 @@
+{
+ "config": {
+  "name": "transformer_aug_ssl",
+  "encoder": "transformer",
+  "inputs": [
+   "amp"
+  ],
+  "augment": 1.0,
+  "warp": true,
+  "dann": 0.0,
+  "ssl": 2000,
+  "steps": 4000,
+  "batch": 128,
+  "lr": 0.001,
+  "seed": 0,
+  "holdout": false
+ },
+ "sim_validation": {
+  "accuracy": 0.6426666666666667,
+  "still_vs_empty_auc": 0.7574888888888889
+ },
+ "minutes": 2.2139191746711733,
+ "parameters": 699845,
+ "selection": {
+  "motion_recall": 0.9833333333333333,
+  "motion_false_alarm": 0.005611672278338945,
+  "still_vs_empty_auc": 0.38727284809820695,
+  "still_vs_empty_auc_recording": 0.4285714285714286,
+  "still_vs_empty_auc_recording_all_windows": 0.4107142857142857,
+  "n_windows": 1011,
+  "n_recordings": 23,
+  "per_device": {
+   "0x0000acebe64ae708": {
+    "auc": 0.797979797979798,
+    "empty": 1,
+    "still": 1
+   },
+   "5566279062754e5b": {
+    "auc": 0.4078606578606579,
+    "empty": 1,
+    "still": 2
+   },
+   "6b67adafa4a27076": {
+    "auc": 0.8717948717948718,
+    "empty": 1,
+    "still": 1
+   },
+   "ec65a3e95955ccd8": {
+    "auc": 0.00021958717610891622,
+    "empty": 2,
+    "still": 1
+   }
+  }
+ }
+}

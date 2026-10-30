@@ -1,0 +1,18 @@
+{
+ "selection": {
+  "motion_recall": 1.0,
+  "motion_false_alarm": 0.0,
+  "still_vs_empty_auc": 0.545768691701706,
+  "still_vs_empty_auc_recording": 0.6607142857142857,
+  "n_windows": 1011,
+  "n_recordings": 23
+ },
+ "holdout": {
+  "motion_recall": 1.0,
+  "motion_false_alarm": 0.0,
+  "still_vs_empty_auc": 0.6507597340930673,
+  "still_vs_empty_auc_recording": 0.6875,
+  "n_windows": 1044,
+  "n_recordings": 28
+ }
+}

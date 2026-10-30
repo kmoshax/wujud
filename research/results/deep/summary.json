@@ -1,0 +1,3761 @@
+{
+ "rule": "max selection window AUC with selection motion false alarm <= 2 %",
+ "ensembles": {
+  "cnn2d_aug_ampn_dann03_ens3": [
+   "cnn2d_aug_ampn_dann03",
+   "cnn2d_aug_ampn_dann03_s1",
+   "cnn2d_aug_ampn_dann03_s2"
+  ]
+ },
+ "variants": {
+  "baseline (hand features + GBDT, sim only)": {
+   "selection": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.0,
+    "still_vs_empty_auc": 0.545768691701706,
+    "still_vs_empty_auc_recording": 0.6607142857142857,
+    "still_vs_empty_auc_recording_all_windows": 0.48214285714285715,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.31143818978037613,
+      0.7666529347143753
+     ],
+     "recording": [
+      0.3392857142857143,
+      0.911160714285712
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.7272727272727273,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.8638953638953639,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.6376586376586376,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.3074220465524814,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.0,
+    "still_vs_empty_auc": 0.6507597340930673,
+    "still_vs_empty_auc_recording": 0.6875,
+    "still_vs_empty_auc_recording_all_windows": 0.6041666666666666,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.41521828865578864,
+      0.8554623424415089
+     ],
+     "recording": [
+      0.3536458333333333,
+      0.9583333333333334
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.7129413796080463,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.5383320383320384,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.9313649313649314,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "reference: receiver noise level only (no training)": {
+   "selection": {
+    "motion_recall": 0.0,
+    "motion_false_alarm": 0.0,
+    "still_vs_empty_auc": 0.3488896138417669,
+    "still_vs_empty_auc_recording": 0.35714285714285715,
+    "still_vs_empty_auc_recording_all_windows": 0.3392857142857143,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.08034562043132921,
+      0.7032672419212873
+     ],
+     "recording": [
+      0.10714285714285714,
+      0.6785714285714286
+     ],
+     "window_diff": [
+      -0.5372203792576443,
+      0.20762288633912965
+     ],
+     "recording_diff": [
+      -0.6254464285714286,
+      0.08928571428571419
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.0,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.0,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.9696969696969697,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.0006587615283267487,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 0.0,
+    "motion_false_alarm": 0.0,
+    "still_vs_empty_auc": 0.8435098851765518,
+    "still_vs_empty_auc_recording": 0.875,
+    "still_vs_empty_auc_recording_all_windows": 0.8333333333333334,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.6158966804800137,
+      0.9999136665803332
+     ],
+     "recording": [
+      0.625,
+      1.0
+     ],
+     "window_diff": [
+      -0.04439035116118445,
+      0.4244420702754037
+     ],
+     "recording_diff": [
+      -0.04166666666666663,
+      0.45833333333333326
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.9195372528705862,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.04195804195804195,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 1.0,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "cnn1d_aug": {
+   "config": {
+    "name": "cnn1d_aug",
+    "encoder": "cnn1d",
+    "inputs": [
+     "amp"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 0.0,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.6826666666666666,
+    "still_vs_empty_auc": 0.8483333333333334
+   },
+   "selection": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.016835016835016835,
+    "still_vs_empty_auc": 0.4114530472185975,
+    "still_vs_empty_auc_recording": 0.48214285714285715,
+    "still_vs_empty_auc_recording_all_windows": 0.37500000000000006,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.15866328160774068,
+      0.6873507717589642
+     ],
+     "recording": [
+      0.16071428571428573,
+      0.7857142857142858
+     ],
+     "window_diff": [
+      -0.2749607824896985,
+      -0.0030087725314452743
+     ],
+     "recording_diff": [
+      -0.3571428571428571,
+      -0.017857142857142794
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.8073593073593074,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.5087412587412588,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.8504273504273504,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.005489679402722889,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 0.9833333333333333,
+    "motion_false_alarm": 0.028935185185185185,
+    "still_vs_empty_auc": 0.7664519122852457,
+    "still_vs_empty_auc_recording": 0.7708333333333334,
+    "still_vs_empty_auc_recording_all_windows": 0.7916666666666667,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.5080045918587586,
+      0.9998462185962186
+     ],
+     "recording": [
+      0.39583333333333337,
+      1.0
+     ],
+     "window_diff": [
+      -0.09228867197617205,
+      0.2822168668522835
+     ],
+     "recording_diff": [
+      -0.10416666666666674,
+      0.2505208333333306
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 1.0,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.8557368557368558,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 1.0,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "cnn1d_plain": {
+   "config": {
+    "name": "cnn1d_plain",
+    "encoder": "cnn1d",
+    "inputs": [
+     "amp"
+    ],
+    "augment": 0.0,
+    "warp": false,
+    "dann": 0.0,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.8026666666666666,
+    "still_vs_empty_auc": 0.8633555555555555
+   },
+   "selection": {
+    "motion_recall": 0.9416666666666667,
+    "motion_false_alarm": 0.0,
+    "still_vs_empty_auc": 0.44317879754482625,
+    "still_vs_empty_auc_recording": 0.4285714285714286,
+    "still_vs_empty_auc_recording_all_windows": 0.3392857142857143,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.20563270845086565,
+      0.6862254506322302
+     ],
+     "recording": [
+      0.12500000000000003,
+      0.7321428571428572
+     ],
+     "window_diff": [
+      -0.22075218775892158,
+      0.014083266879319406
+     ],
+     "recording_diff": [
+      -0.48214285714285704,
+      -0.017857142857142794
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.48484848484848486,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.5760165760165761,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.6103341103341103,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.01119894598155468,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 0.9944444444444445,
+    "motion_false_alarm": 0.0,
+    "still_vs_empty_auc": 0.7322126176292844,
+    "still_vs_empty_auc_recording": 0.7083333333333334,
+    "still_vs_empty_auc_recording_all_windows": 0.75,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.44051964624881296,
+      0.9897410267201933
+     ],
+     "recording": [
+      0.33333333333333337,
+      1.0
+     ],
+     "window_diff": [
+      -0.15365095938012616,
+      0.26939331887248563
+     ],
+     "recording_diff": [
+      -0.33333333333333337,
+      0.33333333333333337
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.9981006647673315,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.7760942760942762,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.9775964775964776,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "cnn2d_aug": {
+   "config": {
+    "name": "cnn2d_aug",
+    "encoder": "cnn2d",
+    "inputs": [
+     "amp"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 0.0,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.696,
+    "still_vs_empty_auc": 0.8488962962962963
+   },
+   "selection": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.003367003367003367,
+    "still_vs_empty_auc": 0.4479483833550819,
+    "still_vs_empty_auc_recording": 0.5178571428571428,
+    "still_vs_empty_auc_recording_all_windows": 0.375,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.16944395459335704,
+      0.7314536938322671
+     ],
+     "recording": [
+      0.19642857142857145,
+      0.8214285714285714
+     ],
+     "window_diff": [
+      -0.23517088520556675,
+      0.038803858810853166
+     ],
+     "recording_diff": [
+      -0.3571428571428572,
+      0.0357142857142857
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.9018759018759019,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.5819088319088319,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.9125874125874126,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.002415458937198068,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 0.9444444444444444,
+    "motion_false_alarm": 0.027777777777777776,
+    "still_vs_empty_auc": 0.7366857679357679,
+    "still_vs_empty_auc_recording": 0.7916666666666666,
+    "still_vs_empty_auc_recording_all_windows": 0.7291666666666667,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.4718110593110594,
+      0.9704428095053094
+     ],
+     "recording": [
+      0.5,
+      1.0
+     ],
+     "window_diff": [
+      -0.06782002719502715,
+      0.21951843488301806
+     ],
+     "recording_diff": [
+      -0.08333333333333326,
+      0.29166666666666663
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.9995683329016662,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.8300310800310801,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 1.0,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "cnn2d_aug05_ampn": {
+   "config": {
+    "name": "cnn2d_aug05_ampn",
+    "encoder": "cnn2d",
+    "inputs": [
+     "ampn"
+    ],
+    "augment": 0.5,
+    "warp": true,
+    "dann": 0.0,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.66,
+    "still_vs_empty_auc": 0.8514814814814815
+   },
+   "selection": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.0920314253647587,
+    "still_vs_empty_auc": 0.6588341549465951,
+    "still_vs_empty_auc_recording": 0.6428571428571428,
+    "still_vs_empty_auc_recording_all_windows": 0.6428571428571428,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.4298484142009859,
+      0.8362109431636944
+     ],
+     "recording": [
+      0.3214285714285714,
+      0.9285714285714285
+     ],
+     "window_diff": [
+      -0.07746669102227577,
+      0.288842653715579
+     ],
+     "recording_diff": [
+      -0.3392857142857143,
+      0.30357142857142855
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.40620490620490624,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.7509065009065009,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.8826728826728827,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.6342775581906017,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.2986111111111111,
+    "still_vs_empty_auc": 0.7013241388241389,
+    "still_vs_empty_auc_recording": 0.7291666666666666,
+    "still_vs_empty_auc_recording_all_windows": 0.7083333333333334,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.44272492553742554,
+      0.924135181947682
+     ],
+     "recording": [
+      0.4583333333333333,
+      0.9791666666666666
+     ],
+     "window_diff": [
+      -0.184109659630493,
+      0.2961275414400414
+     ],
+     "recording_diff": [
+      -0.29166666666666663,
+      0.41666666666666663
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.7850729517396184,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.9024864024864027,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.930976430976431,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "cnn2d_aug_all": {
+   "config": {
+    "name": "cnn2d_aug_all",
+    "encoder": "cnn2d",
+    "inputs": [
+     "amp",
+     "phase",
+     "rssi",
+     "static"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 0.0,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.712,
+    "still_vs_empty_auc": 0.8719851851851853
+   },
+   "selection": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.0,
+    "still_vs_empty_auc": 0.3190668648204533,
+    "still_vs_empty_auc_recording": 0.5178571428571428,
+    "still_vs_empty_auc_recording_all_windows": 0.3392857142857143,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.11756038982466138,
+      0.5554237047508578
+     ],
+     "recording": [
+      0.21428571428571427,
+      0.8392857142857142
+     ],
+     "window_diff": [
+      -0.428951185892056,
+      -0.053984905429449635
+     ],
+     "recording_diff": [
+      -0.4464285714285714,
+      0.1071428571428572
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.37878787878787884,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.7219632219632219,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.0010360010360010359,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.08201581027667984,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.003472222222222222,
+    "still_vs_empty_auc": 0.8105062375895709,
+    "still_vs_empty_auc_recording": 0.8125,
+    "still_vs_empty_auc_recording_all_windows": 0.8541666666666666,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.5675185347060346,
+      0.9899035763619097
+     ],
+     "recording": [
+      0.5208333333333334,
+      1.0
+     ],
+     "window_diff": [
+      0.07435951394284733,
+      0.2567758244841579
+     ],
+     "recording_diff": [
+      0.0,
+      0.2916666666666667
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 1.0,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.6103988603988605,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.9963739963739964,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "cnn2d_aug_ampboth": {
+   "config": {
+    "name": "cnn2d_aug_ampboth",
+    "encoder": "cnn2d",
+    "inputs": [
+     "amp",
+     "ampn"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 0.0,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.5986666666666667,
+    "still_vs_empty_auc": 0.8342444444444445
+   },
+   "selection": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.10437710437710437,
+    "still_vs_empty_auc": 0.5874383790053647,
+    "still_vs_empty_auc_recording": 0.6071428571428572,
+    "still_vs_empty_auc_recording_all_windows": 0.5535714285714286,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.3100432777383512,
+      0.8193440186048176
+     ],
+     "recording": [
+      0.2857142857142857,
+      0.875
+     ],
+     "window_diff": [
+      -0.09105793696326414,
+      0.15020653605432288
+     ],
+     "recording_diff": [
+      -0.3214285714285714,
+      0.1785714285714286
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.7063492063492063,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.7647630147630148,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.912975912975913,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.20421607378129114,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.27199074074074076,
+    "still_vs_empty_auc": 0.7182967495467495,
+    "still_vs_empty_auc_recording": 0.7708333333333333,
+    "still_vs_empty_auc_recording_all_windows": 0.7291666666666667,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.42729990881032553,
+      0.9647295605628936
+     ],
+     "recording": [
+      0.45833333333333337,
+      1.0
+     ],
+     "window_diff": [
+      -0.15768313476646822,
+      0.2559717096175429
+     ],
+     "recording_diff": [
+      -0.20833333333333337,
+      0.3749999999999999
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.8927307260640592,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.8984718984718985,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.9999999999999999,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "cnn2d_aug_ampboth_dann03": {
+   "config": {
+    "name": "cnn2d_aug_ampboth_dann03",
+    "encoder": "cnn2d",
+    "inputs": [
+     "amp",
+     "ampn"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 0.3,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.664,
+    "still_vs_empty_auc": 0.8496888888888889
+   },
+   "selection": {
+    "motion_recall": 0.925,
+    "motion_false_alarm": 0.002244668911335578,
+    "still_vs_empty_auc": 0.6595319220917307,
+    "still_vs_empty_auc_recording": 0.7142857142857143,
+    "still_vs_empty_auc_recording_all_windows": 0.5714285714285714,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.4102069085995521,
+      0.8504850607190648
+     ],
+     "recording": [
+      0.39285714285714285,
+      1.0
+     ],
+     "window_diff": [
+      -0.08905378116347588,
+      0.3051345626654636
+     ],
+     "recording_diff": [
+      -0.2678571428571428,
+      0.3571428571428572
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.11544011544011545,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.8232970732970734,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.9063714063714063,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.5364514712340799,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 0.9222222222222223,
+    "motion_false_alarm": 0.003472222222222222,
+    "still_vs_empty_auc": 0.688627730294397,
+    "still_vs_empty_auc_recording": 0.7291666666666667,
+    "still_vs_empty_auc_recording_all_windows": 0.6875,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.4009560751748252,
+      0.9415281285072951
+     ],
+     "recording": [
+      0.4166666666666667,
+      0.9791666666666666
+     ],
+     "window_diff": [
+      -0.22302694412069413,
+      0.2904100432746264
+     ],
+     "recording_diff": [
+      -0.33333333333333337,
+      0.4166666666666667
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.8610031943365277,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.6144781144781146,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.9971509971509972,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "cnn2d_aug_ampn": {
+   "config": {
+    "name": "cnn2d_aug_ampn",
+    "encoder": "cnn2d",
+    "inputs": [
+     "ampn"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 0.0,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.588,
+    "still_vs_empty_auc": 0.832674074074074
+   },
+   "selection": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.13916947250280584,
+    "still_vs_empty_auc": 0.6045895558455368,
+    "still_vs_empty_auc_recording": 0.5892857142857143,
+    "still_vs_empty_auc_recording_all_windows": 0.5357142857142857,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.3391684082201324,
+      0.8182459685637651
+     ],
+     "recording": [
+      0.28526785714285713,
+      0.8750000000000001
+     ],
+     "window_diff": [
+      -0.10245798959508305,
+      0.2054189698083698
+     ],
+     "recording_diff": [
+      -0.39285714285714285,
+      0.23214285714285698
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.4805194805194805,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.7350427350427351,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.9254079254079254,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.28447518664909965,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.23958333333333334,
+    "still_vs_empty_auc": 0.7004904817404817,
+    "still_vs_empty_auc_recording": 0.7708333333333333,
+    "still_vs_empty_auc_recording_all_windows": 0.7083333333333334,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.43080295476128805,
+      0.9365721855305188
+     ],
+     "recording": [
+      0.4791666666666667,
+      1.0
+     ],
+     "window_diff": [
+      -0.1486994005223172,
+      0.24541110895277507
+     ],
+     "recording_diff": [
+      -0.20833333333333337,
+      0.41666666666666663
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.8423983423983424,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.8457005957005957,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.9919709919709919,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "cnn2d_aug_ampn_dann03": {
+   "config": {
+    "name": "cnn2d_aug_ampn_dann03",
+    "encoder": "cnn2d",
+    "inputs": [
+     "ampn"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 0.3,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.6266666666666667,
+    "still_vs_empty_auc": 0.8495333333333334
+   },
+   "selection": {
+    "motion_recall": 0.975,
+    "motion_false_alarm": 0.001122334455667789,
+    "still_vs_empty_auc": 0.6776557440433039,
+    "still_vs_empty_auc_recording": 0.75,
+    "still_vs_empty_auc_recording_all_windows": 0.6785714285714286,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.47482627483380246,
+      0.8371083839704172
+     ],
+     "recording": [
+      0.4285714285714286,
+      0.9821428571428572
+     ],
+     "window_diff": [
+      -0.0829826357587408,
+      0.338194314988573
+     ],
+     "recording_diff": [
+      -0.25,
+      0.4285714285714286
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.046176046176046204,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.808016058016058,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.8800828800828802,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.8305884936319718,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 0.8722222222222222,
+    "motion_false_alarm": 0.06828703703703703,
+    "still_vs_empty_auc": 0.648474596391263,
+    "still_vs_empty_auc_recording": 0.6666666666666666,
+    "still_vs_empty_auc_recording_all_windows": 0.6458333333333333,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.3645723393119227,
+      0.9064293441897607
+     ],
+     "recording": [
+      0.33333333333333337,
+      0.9375
+     ],
+     "window_diff": [
+      -0.26051453369161715,
+      0.2661207426832427
+     ],
+     "recording_diff": [
+      -0.375,
+      0.33333333333333337
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.7850729517396184,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.6599326599326599,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.919062419062419,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "cnn2d_aug_ampn_dann03_s1": {
+   "config": {
+    "name": "cnn2d_aug_ampn_dann03_s1",
+    "encoder": "cnn2d",
+    "inputs": [
+     "ampn"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 0.3,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 1,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.62,
+    "still_vs_empty_auc": 0.8363703703703704
+   },
+   "selection": {
+    "motion_recall": 0.9833333333333333,
+    "motion_false_alarm": 0.004489337822671156,
+    "still_vs_empty_auc": 0.6838601324247258,
+    "still_vs_empty_auc_recording": 0.6785714285714286,
+    "still_vs_empty_auc_recording_all_windows": 0.6785714285714286,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.4706694415910518,
+      0.8449645226185298
+     ],
+     "recording": [
+      0.32142857142857145,
+      1.0
+     ],
+     "window_diff": [
+      -0.06283961850370581,
+      0.3271520528248995
+     ],
+     "recording_diff": [
+      -0.3392857142857143,
+      0.3571428571428572
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.053391053391053406,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.8284770784770785,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.8812483812483813,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.6991655687307861,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 0.8777777777777778,
+    "motion_false_alarm": 0.041666666666666664,
+    "still_vs_empty_auc": 0.654855175688509,
+    "still_vs_empty_auc_recording": 0.7083333333333334,
+    "still_vs_empty_auc_recording_all_windows": 0.625,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.36701112352154014,
+      0.9125039119830786
+     ],
+     "recording": [
+      0.41666666666666663,
+      0.9583333333333334
+     ],
+     "window_diff": [
+      -0.2285701566951568,
+      0.2218832961020462
+     ],
+     "recording_diff": [
+      -0.2916666666666667,
+      0.3125
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.8158939825606492,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.6196581196581196,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.9621859621859622,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "cnn2d_aug_ampn_dann03_s2": {
+   "config": {
+    "name": "cnn2d_aug_ampn_dann03_s2",
+    "encoder": "cnn2d",
+    "inputs": [
+     "ampn"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 0.3,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 2,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.6066666666666667,
+    "still_vs_empty_auc": 0.844
+   },
+   "selection": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.001122334455667789,
+    "still_vs_empty_auc": 0.6579793146778792,
+    "still_vs_empty_auc_recording": 0.6964285714285714,
+    "still_vs_empty_auc_recording_all_windows": 0.625,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.43585449671825965,
+      0.8339335518102704
+     ],
+     "recording": [
+      0.37455357142857143,
+      0.9642857142857143
+     ],
+     "window_diff": [
+      -0.08525836109175298,
+      0.29502666143664946
+     ],
+     "recording_diff": [
+      -0.2857142857142857,
+      0.3571428571428572
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.04834054834054835,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.822066822066822,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.897047397047397,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.7307861220904699,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 0.9833333333333333,
+    "motion_false_alarm": 0.023148148148148147,
+    "still_vs_empty_auc": 0.6884550634550635,
+    "still_vs_empty_auc_recording": 0.7291666666666666,
+    "still_vs_empty_auc_recording_all_windows": 0.6875,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.41939035116118445,
+      0.9267899346024344
+     ],
+     "recording": [
+      0.4375,
+      0.9583333333333333
+     ],
+     "window_diff": [
+      -0.18872795799879147,
+      0.2715822757489423
+     ],
+     "recording_diff": [
+      -0.2505208333333334,
+      0.37499999999999994
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.8992488992488994,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.6178451178451178,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.9888629888629888,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "cnn2d_aug_ampn_dann1": {
+   "config": {
+    "name": "cnn2d_aug_ampn_dann1",
+    "encoder": "cnn2d",
+    "inputs": [
+     "ampn"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 1.0,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.5813333333333334,
+    "still_vs_empty_auc": 0.832837037037037
+   },
+   "selection": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.015712682379349047,
+    "still_vs_empty_auc": 0.6630026339954571,
+    "still_vs_empty_auc_recording": 0.6964285714285714,
+    "still_vs_empty_auc_recording_all_windows": 0.6071428571428572,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.4430038035175747,
+      0.8327792271917431
+     ],
+     "recording": [
+      0.3571428571428572,
+      1.0
+     ],
+     "window_diff": [
+      -0.0907344523250178,
+      0.31850548455522687
+     ],
+     "recording_diff": [
+      -0.3035714285714285,
+      0.3571428571428572
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.27200577200577203,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.7527195027195028,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.8856513856513857,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.5197628458498024,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.04861111111111111,
+    "still_vs_empty_auc": 0.6644085081585082,
+    "still_vs_empty_auc_recording": 0.6458333333333333,
+    "still_vs_empty_auc_recording_all_windows": 0.6666666666666666,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.3793324538116205,
+      0.9138567836484504
+     ],
+     "recording": [
+      0.3125,
+      0.9375
+     ],
+     "window_diff": [
+      -0.2234813411896745,
+      0.25282795907795896
+     ],
+     "recording_diff": [
+      -0.41666666666666663,
+      0.3333333333333333
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.880644047310714,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.6743071743071742,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.9865319865319865,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "cnn2d_aug_ampn_ssl": {
+   "config": {
+    "name": "cnn2d_aug_ampn_ssl",
+    "encoder": "cnn2d",
+    "inputs": [
+     "ampn"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 0.0,
+    "ssl": 2000,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.604,
+    "still_vs_empty_auc": 0.8433851851851852
+   },
+   "selection": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.03591470258136925,
+    "still_vs_empty_auc": 0.6345421922575032,
+    "still_vs_empty_auc_recording": 0.6607142857142858,
+    "still_vs_empty_auc_recording_all_windows": 0.5892857142857142,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.403070153862618,
+      0.8202789746895186
+     ],
+     "recording": [
+      0.3392857142857143,
+      0.9285714285714286
+     ],
+     "window_diff": [
+      -0.09333426101209831,
+      0.2474175502777196
+     ],
+     "recording_diff": [
+      -0.3392857142857143,
+      0.3392857142857143
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.11688311688311692,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.8037425537425538,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.9243719243719243,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.6945542380324989,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.17824074074074073,
+    "still_vs_empty_auc": 0.6941260899594233,
+    "still_vs_empty_auc_recording": 0.75,
+    "still_vs_empty_auc_recording_all_windows": 0.7083333333333334,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.40519659738409736,
+      0.9407440456919622
+     ],
+     "recording": [
+      0.4166666666666667,
+      1.0
+     ],
+     "window_diff": [
+      -0.17252890820599145,
+      0.2283473085556419
+     ],
+     "recording_diff": [
+      -0.2500000000000001,
+      0.375
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.920314253647587,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.6276871276871278,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.9623154623154624,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "cnn2d_aug_dann03": {
+   "config": {
+    "name": "cnn2d_aug_dann03",
+    "encoder": "cnn2d",
+    "inputs": [
+     "amp"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 0.3,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.6826666666666666,
+    "still_vs_empty_auc": 0.8589703703703704
+   },
+   "selection": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.0,
+    "still_vs_empty_auc": 0.5344564061669325,
+    "still_vs_empty_auc_recording": 0.6607142857142857,
+    "still_vs_empty_auc_recording_all_windows": 0.48214285714285715,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.2557922194773677,
+      0.7821147120228851
+     ],
+     "recording": [
+      0.3392857142857143,
+      0.9285714285714286
+     ],
+     "window_diff": [
+      -0.1402469136295794,
+      0.11555636391160239
+     ],
+     "recording_diff": [
+      -0.2321428571428571,
+      0.2142857142857143
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.6544011544011543,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.7204092204092204,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.8416213416213416,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.030193236714975855,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 0.8166666666666667,
+    "motion_false_alarm": 0.011574074074074073,
+    "still_vs_empty_auc": 0.7198993136493136,
+    "still_vs_empty_auc_recording": 0.7083333333333333,
+    "still_vs_empty_auc_recording_all_windows": 0.7083333333333334,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.45894205138996813,
+      0.9358997965768798
+     ],
+     "recording": [
+      0.41666666666666663,
+      0.9375
+     ],
+     "window_diff": [
+      -0.11884294332211003,
+      0.23764231524648194
+     ],
+     "recording_diff": [
+      -0.1875,
+      0.25
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.9751791418458085,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.7248122248122248,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.9933954933954934,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "cnn2d_aug_dann1": {
+   "config": {
+    "name": "cnn2d_aug_dann1",
+    "encoder": "cnn2d",
+    "inputs": [
+     "amp"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 1.0,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.6706666666666666,
+    "still_vs_empty_auc": 0.8508222222222223
+   },
+   "selection": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.0,
+    "still_vs_empty_auc": 0.4901225170363927,
+    "still_vs_empty_auc_recording": 0.625,
+    "still_vs_empty_auc_recording_all_windows": 0.3571428571428572,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.2188313372312335,
+      0.7502011547980549
+     ],
+     "recording": [
+      0.28571428571428575,
+      0.9107142857142857
+     ],
+     "window_diff": [
+      -0.18040903826020815,
+      0.07802097446350971
+     ],
+     "recording_diff": [
+      -0.25,
+      0.1607142857142857
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.6825396825396826,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.6475653975653975,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.8575498575498576,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.013394817742643842,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 0.75,
+    "motion_false_alarm": 0.009259259259259259,
+    "still_vs_empty_auc": 0.772001532418199,
+    "still_vs_empty_auc_recording": 0.7916666666666666,
+    "still_vs_empty_auc_recording_all_windows": 0.7916666666666666,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.5227804891867393,
+      0.9750132198048864
+     ],
+     "recording": [
+      0.5,
+      1.0
+     ],
+     "window_diff": [
+      -0.04661357161357159,
+      0.28038180954847625
+     ],
+     "recording_diff": [
+      -0.08333333333333326,
+      0.2916666666666667
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.9955538288871622,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.7287619787619788,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.9999999999999999,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "cnn2d_aug_phase": {
+   "config": {
+    "name": "cnn2d_aug_phase",
+    "encoder": "cnn2d",
+    "inputs": [
+     "amp",
+     "phase"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 0.0,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.6906666666666667,
+    "still_vs_empty_auc": 0.8442370370370371
+   },
+   "selection": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.002244668911335578,
+    "still_vs_empty_auc": 0.4183219757382437,
+    "still_vs_empty_auc_recording": 0.5,
+    "still_vs_empty_auc_recording_all_windows": 0.375,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.1489880326005034,
+      0.7061386000272788
+     ],
+     "recording": [
+      0.1785714285714286,
+      0.7857142857142858
+     ],
+     "window_diff": [
+      -0.268272071657974,
+      0.01401325014323587
+     ],
+     "recording_diff": [
+      -0.3571428571428571,
+      0.017857142857142794
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.8932178932178932,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.540986790986791,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.9125874125874126,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.0008783487044356615,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 0.8833333333333333,
+    "motion_false_alarm": 0.009259259259259259,
+    "still_vs_empty_auc": 0.7493794785461453,
+    "still_vs_empty_auc_recording": 0.8125,
+    "still_vs_empty_auc_recording_all_windows": 0.7708333333333334,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.48661272176897175,
+      0.98602585685919
+     ],
+     "recording": [
+      0.5416666666666666,
+      1.0
+     ],
+     "window_diff": [
+      -0.034652413558663595,
+      0.2222840720236553
+     ],
+     "recording_diff": [
+      -0.04166666666666652,
+      0.29166666666666674
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 1.0,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.8072390572390572,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 1.0,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "cnn2d_aug_rssi": {
+   "config": {
+    "name": "cnn2d_aug_rssi",
+    "encoder": "cnn2d",
+    "inputs": [
+     "amp",
+     "rssi"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 0.0,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.7026666666666667,
+    "still_vs_empty_auc": 0.8787333333333334
+   },
+   "selection": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.0,
+    "still_vs_empty_auc": 0.28680646174665314,
+    "still_vs_empty_auc_recording": 0.4642857142857143,
+    "still_vs_empty_auc_recording_all_windows": 0.2857142857142857,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.08298127543360594,
+      0.5518786711214096
+     ],
+     "recording": [
+      0.16071428571428573,
+      0.7857142857142857
+     ],
+     "window_diff": [
+      -0.44132996803654095,
+      -0.1093932196490562
+     ],
+     "recording_diff": [
+      -0.4999999999999999,
+      0.0535714285714286
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.6630591630591631,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.6712639212639214,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.0,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.004391743522178313,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 0.9833333333333333,
+    "motion_false_alarm": 0.004629629629629629,
+    "still_vs_empty_auc": 0.8292190063023396,
+    "still_vs_empty_auc_recording": 0.8333333333333333,
+    "still_vs_empty_auc_recording_all_windows": 0.8541666666666666,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.586588170702754,
+      0.9875550375550375
+     ],
+     "recording": [
+      0.5416666666666667,
+      1.0
+     ],
+     "window_diff": [
+      0.07611761309677982,
+      0.2914917065958733
+     ],
+     "recording_diff": [
+      0.0,
+      0.3125
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 1.0,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.5738798238798238,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.9966329966329966,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "cnn2d_aug_ssl": {
+   "config": {
+    "name": "cnn2d_aug_ssl",
+    "encoder": "cnn2d",
+    "inputs": [
+     "amp"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 0.0,
+    "ssl": 2000,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.644,
+    "still_vs_empty_auc": 0.8431333333333333
+   },
+   "selection": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.003367003367003367,
+    "still_vs_empty_auc": 0.457116016625586,
+    "still_vs_empty_auc_recording": 0.5714285714285714,
+    "still_vs_empty_auc_recording_all_windows": 0.41071428571428575,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.1852059947016307,
+      0.7329649781715459
+     ],
+     "recording": [
+      0.25,
+      0.8571428571428571
+     ],
+     "window_diff": [
+      -0.22762663804828873,
+      0.03839484428152542
+     ],
+     "recording_diff": [
+      -0.26785714285714285,
+      0.0535714285714286
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.8816738816738816,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.6022403522403522,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.8813778813778814,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.0006587615283267453,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 0.9833333333333333,
+    "motion_false_alarm": 0.013888888888888888,
+    "still_vs_empty_auc": 0.6954372787706121,
+    "still_vs_empty_auc_recording": 0.6666666666666666,
+    "still_vs_empty_auc_recording_all_windows": 0.75,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.3980773277648278,
+      0.9799725351808685
+     ],
+     "recording": [
+      0.25,
+      1.0
+     ],
+     "window_diff": [
+      -0.1123093919968921,
+      0.184802148083398
+     ],
+     "recording_diff": [
+      -0.22916666666666663,
+      0.16666666666666663
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.9997409997409997,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.7035094535094536,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 1.0,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "cnn2d_aug_static": {
+   "config": {
+    "name": "cnn2d_aug_static",
+    "encoder": "cnn2d",
+    "inputs": [
+     "amp",
+     "static"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 0.0,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.6973333333333334,
+    "still_vs_empty_auc": 0.8524814814814815
+   },
+   "selection": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.0,
+    "still_vs_empty_auc": 0.49165397999130056,
+    "still_vs_empty_auc_recording": 0.5892857142857142,
+    "still_vs_empty_auc_recording_all_windows": 0.4642857142857143,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.1879038448482487,
+      0.7764640046732886
+     ],
+     "recording": [
+      0.25000000000000006,
+      0.8571428571428572
+     ],
+     "window_diff": [
+      -0.22991212378901862,
+      0.12156068429210871
+     ],
+     "recording_diff": [
+      -0.2857142857142857,
+      0.1428571428571429
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.5577200577200577,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.6457523957523958,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.9203574203574204,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.007136583223539743,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.003472222222222222,
+    "still_vs_empty_auc": 0.7660445264611931,
+    "still_vs_empty_auc_recording": 0.8125,
+    "still_vs_empty_auc_recording_all_windows": 0.7916666666666667,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.5003264482431149,
+      0.9971617888284554
+     ],
+     "recording": [
+      0.5416666666666666,
+      1.0
+     ],
+     "window_diff": [
+      -0.05401038968747302,
+      0.26349175515842166
+     ],
+     "recording_diff": [
+      -0.02083333333333337,
+      0.29166666666666674
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 1.0,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.7771302771302773,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 1.0,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "cnn2d_plain": {
+   "config": {
+    "name": "cnn2d_plain",
+    "encoder": "cnn2d",
+    "inputs": [
+     "amp"
+    ],
+    "augment": 0.0,
+    "warp": false,
+    "dann": 0.0,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.7853333333333333,
+    "still_vs_empty_auc": 0.8678814814814815
+   },
+   "selection": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.003367003367003367,
+    "still_vs_empty_auc": 0.5092673142912377,
+    "still_vs_empty_auc_recording": 0.5178571428571428,
+    "still_vs_empty_auc_recording_all_windows": 0.44642857142857145,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.2441350387799655,
+      0.7515065882998972
+     ],
+     "recording": [
+      0.19642857142857142,
+      0.8214285714285714
+     ],
+     "window_diff": [
+      -0.15979750018180908,
+      0.08455255201844077
+     ],
+     "recording_diff": [
+      -0.3571428571428571,
+      0.0357142857142857
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.6147186147186147,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.7081714581714582,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.7421652421652422,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.04205094422485728,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 0.9777777777777777,
+    "motion_false_alarm": 0.02546296296296296,
+    "still_vs_empty_auc": 0.6420616420616421,
+    "still_vs_empty_auc_recording": 0.6875,
+    "still_vs_empty_auc_recording_all_windows": 0.6875,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.2520153457653458,
+      0.9883801961926961
+     ],
+     "recording": [
+      0.25,
+      1.0
+     ],
+     "window_diff": [
+      -0.3729601031684365,
+      0.2416051541051538
+     ],
+     "recording_diff": [
+      -0.47916666666666663,
+      0.41666666666666663
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.9706034706034705,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.8052965552965552,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 1.0,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "cnn2d_plain_ampn": {
+   "config": {
+    "name": "cnn2d_plain_ampn",
+    "encoder": "cnn2d",
+    "inputs": [
+     "ampn"
+    ],
+    "augment": 0.0,
+    "warp": false,
+    "dann": 0.0,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.7986666666666666,
+    "still_vs_empty_auc": 0.8829333333333333
+   },
+   "selection": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.02244668911335578,
+    "still_vs_empty_auc": 0.5460798173118747,
+    "still_vs_empty_auc_recording": 0.5892857142857143,
+    "still_vs_empty_auc_recording_all_windows": 0.5,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.3194103302701393,
+      0.7486530095273968
+     ],
+     "recording": [
+      0.2674107142857143,
+      0.8571428571428572
+     ],
+     "window_diff": [
+      -0.15737751831501826,
+      0.1266868640744438
+     ],
+     "recording_diff": [
+      -0.4107142857142857,
+      0.2321428571428572
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.49927849927849927,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.7893680393680392,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.5146335146335146,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.6018884497145367,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 0.9777777777777777,
+    "motion_false_alarm": 0.13541666666666666,
+    "still_vs_empty_auc": 0.7779126737460071,
+    "still_vs_empty_auc_recording": 0.8333333333333333,
+    "still_vs_empty_auc_recording_all_windows": 0.8333333333333334,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.5804750901105068,
+      0.9409439615168781
+     ],
+     "recording": [
+      0.5416666666666666,
+      1.0
+     ],
+     "window_diff": [
+      -0.01275144608477942,
+      0.2757414556893721
+     ],
+     "recording_diff": [
+      -0.04166666666666663,
+      0.375
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.9493654493654494,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.7332297332297332,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.9571354571354571,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "spectral_aug": {
+   "config": {
+    "name": "spectral_aug",
+    "encoder": "spectral",
+    "inputs": [
+     "amp"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 0.0,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.496,
+    "still_vs_empty_auc": 0.6673037037037036
+   },
+   "selection": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.04377104377104377,
+    "still_vs_empty_auc": 0.43631893093615576,
+    "still_vs_empty_auc_recording": 0.5,
+    "still_vs_empty_auc_recording_all_windows": 0.375,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.1976317094973197,
+      0.697281804286888
+     ],
+     "recording": [
+      0.1785714285714286,
+      0.8035714285714286
+     ],
+     "window_diff": [
+      -0.2309360183278086,
+      0.032019043390155766
+     ],
+     "recording_diff": [
+      -0.35714285714285715,
+      0.017857142857142905
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.3787878787878788,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.5812613312613313,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.2003367003367003,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.1419631093544137,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.13425925925925927,
+    "still_vs_empty_auc": 0.5319919278252612,
+    "still_vs_empty_auc_recording": 0.5625,
+    "still_vs_empty_auc_recording_all_windows": 0.5416666666666667,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.291939831002331,
+      0.7805530599801431
+     ],
+     "recording": [
+      0.20833333333333334,
+      0.9166666666666666
+     ],
+     "window_diff": [
+      -0.2285362978071311,
+      -0.010930215617715518
+     ],
+     "recording_diff": [
+      -0.2916666666666665,
+      0.0
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.6806526806526807,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.37425537425537425,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.8806008806008806,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "spectral_aug_ampn": {
+   "config": {
+    "name": "spectral_aug_ampn",
+    "encoder": "spectral",
+    "inputs": [
+     "ampn"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 0.0,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.4613333333333333,
+    "still_vs_empty_auc": 0.6898888888888888
+   },
+   "selection": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.04938271604938271,
+    "still_vs_empty_auc": 0.5480069837127254,
+    "still_vs_empty_auc_recording": 0.6607142857142857,
+    "still_vs_empty_auc_recording_all_windows": 0.5357142857142857,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.30124642243418176,
+      0.775261587163501
+     ],
+     "recording": [
+      0.3392857142857143,
+      0.9285714285714286
+     ],
+     "window_diff": [
+      -0.05981140652940885,
+      0.08495695420785135
+     ],
+     "recording_diff": [
+      -0.2142857142857143,
+      0.24999999999999994
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.8080808080808081,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.7871665371665373,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.5818440818440818,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.24187527448397014,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.22685185185185186,
+    "still_vs_empty_auc": 0.5396648104981439,
+    "still_vs_empty_auc_recording": 0.5208333333333333,
+    "still_vs_empty_auc_recording_all_windows": 0.5208333333333334,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.24199736413278078,
+      0.8411546015712683
+     ],
+     "recording": [
+      0.14583333333333334,
+      0.8958333333333334
+     ],
+     "window_diff": [
+      -0.26168637496762504,
+      0.041507219632219566
+     ],
+     "recording_diff": [
+      -0.33333333333333337,
+      -0.02083333333333337
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.8922558922558923,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.5045325045325046,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.9465164465164465,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "spectral_plain": {
+   "config": {
+    "name": "spectral_plain",
+    "encoder": "spectral",
+    "inputs": [
+     "amp"
+    ],
+    "augment": 0.0,
+    "warp": false,
+    "dann": 0.0,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.6426666666666667,
+    "still_vs_empty_auc": 0.6962814814814815
+   },
+   "selection": {
+    "motion_recall": 0.8166666666666667,
+    "motion_false_alarm": 0.06285072951739619,
+    "still_vs_empty_auc": 0.4719564061669325,
+    "still_vs_empty_auc_recording": 0.6428571428571428,
+    "still_vs_empty_auc_recording_all_windows": 0.4107142857142857,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.19191118805802138,
+      0.7500341677561438
+     ],
+     "recording": [
+      0.3214285714285714,
+      0.9107142857142857
+     ],
+     "window_diff": [
+      -0.2548456303465274,
+      0.12477638230615613
+     ],
+     "recording_diff": [
+      -0.25,
+      0.2321428571428571
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.6695526695526695,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.3746438746438746,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.6713286713286715,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.08333333333333334,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 0.8777777777777778,
+    "motion_false_alarm": 0.22800925925925927,
+    "still_vs_empty_auc": 0.5934424371924372,
+    "still_vs_empty_auc_recording": 0.5833333333333334,
+    "still_vs_empty_auc_recording_all_windows": 0.5624999999999999,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.26869078066994734,
+      0.9209586516878183
+     ],
+     "recording": [
+      0.25,
+      0.9166666666666666
+     ],
+     "window_diff": [
+      -0.21228733650608653,
+      0.13612905227488517
+     ],
+     "recording_diff": [
+      -0.29166666666666663,
+      0.08333333333333337
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.9792799792799793,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.42903392903392906,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.9370629370629371,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "transformer_aug": {
+   "config": {
+    "name": "transformer_aug",
+    "encoder": "transformer",
+    "inputs": [
+     "amp"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 0.0,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.612,
+    "still_vs_empty_auc": 0.750874074074074
+   },
+   "selection": {
+    "motion_recall": 0.9833333333333333,
+    "motion_false_alarm": 0.004489337822671156,
+    "still_vs_empty_auc": 0.4210949204968344,
+    "still_vs_empty_auc_recording": 0.48214285714285715,
+    "still_vs_empty_auc_recording_all_windows": 0.42857142857142855,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.16396830124740025,
+      0.6792013532214802
+     ],
+     "recording": [
+      0.1607142857142857,
+      0.7857142857142858
+     ],
+     "window_diff": [
+      -0.2608220253629943,
+      0.008904632925173532
+     ],
+     "recording_diff": [
+      -0.4285714285714286,
+      0.017857142857142905
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.8708513708513709,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.5088707588707588,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.8238798238798238,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.00307422046552481,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.0011574074074074073,
+    "still_vs_empty_auc": 0.6250107916774583,
+    "still_vs_empty_auc_recording": 0.6041666666666666,
+    "still_vs_empty_auc_recording_all_windows": 0.6458333333333333,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.31714527756194427,
+      0.9406554190408357
+     ],
+     "recording": [
+      0.20833333333333334,
+      0.9791666666666666
+     ],
+     "window_diff": [
+      -0.2105961457523958,
+      0.15634793447293435
+     ],
+     "recording_diff": [
+      -0.29166666666666674,
+      0.08333333333333337
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.9927911594578261,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.534058534058534,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.9831649831649831,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "transformer_aug_ampn": {
+   "config": {
+    "name": "transformer_aug_ampn",
+    "encoder": "transformer",
+    "inputs": [
+     "ampn"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 0.0,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.6173333333333333,
+    "still_vs_empty_auc": 0.7327481481481481
+   },
+   "selection": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.16835016835016836,
+    "still_vs_empty_auc": 0.42464718959934267,
+    "still_vs_empty_auc_recording": 0.48214285714285715,
+    "still_vs_empty_auc_recording_all_windows": 0.3928571428571429,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.18943080951091756,
+      0.6666039648704816
+     ],
+     "recording": [
+      0.17857142857142858,
+      0.7857142857142857
+     ],
+     "window_diff": [
+      -0.2494415989873324,
+      0.00951944410352606
+     ],
+     "recording_diff": [
+      -0.48214285714285715,
+      0.1428571428571428
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.3383838383838384,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.5216912716912717,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.7160062160062161,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.025032938076416333,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.07060185185185185,
+    "still_vs_empty_auc": 0.582944832944833,
+    "still_vs_empty_auc_recording": 0.6041666666666666,
+    "still_vs_empty_auc_recording_all_windows": 0.5833333333333334,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.2819124740999741,
+      0.8766822876197876
+     ],
+     "recording": [
+      0.25,
+      0.9166666666666666
+     ],
+     "window_diff": [
+      -0.2509304449408617,
+      0.10176760931969242
+     ],
+     "recording_diff": [
+      -0.33333333333333337,
+      0.125
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.9829059829059829,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.6263273763273763,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.7738927738927739,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "transformer_aug_ampn_dann03": {
+   "config": {
+    "name": "transformer_aug_ampn_dann03",
+    "encoder": "transformer",
+    "inputs": [
+     "ampn"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 0.3,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.596,
+    "still_vs_empty_auc": 0.7376
+   },
+   "selection": {
+    "motion_recall": 0.9833333333333333,
+    "motion_false_alarm": 0.024691358024691357,
+    "still_vs_empty_auc": 0.5417059349475618,
+    "still_vs_empty_auc_recording": 0.625,
+    "still_vs_empty_auc_recording_all_windows": 0.5,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.36118730667923254,
+      0.7086710814926581
+     ],
+     "recording": [
+      0.32142857142857145,
+      0.8928571428571427
+     ],
+     "window_diff": [
+      -0.17227067117150172,
+      0.18081382112482586
+     ],
+     "recording_diff": [
+      -0.3397321428571429,
+      0.2678571428571429
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.310966810966811,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.4994172494172494,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.8091168091168092,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.1777558190601669,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 0.9944444444444445,
+    "motion_false_alarm": 0.004629629629629629,
+    "still_vs_empty_auc": 0.5769041914875248,
+    "still_vs_empty_auc_recording": 0.625,
+    "still_vs_empty_auc_recording_all_windows": 0.6041666666666667,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.2944684559267892,
+      0.8661122442372442
+     ],
+     "recording": [
+      0.25,
+      1.0
+     ],
+     "window_diff": [
+      -0.26829115136406806,
+      0.11272197131572141
+     ],
+     "recording_diff": [
+      -0.3333333333333333,
+      0.16666666666666663
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.9268755935422602,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.4956617456617457,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.7549857549857549,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "transformer_aug_dann03": {
+   "config": {
+    "name": "transformer_aug_dann03",
+    "encoder": "transformer",
+    "inputs": [
+     "amp"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 0.3,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.6186666666666667,
+    "still_vs_empty_auc": 0.7422074074074074
+   },
+   "selection": {
+    "motion_recall": 0.975,
+    "motion_false_alarm": 0.001122334455667789,
+    "still_vs_empty_auc": 0.46352278768546706,
+    "still_vs_empty_auc_recording": 0.4107142857142857,
+    "still_vs_empty_auc_recording_all_windows": 0.375,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.25073246131858573,
+      0.6806362862239507
+     ],
+     "recording": [
+      0.10714285714285715,
+      0.7321428571428571
+     ],
+     "window_diff": [
+      -0.23254759107584,
+      0.060207941590556674
+     ],
+     "recording_diff": [
+      -0.4999999999999999,
+      -0.0535714285714286
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.7467532467532467,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.4231416731416731,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.8113183113183113,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.1111111111111111,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 0.9833333333333333,
+    "motion_false_alarm": 0.0011574074074074073,
+    "still_vs_empty_auc": 0.6192264525597859,
+    "still_vs_empty_auc_recording": 0.6458333333333334,
+    "still_vs_empty_auc_recording_all_windows": 0.6458333333333333,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.3844137151428818,
+      0.8550400506129673
+     ],
+     "recording": [
+      0.2703125,
+      0.9791666666666666
+     ],
+     "window_diff": [
+      -0.19668924825174808,
+      0.14099569412069413
+     ],
+     "recording_diff": [
+      -0.24999999999999994,
+      0.1875
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.768065268065268,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.3572261072261073,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.8816368816368817,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "transformer_aug_ssl": {
+   "config": {
+    "name": "transformer_aug_ssl",
+    "encoder": "transformer",
+    "inputs": [
+     "amp"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 0.0,
+    "ssl": 2000,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.6426666666666667,
+    "still_vs_empty_auc": 0.7574888888888889
+   },
+   "selection": {
+    "motion_recall": 0.9833333333333333,
+    "motion_false_alarm": 0.005611672278338945,
+    "still_vs_empty_auc": 0.38727284809820695,
+    "still_vs_empty_auc_recording": 0.4285714285714286,
+    "still_vs_empty_auc_recording_all_windows": 0.4107142857142857,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.12475324295182409,
+      0.6676517998483763
+     ],
+     "recording": [
+      0.125,
+      0.75
+     ],
+     "window_diff": [
+      -0.3259798946401816,
+      -0.003976816154843919
+     ],
+     "recording_diff": [
+      -0.4821428571428571,
+      -0.01785714285714285
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.797979797979798,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.4078606578606579,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.8717948717948718,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.00021958717610891622,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 0.9888888888888889,
+    "motion_false_alarm": 0.005787037037037037,
+    "still_vs_empty_auc": 0.6844351636018302,
+    "still_vs_empty_auc_recording": 0.7083333333333334,
+    "still_vs_empty_auc_recording_all_windows": 0.6666666666666666,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.35750102520935856,
+      0.9942726544289043
+     ],
+     "recording": [
+      0.2916666666666667,
+      1.0
+     ],
+     "window_diff": [
+      -0.1484088346067513,
+      0.20824227855477828
+     ],
+     "recording_diff": [
+      -0.16666666666666663,
+      0.20833333333333326
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 1.0,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.4777907277907278,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.9918414918414918,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "transformer_plain": {
+   "config": {
+    "name": "transformer_plain",
+    "encoder": "transformer",
+    "inputs": [
+     "amp"
+    ],
+    "augment": 0.0,
+    "warp": false,
+    "dann": 0.0,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "sim_validation": {
+    "accuracy": 0.7826666666666666,
+    "still_vs_empty_auc": 0.8345259259259259
+   },
+   "selection": {
+    "motion_recall": 0.8833333333333333,
+    "motion_false_alarm": 0.003367003367003367,
+    "still_vs_empty_auc": 0.4262994780339278,
+    "still_vs_empty_auc_recording": 0.5178571428571429,
+    "still_vs_empty_auc_recording_all_windows": 0.3392857142857143,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.20363468726816183,
+      0.6513818446004846
+     ],
+     "recording": [
+      0.19642857142857145,
+      0.8035714285714286
+     ],
+     "window_diff": [
+      -0.2559728668963453,
+      0.01071413551228149
+     ],
+     "recording_diff": [
+      -0.39285714285714285,
+      0.07142857142857151
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.07936507936507937,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.5154105154105154,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.7226107226107226,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.12011418533157665,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 0.9666666666666667,
+    "motion_false_alarm": 0.003472222222222222,
+    "still_vs_empty_auc": 0.6234972589139256,
+    "still_vs_empty_auc_recording": 0.5833333333333334,
+    "still_vs_empty_auc_recording_all_windows": 0.5833333333333334,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.24809999028749033,
+      0.9855481902356902
+     ],
+     "recording": [
+      0.16666666666666666,
+      1.0
+     ],
+     "window_diff": [
+      -0.30193784803159807,
+      0.20875461344211338
+     ],
+     "recording_diff": [
+      -0.4583333333333333,
+      0.16666666666666663
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.9906759906759907,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.6283346283346283,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.9583009583009582,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  },
+  "cnn2d_aug_ampn_dann03_ens3": {
+   "config": {
+    "name": "cnn2d_aug_ampn_dann03",
+    "encoder": "cnn2d",
+    "inputs": [
+     "ampn"
+    ],
+    "augment": 1.0,
+    "warp": true,
+    "dann": 0.3,
+    "ssl": 0,
+    "steps": 4000,
+    "batch": 128,
+    "lr": 0.001,
+    "seed": 0,
+    "holdout": false
+   },
+   "members": [
+    "cnn2d_aug_ampn_dann03",
+    "cnn2d_aug_ampn_dann03_s1",
+    "cnn2d_aug_ampn_dann03_s2"
+   ],
+   "selection": {
+    "motion_recall": 1.0,
+    "motion_false_alarm": 0.001122334455667789,
+    "still_vs_empty_auc": 0.6766438306510075,
+    "still_vs_empty_auc_recording": 0.7321428571428572,
+    "still_vs_empty_auc_recording_all_windows": 0.6607142857142857,
+    "n_windows": 1011,
+    "n_recordings": 23,
+    "ci": {
+     "window": [
+      0.4613452122997033,
+      0.8435130814763809
+     ],
+     "recording": [
+      0.4285714285714286,
+      1.0
+     ],
+     "window_diff": [
+      -0.07140894892661864,
+      0.3186832324560624
+     ],
+     "recording_diff": [
+      -0.25,
+      0.37544642857142624
+     ]
+    },
+    "per_device": {
+     "0x0000acebe64ae708": {
+      "auc": 0.04761904761904763,
+      "empty": 1,
+      "still": 1
+     },
+     "5566279062754e5b": {
+      "auc": 0.8221315721315722,
+      "empty": 1,
+      "still": 2
+     },
+     "6b67adafa4a27076": {
+      "auc": 0.8953638953638954,
+      "empty": 1,
+      "still": 1
+     },
+     "ec65a3e95955ccd8": {
+      "auc": 0.7624066754501537,
+      "empty": 2,
+      "still": 1
+     }
+    }
+   },
+   "holdout": {
+    "motion_recall": 0.9333333333333333,
+    "motion_false_alarm": 0.04513888888888889,
+    "still_vs_empty_auc": 0.6651882068548736,
+    "still_vs_empty_auc_recording": 0.7291666666666666,
+    "still_vs_empty_auc_recording_all_windows": 0.6666666666666666,
+    "n_windows": 1044,
+    "n_recordings": 28,
+    "ci": {
+     "window": [
+      0.38233024691358025,
+      0.918157671803505
+     ],
+     "recording": [
+      0.4375,
+      0.9583333333333333
+     ],
+     "window_diff": [
+      -0.22581524378399379,
+      0.25887089376672706
+     ],
+     "recording_diff": [
+      -0.2505208333333334,
+      0.37499999999999994
+     ]
+    },
+    "per_device": {
+     "0x000010b41de8ec00": {
+      "auc": 0.831002331002331,
+      "empty": 1,
+      "still": 3
+     },
+     "0x00007c2c6742bbac": {
+      "auc": 0.6322196322196322,
+      "empty": 1,
+      "still": 2
+     },
+     "0x0000acebe64ae708": {
+      "auc": 0.9764309764309764,
+      "empty": 1,
+      "still": 1
+     }
+    }
+   }
+  }
+ },
+ "chosen_on_selection": "cnn2d_aug_ampn_dann03_s1"
+}
