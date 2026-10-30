@@ -1,0 +1,20 @@
+[package]
+name = "hallsense-sim"
+description = "3-D Wi-Fi CSI physics simulator: rooms, lecture halls, people, walls, ESP32 impairments"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[dependencies]
+ndarray = { workspace = true, features = ["serde"] }
+num-complex.workspace = true
+rand.workspace = true
+rand_chacha.workspace = true
+rand_distr.workspace = true
+rayon.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+ndarray-npy = { workspace = true, features = ["compressed_npz"] }
+serde_json.workspace = true
