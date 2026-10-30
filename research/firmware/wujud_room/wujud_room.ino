@@ -10,9 +10,21 @@
  * LISTENER_TIMEOUT_MS (asking first lets the reply through the laptop's firewall).
  * The blue LED is on while at least one device is connected.
  *
+ * With home_wifi.h (HOME_SSID, HOME_PASSWORD, WUJUD_PASSWORD; not in git), the board also joins the
+ * home router and passes the internet on to the devices that join it, so a phone keeps working
+ * normally while it is a sensing link. Its own network then needs WUJUD_PASSWORD and sits on the
+ * router's channel (one radio, one channel). The router itself is then pinged too, as one more
+ * link, so its CSI can be judged against the phones'. With no_11b=1 (the default) the board tells
+ * the router it speaks only 802.11g/n, so that the router has no 802.11b rate to answer with.
+ *
  * Remote control over Wi-Fi (research/firmware/board.sh wraps these):
  *     GET  /status                       what the board is doing, as JSON
  *     GET  /set?ping_hz=200&channel=6    change settings (kept across reboots), then reboot
+ *     GET  /set?no_11b=0                 let the router answer in 802.11b again (to compare)
+ *     GET  /set?ping_len=83              keep only frames of this length (the ping replies), so a video
+ *                                        playing on the phone keeps it awake without mixing its own
+ *                                        frames into the CSI; 0 keeps every length. /status lists the
+ *                                        commonest lengths per device.
  *     GET  /reboot
  *     POST /update                       new firmware
  * All but /status need user "wujud" and the key in ota_key.h. Status lines (I,...) also go to
@@ -32,6 +44,10 @@
 #include "lwip/ip_addr.h"
 #include "lwip/sockets.h"
 #include "ota_key.h"
+#if __has_include("home_wifi.h")
+#include "home_wifi.h"
+#define SHARE_INTERNET 1
+#endif
 
 #define WUJUD_SSID "wujud"
 #define DEFAULT_CHANNEL 9
@@ -50,11 +66,14 @@ struct Device {
   volatile uint32_t rejected;
   uint32_t csi_per_second;
   uint32_t rejected_per_second;
+  uint16_t lengths[512];
 };
 
 struct Settings {
   int channel;
   int ping_hz;
+  int no_11b;
+  int ping_len;
 };
 
 struct Listener {
@@ -77,6 +96,10 @@ static HTTPUpdateServer firmware_update;
 static Preferences stored;
 static Settings settings;
 static const char HEX_[] = "0123456789abcdef";
+// CSI from senders that are not links (neighbours, other routers), counted to see what else is on the air.
+static volatile uint32_t others, others_ht;
+static uint8_t last_other[6];
+static uint32_t others_per_second, others_ht_per_second;
 
 static int device_with_mac(const uint8_t *mac) {
   for (int i = 0; i < MAX_DEVICES; i++)
@@ -103,11 +126,23 @@ static void report(const char *format, ...) {
 }
 
 static void csi_cb(void *ctx, wifi_csi_info_t *info) {
-  int device = info && info->buf && info->len >= 128 ? device_with_mac(info->mac) : -1;
-  if (device < 0) return;
+  if (!info || !info->buf) return;
+  int device = info->len >= 128 ? device_with_mac(info->mac) : -1;
+  if (device < 0) {
+    others++;
+    others_ht += info->rx_ctrl.sig_mode == 1;
+    memcpy(last_other, info->mac, 6);
+    return;
+  }
   // Only one kind of frame per link: 802.11n without STBC. Legacy frames give a different CSI shape,
   // and STBC from a two-antenna sender changes shape packet by packet; mixed in, either looks like motion.
   if (info->rx_ctrl.sig_mode != 1 || info->rx_ctrl.stbc) {
+    devices[device].rejected++;
+    return;
+  }
+  uint16_t &seen = devices[device].lengths[min((int)info->rx_ctrl.sig_len, 511)];
+  if (seen < 65535) seen++;
+  if (settings.ping_len && info->rx_ctrl.sig_len != settings.ping_len) {
     devices[device].rejected++;
     return;
   }
@@ -209,17 +244,26 @@ static void device_left(const uint8_t *mac) {
   report("I,wujud-room,left=" MACSTR ",devices=%d", MAC2STR(mac), connected_devices());
 }
 
+static uint8_t router_mac[6];
+
 static void on_wifi_event(arduino_event_t *event) {
   if (event->event_id == ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED)
     device_joined(event->event_info.wifi_ap_staipassigned.mac, event->event_info.wifi_ap_staipassigned.ip);
   else if (event->event_id == ARDUINO_EVENT_WIFI_AP_STADISCONNECTED)
     device_left(event->event_info.wifi_ap_stadisconnected.mac);
+  else if (event->event_id == ARDUINO_EVENT_WIFI_STA_GOT_IP) {
+    memcpy(router_mac, WiFi.BSSID(), 6);
+    device_joined(router_mac, event->event_info.got_ip.ip_info.gw);
+  } else if (event->event_id == ARDUINO_EVENT_WIFI_STA_DISCONNECTED)
+    device_left(router_mac);
 }
 
 static void load_settings() {
   stored.begin("wujud", false);
   settings.channel = stored.getInt("channel", DEFAULT_CHANNEL);
   settings.ping_hz = stored.getInt("ping_hz", DEFAULT_PING_HZ);
+  settings.no_11b = stored.getInt("no_11b", 1);
+  settings.ping_len = stored.getInt("ping_len", 0);
 }
 
 static bool authorised() {
@@ -236,18 +280,34 @@ static void reboot_soon() {
 
 static void serve_status() {
   String json = "{\"uptime_s\":" + String(millis() / 1000) + ",\"channel\":" + String(settings.channel) +
-                ",\"ping_hz\":" + String(settings.ping_hz) + ",\"free_heap\":" + String(ESP.getFreeHeap()) +
+                ",\"ping_hz\":" + String(settings.ping_hz) +
+                ",\"no_11b\":" + String(settings.no_11b) + ",\"ping_len\":" + String(settings.ping_len) + ",\"free_heap\":" + String(ESP.getFreeHeap()) +
                 ",\"devices\":[";
   bool first = true;
   for (const Device &d : devices) {
     if (!d.connected) continue;
     char entry[120];
-    snprintf(entry, sizeof(entry), "%s{\"mac\":\"" MACSTR "\",\"csi_per_s\":%lu,\"rejected_per_s\":%lu}",
+    snprintf(entry, sizeof(entry), "%s{\"mac\":\"" MACSTR "\",\"csi_per_s\":%lu,\"rejected_per_s\":%lu,\"lengths\":{",
              first ? "" : ",", MAC2STR(d.mac), (unsigned long)d.csi_per_second, (unsigned long)d.rejected_per_second);
     json += entry;
+    int chosen[5] = {-1, -1, -1, -1, -1};
+    for (int shown = 0; shown < 5; shown++) {
+      for (int len = 0; len < 512; len++) {
+        bool taken = false;
+        for (int c : chosen) taken |= c == len;
+        if (!taken && d.lengths[len] && (chosen[shown] < 0 || d.lengths[len] > d.lengths[chosen[shown]]))
+          chosen[shown] = len;
+      }
+      if (chosen[shown] < 0) break;
+      json += String(shown ? "," : "") + "\"" + String(chosen[shown]) + "\":" + String(d.lengths[chosen[shown]]);
+    }
+    json += "}}";
     first = false;
   }
-  web.send(200, "application/json", json + "]}\n");
+  char tail[120];
+  snprintf(tail, sizeof(tail), "],\"others_per_s\":%lu,\"others_ht_per_s\":%lu,\"last_other\":\"" MACSTR "\"}\n",
+           (unsigned long)others_per_second, (unsigned long)others_ht_per_second, MAC2STR(last_other));
+  web.send(200, "application/json", json + tail);
 }
 
 static void serve_set() {
@@ -259,13 +319,21 @@ static void serve_set() {
     stored.putInt("channel", channel);
     changed = true;
   }
+  if (web.hasArg("ping_len")) {
+    stored.putInt("ping_len", web.arg("ping_len").toInt());
+    changed = true;
+  }
+  if (web.hasArg("no_11b")) {
+    stored.putInt("no_11b", web.arg("no_11b").toInt() ? 1 : 0);
+    changed = true;
+  }
   if (web.hasArg("ping_hz")) {
     int hz = web.arg("ping_hz").toInt();
     if (hz < 10 || hz > 500) return web.send(400, "text/plain", "ping_hz must be 10-500\n");
     stored.putInt("ping_hz", hz);
     changed = true;
   }
-  if (!changed) return web.send(400, "text/plain", "nothing to set (channel, ping_hz)\n");
+  if (!changed) return web.send(400, "text/plain", "nothing to set (channel, ping_hz, no_11b, ping_len)\n");
   web.send(200, "text/plain", "saved, rebooting\n");
   reboot_soon();
 }
@@ -276,6 +344,31 @@ static void serve_reboot() {
   reboot_soon();
 }
 
+#ifdef SHARE_INTERNET
+/// Joins the home router; returns its channel, or 0 when it cannot be reached.
+static int join_home() {
+  if (settings.no_11b) {
+    esp_wifi_stop();
+    esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N);
+    esp_err_t err = esp_wifi_config_11b_rate(WIFI_IF_STA, true);
+    esp_wifi_start();
+    report("I,wujud-room,no_11b=1 (%s)", esp_err_to_name(err));
+  }
+  WiFi.begin(HOME_SSID, HOME_PASSWORD);
+  for (uint32_t start = millis(); WiFi.status() != WL_CONNECTED && millis() - start < 20000;) delay(100);
+  return WiFi.status() == WL_CONNECTED ? WiFi.channel() : 0;
+}
+
+static void open_network(int channel) {
+  WiFi.softAPConfig(IPAddress(192, 168, 4, 1), IPAddress(192, 168, 4, 1), IPAddress(255, 255, 255, 0),
+                    IPAddress(192, 168, 4, 2), WiFi.dnsIP());
+  WiFi.softAP(WUJUD_SSID, WUJUD_PASSWORD, channel, 0, MAX_DEVICES);
+  WiFi.AP.enableNAPT(true);
+  report("I,wujud-room,internet via \"%s\" at %s, router " MACSTR, HOME_SSID, WiFi.localIP().toString().c_str(),
+         MAC2STR(router_mac));
+}
+#endif
+
 void setup() {
   pinMode(LED_PIN, OUTPUT);
   load_settings();
@@ -283,9 +376,22 @@ void setup() {
   Serial.begin(921600);
   outgoing = xQueueCreate(48, sizeof(CsiLine));
   WiFi.onEvent(on_wifi_event);
+#ifdef SHARE_INTERNET
+  WiFi.mode(WIFI_AP_STA);
+  xTaskCreate(send_lines, "send_lines", 4096, nullptr, 5, nullptr);
+  int home_channel = join_home();
+  if (home_channel) {
+    settings.channel = home_channel;
+    open_network(home_channel);
+  } else {
+    report("I,wujud-room,cannot reach \"%s\": no internet for the devices", HOME_SSID);
+    WiFi.softAP(WUJUD_SSID, WUJUD_PASSWORD, settings.channel, 0, MAX_DEVICES);
+  }
+#else
   WiFi.mode(WIFI_AP);
   xTaskCreate(send_lines, "send_lines", 4096, nullptr, 5, nullptr);
   WiFi.softAP(WUJUD_SSID, nullptr, settings.channel, 0, MAX_DEVICES);
+#endif
   esp_wifi_set_ps(WIFI_PS_NONE);
 
   wifi_csi_config_t cfg = {};
@@ -314,6 +420,9 @@ void loop() {
       d.csi_lines = 0;
       d.rejected = 0;
     }
+    others_per_second = others;
+    others_ht_per_second = others_ht;
+    others = others_ht = 0;
   }
   delay(2);
 }

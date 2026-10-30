@@ -7,5 +7,6 @@ research/rec
 **/__pycache__
 *.joblib
 research/firmware/*/ota_key.h
+research/firmware/*/home_wifi.h
 research/.venv-rt
 research/firmware/*/build
