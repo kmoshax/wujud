@@ -1,6 +1,5 @@
-//! HallSense model: CSI features, gradient-boosted trees, the occupancy latch and the room/hall/beacon engines.
+//! HallSense model: CSI features, gradient-boosted trees, the occupancy latch and the room and hall engines.
 
-pub mod beacon;
 pub mod error;
 pub mod espectre;
 pub mod features;

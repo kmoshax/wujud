@@ -1,7 +1,6 @@
 """Golden reference data for crates/model (tests in crates/model/tests/).
 
-Writes small .npy/.json files to crates/model/tests/golden/ from REAL recordings (ESPectre ESP32 data, the laptop
-beacon log in rec/) and from the shipped models, run through the Python reference code.
+Writes small .npy/.json files to crates/model/tests/golden/ from REAL recordings (ESPectre ESP32 data) and from the shipped models, run through the Python reference code.
 
     cd research && .venv/bin/python tools/export_golden_model.py
     cd research && .venv/bin/python tools/export_golden_model.py --bench   # + big benchmark arrays in research/cache/
@@ -15,7 +14,6 @@ sys.path.insert(0, HERE)
 os.chdir(HERE)
 from hallsense.roomfeat import (to_grid, amplitude_from_iq, phase_from_iq, windows, phase_windows, profile_windows,
                                 FS_GRID)
-from hallsense.rssifeat import rssi_windows
 from hallsense.occupancy import OccupancyLatch
 
 OUT = os.path.join(HERE, "..", "crates", "model", "tests", "golden")
@@ -75,11 +73,6 @@ def export_features(rec):
         save(f"feat_{name}_phase_head", ph[:HEAD_ROWS])
         save(f"feat_{name}_phase_windows", phase_windows(t, ph))
         save(f"feat_{name}_profile_windows", profile_windows(t, amp))
-        Xr, rr = rssi_windows(t, rssi)
-        save(f"feat_{name}_rssi_windows", Xr); save(f"feat_{name}_rssi_rates", rr)
-        two = np.c_[rssi, np.roll(rssi, 7) + 2.0]
-        Xr2, rr2 = rssi_windows(t, two)
-        save(f"feat_{name}_rssi2_windows", Xr2); save(f"feat_{name}_rssi2_rates", rr2)
 
 
 def random_inputs(m, rng, n=300):
@@ -105,7 +98,7 @@ def export_gbdt(rec):
     real17 = np.vstack([windows(t, amplitude_from_iq(c.reshape(len(c), -1, 2)), r)[0] for t, c, r in rec.values()])
     cases = {}
     for f in ("room_sim_all", "room_sim_no-rssi", "room_activity_esp1_random", "room_activity_esp3_smart",
-              "laptop_rssi", "room_what_moved"):
+              "room_what_moved"):
         m = joblib.load(f"models/{f}.joblib")
         X = random_inputs(m, rng)
         if m.n_features_in_ == 17:
@@ -252,48 +245,6 @@ def export_hall():
     save("hall_windower_mean", m); save("hall_windower_std", s)
 
 
-def export_beacon():
-    import apsense
-    rows = []
-    for line in open("rec/ap_live.csv"):
-        q = line.rstrip("\n").split(",")
-        rows.append((float(q[0]), int(q[1]), q[2], q[3], [int(v) for v in q[4:]]))
-        if rows[-1][0] - rows[0][0] > 330:
-            break
-    rows.pop()
-    with open(os.path.join(OUT, "beacon_rows.csv"), "w") as f:
-        for t, c, b, s, ch in rows:
-            f.write(f"{t:.3f},{c},{b},{s}," + ",".join(map(str, ch)) + "\n")
-    cfg = json.load(open("rec/myroom.json"))
-    out = {}
-    for mode in ("auto", "calibrated"):
-        cal_path = os.path.join(OUT, "_beacon_cal_tmp.json")
-        if os.path.exists(cal_path):
-            os.remove(cal_path)
-        eng = apsense.Engine(cfg, cal_path)
-        clock = [rows[0][0]]
-        apsense.time = types.SimpleNamespace(time=lambda: clock[0])
-        ticks, nxt = [], rows[0][0] + 1
-        plan = [(30, "empty", None, 1), (80, "desk", [1.0, 2.5], 2), (130, "empty", None, 3), (180, "desk", [1.0, 2.5], 4)]
-        for t, c, b, s, ch in rows:
-            while t >= nxt:
-                clock[0] = nxt
-                if mode == "calibrated":
-                    for at, label, xy, _ in plan:
-                        if abs(nxt - (rows[0][0] + at)) < 0.5:
-                            eng.start_cal(label, xy, 15, 2)
-                st = eng.tick(nxt)
-                ticks.append(dict(now=nxt, room=st["room"], link_activity=st["link_activity"], alive=st["alive"],
-                                  t=st["t"], last=dict(m=eng.last["m"], mot=eng.last["mot"], cv=eng.last["cv"],
-                                                       pending=eng.last["pending"], spots=eng.last["spots"])))
-                nxt += 1
-            eng.add(t, c, b, ch)
-        out[mode] = dict(ticks=ticks, calibration=eng.cal)
-        if os.path.exists(cal_path):
-            os.remove(cal_path)
-    save_json("beacon_ticks", dict(config=cfg, **out))
-
-
 def export_metrics():
     from sklearn.metrics import roc_auc_score
     rng = np.random.default_rng(2)
@@ -321,7 +272,6 @@ if __name__ == "__main__":
     export_room_engine(rec)
     export_room_engine_three_links()
     export_hall()
-    export_beacon()
     export_metrics()
     if a.bench:
         export_bench_arrays()

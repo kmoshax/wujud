@@ -1,8 +1,8 @@
 # hallsense-model
 
-Pure logic for HallSense: CSI/RSSI window features, gradient-boosted trees (inference of the exported sklearn
-models and native training), the occupancy latch, and the room, hall and laptop-beacon engines that produce the
-dashboard state every second. No I/O apart from reading model, config and dataset files.
+Pure logic for HallSense: CSI window features, gradient-boosted trees (inference of the exported sklearn
+models and native training), the occupancy latch, the room and hall engines that produce the app's state every
+second, and the motion tracker. No I/O apart from reading model, config and dataset files.
 
 The Python code in `research/` is the reference. Every module below names the Python function it ports, and the
 tests in `tests/` compare the two on real recordings (see "Measured parity").
@@ -11,7 +11,7 @@ tests in `tests/` compare the two on real recordings (see "Measured parity").
 
 | Module | What it does | Python reference |
 |---|---|---|
-| `features` | Per-packet amplitude and sanitized phase from I/Q, 20 Hz grid, 20-s window features (10 core + RSSI wobble + 6 "what moved" + breathing rate), static profile, RSSI-only features | `hallsense/roomfeat.py`, `hallsense/rssifeat.py` |
+| `features` | Per-packet amplitude and sanitized phase from I/Q, 20 Hz grid, 20-s window features (10 core + RSSI wobble + 6 "what moved" + breathing rate), static profile | `hallsense/roomfeat.py` |
 | `spectrum`, `linalg`, `numeric` | NumPy-equivalent FFT, Hann window, PCA, statistics (including NumPy's float32 pairwise sums and median rules) | NumPy |
 | `gbdt` | `Gbdt` inference of exported `HistGradientBoosting*` models, `SeatModelTrees`, model JSON reader/writer, native trainer | sklearn `HistGradientBoostingClassifier/Regressor`, `tools/export_models.py` |
 | `occupancy` | `OccupancyLatch`: motion latches "someone is here", a quiet room is compared with a fresh empty reference | `hallsense/occupancy.py` |
@@ -19,7 +19,7 @@ tests in `tests/` compare the two on real recordings (see "Measured parity").
 | `roomloc` | Physics-only position from which links light up (off by default) | `hallsense/roomloc.py` |
 | `scene` | The `scene` object the dashboard draws | `live.py::room_scene_json`, `hall_scene_json` |
 | `hall` | `HallLayout` (hall config), `Windower` (mesh report lines -> 1-s windows), link features, seat descriptors, `SeatModel`, `HallEngine` | `live.py::load_hall`, `Windower`, `HallEngine`; `hallsense/model.py` |
-| `beacon` | `BeaconEngine`: laptop monitor-mode beacon RSSI -> motion, self-calibrating quiet/moving, or spot classification after a calibration walk | `apsense.py::Engine` |
+| `motion_tracker` | `MotionTracker`: per-link disturbance (CSI) says whether someone moves, RSSI shadowing says which link they are near; a belief over the floor carried over time | (Rust only) |
 | `espectre` | Reader for the ESPectre real ESP32 dataset (`dataset_info.json` + compressed `.npz`) | `bench/occupancy_engine_replay.py::stream`, `bench/phase_exp.py::_real` |
 | `metrics` | ROC AUC (ties count half) and the room benchmark metrics | sklearn `roc_auc_score`, `bench/phase_exp.py::metrics` |
 
@@ -41,11 +41,8 @@ pub fn profile_windows(times: &[f64], amplitude: ArrayView2<f64>, window_seconds
 pub fn window_features(linear_amplitude: ArrayView2<f64>, rate_hz: f64) -> (Vec<f64>, BreathingRate)
 pub fn spectral_features(series: ArrayView2<f64>, rate_hz: f64) -> (Vec<f64>, BreathingRate)
 pub fn extra_features(linear_amplitude: ArrayView2<f64>, rate_hz: f64) -> Vec<f64>
-pub fn rssi_window(grid: ArrayView2<f64>, rate_hz: f64) -> (Vec<f64>, BreathingRate)
-pub fn rssi_windows(times: &[f64], rssi: ArrayView2<f64>, window_seconds: f64, hop_seconds: f64)
-    -> (Vec<Vec<f64>>, Vec<BreathingRate>)
 // constants: GRID_RATE_HZ, WINDOW_SECONDS, HOP_SECONDS, BREATH_BAND_HZ, MICRO_BAND_HZ, NOISE_BAND_HZ,
-// CORE_FEATURE_NAMES, RSSI_COLUMN_NAME, EXTRA_FEATURE_NAMES, PHASE_FEATURE_NAMES, RSSI_FEATURE_NAMES, GLRT_COLUMN_WITH_RSSI
+// CORE_FEATURE_NAMES, RSSI_COLUMN_NAME, EXTRA_FEATURE_NAMES, PHASE_FEATURE_NAMES, GLRT_COLUMN_WITH_RSSI
 ```
 
 ### gbdt
@@ -111,8 +108,8 @@ pub fn locate(link_features: &[Vec<f64>], links: &[(usize, usize)], nodes: &[[f6
 impl Scene { pub fn room(width: f64, depth: f64, height: f64, nodes: &[[f64; 3]],
                          furniture: Vec<serde_json::Value>, roles: Vec<String>) -> Self }
 ```
-`serde_json::to_value(&RoomState)` is the JSON `live.py::publish()` sends (fields read by
-`research/realtime/dashboard3d.html`: `room.state`, `state3`, `breath_bpm`, `xy`, `truth*`, `link_activity`, `alive`, `history`).
+`serde_json::to_value(&RoomState)` is the JSON `live.py::publish()` produces (`room.state`, `state3`, `breath_bpm`,
+`xy`, `truth*`, `link_activity`, `alive`, `history`).
 
 ### hall
 ```rust
@@ -136,21 +133,6 @@ impl HallEngine {
     pub fn new(layout: HallLayout, model: SeatModel, calibration_mean: Array3<f32>, calibration_std: Array3<f32>, mode: &str) -> Self
     pub fn push(&mut self, t_seconds: f64, mean: Array2<f32>, std: Array2<f32>, truth: Option<&[i64]>) -> Result<HallState>
     pub fn evidence(&self) -> Option<SceneEvidence>
-}
-```
-
-### beacon
-```rust
-pub struct BeaconRoom { width, depth, height, laptop, aps: Vec<AccessPoint>, furniture }   // research/rec/myroom.json
-impl BeaconEngine {
-    pub fn new(room: BeaconRoom, calibration: Calibration) -> Self
-    pub fn add(&mut self, t: f64, bssid: &str, chains: &[i64])
-    pub fn start_calibration(&mut self, now: f64, label: &str, xy: Option<[f64; 2]>, seconds: f64, delay: f64)
-    pub fn tick(&mut self, now: f64) -> BeaconState
-    pub fn diagnostics(&self) -> &BeaconDiagnostics                 // Engine.last
-    pub fn calibration(&self) -> &Calibration                       // serialize to save cal.json
-    pub fn spots(&self) -> Vec<SpotSummary>
-    pub fn delete_spot(&mut self, label: &str)
 }
 ```
 
@@ -209,8 +191,8 @@ dataset and `research/rec/`). Run `cargo test -p hallsense-model`; the two ESPec
 | `amplitude_from_iq` | `roomfeat.amplitude_from_iq`, 4 recordings | bit-identical |
 | `to_grid`, `profile_windows` | `roomfeat` | <= 2.2e-15 relative |
 | `phase_from_iq` | `roomfeat.phase_from_iq` | <= 2.9e-14 |
-| `windows` (17 columns), `phase_windows`, `rssi_windows` (1 and 2 chains), odd window lengths | `roomfeat`, `rssifeat` | float32 features identical, RSSI column <= 1.2e-15, breathing rates identical |
-| `Gbdt::predict_proba` | sklearn `predict_proba` / `predict`, 9 models, real windows + branch-edge and NaN inputs | bit-identical |
+| `windows` (17 columns), `phase_windows`, odd window lengths | `roomfeat` | float32 features identical, RSSI column <= 1.2e-15, breathing rates identical |
+| `Gbdt::predict_proba` | sklearn `predict_proba` / `predict`, 8 models, real windows + branch-edge and NaN inputs | bit-identical |
 | `OccupancyLatch` | `occupancy.py`, 3 x 160 steps | states identical, distance within 1 ulp |
 | `RoomEngine` | `live.py::RoomEngine` on the empty -> walk -> still excerpts | 162 / 162 published states identical |
 | `RoomEngine` replay | `results/occupancy_engine_replay.json`, 4 full sessions (1375 s) | `state3` 1375 / 1375 (100 %), latch distance 1375 / 1375 |
@@ -218,7 +200,6 @@ dataset and `research/rec/`). Run `cargo test -p hallsense-model`; the two ESPec
 | `SeatModel::predict` | `SeatModel.predict` | stage-1 / stage-2 probabilities and both counts bit-identical |
 | `HallEngine` | `live.py::HallEngine`, 12 windows | published states identical |
 | `Windower` | `live.py::Windower` | identical |
-| `BeaconEngine` | `apsense.py::Engine`, 329 s real recording, self-calibrating and calibrated modes | every tick and the calibration agree (rounded fields exact, link activity <= 1e-12) |
 | `roc_auc` | sklearn `roc_auc_score` with ties | < 1e-12 |
 
 Native trainer vs sklearn, `bench/phase_exp.py` protocol, "amplitude (current)" (train on the simulation in
@@ -240,8 +221,7 @@ the trainer, not the features.
 - `amplitude_from_iq` divides by the float32 mean summed subcarrier by subcarrier: `a[:, keep]` is not
   C-contiguous, so NumPy does not use its pairwise sum there.
 - `RoomEngine::add` clears a link's buffer when the packet length changes (Python's `np.stack` would raise).
-- `HallEngine::push` and `BeaconEngine` take the time from the caller instead of `time.time()`; saving the
-  beacon calibration (`cal.json`) is left to the caller (`calibration()` is serializable).
+- `HallEngine::push` takes the time from the caller instead of `time.time()`.
 - The ESPectre loader sorts packets with a stable sort (`np.argsort` default is not stable).
 - Trainer: thresholds use unweighted quantiles (sklearn 1.9 weights them by the class weights), gradients are
   f64 (sklearn: f32), and the early-stopping validation split is drawn from `ChaCha8Rng(seed)`, not sklearn's RNG.

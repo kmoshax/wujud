@@ -28,7 +28,6 @@ fn classifiers_match_sklearn() {
         "room_sim_no-rssi",
         "room_activity_esp1_random",
         "room_activity_esp3_smart",
-        "laptop_rssi",
         "room_what_moved",
     ] {
         let model = Gbdt::load(&model_path(&format!("{name}.json"))).unwrap();
@@ -55,6 +54,6 @@ fn json_round_trip_is_exact() {
 
 #[test]
 fn wrong_feature_count_is_an_error() {
-    let model = Gbdt::load(&model_path("laptop_rssi.json")).unwrap();
+    let model = Gbdt::load(&model_path("room_sim_all.json")).unwrap();
     assert!(model.predict_proba(&[0.0; 3]).is_err());
 }

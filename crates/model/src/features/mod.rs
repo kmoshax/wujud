@@ -2,13 +2,11 @@
 
 mod csi;
 mod grid;
-mod rssi;
 mod stream;
 mod window;
 
 pub use csi::{amplitude_from_iq, phase_from_iq, signal_subcarriers};
 pub use grid::to_grid;
-pub use rssi::{rssi_window, rssi_windows, RSSI_FEATURE_NAMES};
 pub use stream::{phase_windows, profile_windows, windows, WindowSet};
 pub use window::{extra_features, spectral_features, window_features, BreathingRate};
 

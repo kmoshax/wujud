@@ -1,13 +1,13 @@
-//! Feature ports against `research/hallsense/{roomfeat,rssifeat}.py` on real ESP32 recordings.
+//! Feature ports against `research/hallsense/roomfeat.py` on real ESP32 recordings.
 
 mod common;
 
 use common::*;
 use hallsense_model::features::{
-    amplitude_from_iq, phase_from_iq, phase_windows, profile_windows, rssi_windows, to_grid,
-    windows, GRID_RATE_HZ, HOP_SECONDS, WINDOW_SECONDS,
+    amplitude_from_iq, phase_from_iq, phase_windows, profile_windows, to_grid, windows,
+    GRID_RATE_HZ, HOP_SECONDS, WINDOW_SECONDS,
 };
-use ndarray::{s, Array2, ArrayView2};
+use ndarray::{s, Array2};
 
 const BIT_EXACT: f64 = 0.0;
 /// Measured: f32-rounded features identical, the f64 RSSI column within 1.2e-15.
@@ -163,37 +163,5 @@ fn phase_and_profile_windows_match() {
         );
         let expected = read_2d::<f64>(&format!("feat_{name}_profile_windows"));
         assert_rows(&format!("{name} profile"), &rows, &expected, GRID_TOLERANCE);
-    }
-}
-
-fn two_chain_rssi(rssi: &[f64]) -> Array2<f64> {
-    let n = rssi.len();
-    Array2::from_shape_fn((n, 2), |(i, chain)| {
-        if chain == 0 {
-            rssi[i]
-        } else {
-            rssi[(i + n - 7) % n] + 2.0
-        }
-    })
-}
-
-#[test]
-fn rssi_windows_match() {
-    for name in RECORDINGS {
-        let recording = recording(name);
-        let one_chain = ArrayView2::from_shape((recording.rssi.len(), 1), &recording.rssi).unwrap();
-        let chains = [
-            ("rssi", one_chain.to_owned()),
-            ("rssi2", two_chain_rssi(&recording.rssi)),
-        ];
-        for (kind, rssi) in chains {
-            let (rows, rates) =
-                rssi_windows(&recording.times, rssi.view(), WINDOW_SECONDS, HOP_SECONDS);
-            let label = format!("{name} {kind}");
-            let expected = read_2d_f32_as_f64(&format!("feat_{name}_{kind}_windows"));
-            assert_rows(&label, &rows, &expected, FEATURE_TOLERANCE);
-            let expected_rates = read_1d::<f64>(&format!("feat_{name}_{kind}_rates")).to_vec();
-            assert_close(&label, &rates, &expected_rates, BIT_EXACT);
-        }
     }
 }
