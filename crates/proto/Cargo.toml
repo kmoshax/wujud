@@ -1,0 +1,17 @@
+[package]
+name = "hallsense-proto"
+description = "Wire format between HallSense ESP32 boards and the host (no_std)"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[features]
+default = ["std"]
+std = []
+
+[dependencies]
+libm.workspace = true
+
+[dev-dependencies]
+serde.workspace = true
+serde_json.workspace = true

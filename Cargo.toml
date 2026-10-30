@@ -1,0 +1,35 @@
+[workspace]
+resolver = "2"
+members = ["crates/proto", "crates/sim", "crates/model", "crates/app", "crates/study"]
+exclude = ["firmware"]
+# firmware/ is its own Cargo project: it targets the ESP32 (RISC-V / Xtensa), not this machine.
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+license = "TBD"   # pick before publishing (see README)
+repository = ""
+
+[workspace.dependencies]
+hallsense-proto = { path = "crates/proto" }
+hallsense-sim = { path = "crates/sim" }
+hallsense-model = { path = "crates/model" }
+anyhow = "1"
+thiserror = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ndarray = "0.16"
+ndarray-npy = { version = "0.9", default-features = false, features = ["compressed_npz"] }
+rustfft = "6"
+num-complex = "0.4"
+rand = "0.8"
+rand_chacha = "0.3"
+rand_distr = "0.4"
+rayon = "1"
+clap = { version = "4", features = ["derive"] }
+libm = "0.2"
+eframe = { version = "0.31", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
+serialport = { version = "4", default-features = false }
+
+[profile.release]
+debug = 1

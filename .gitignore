@@ -1,0 +1,11 @@
+/target
+/firmware/target
+/.toolchain
+research/.venv
+research/cache
+research/rec
+**/__pycache__
+*.joblib
+research/firmware/*/ota_key.h
+research/.venv-rt
+research/firmware/*/build
