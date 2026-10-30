@@ -1,4 +1,4 @@
-"""The README banner: a walking person drawn in CSI hex, the Wi-Fi waves that see them, and the name.
+"""The README banner: a walking person drawn in CSI hex, the Wi-Fi waves that see them, and the name in ASCII.
 
     cd research && .venv/bin/python tools/banner.py   # writes docs/banner.png
 """
@@ -10,10 +10,22 @@ from PIL import Image, ImageDraw, ImageFont
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(HERE, "..", "docs", "banner.png")
 FONT = "/usr/share/fonts/TTF/JetBrainsMonoNLNerdFontMono-Regular.ttf"
-FONT_LIGHT = "/usr/share/fonts/TTF/JetBrainsMonoNLNerdFontMono-Light.ttf"
-WIDTH, HEIGHT = 1600, 560
+WIDTH, HEIGHT = 1720, 560
 CELL_W, CELL_H = 11, 20
 INK, DIM, FAINT = (238, 238, 238), (120, 120, 120), (48, 48, 48)
+# the name in figlet's "univers" lettering, which is dense in the same way as the body
+WORDMARK = r"""
+                               88                      88
+                               ""                      88
+                                                       88
+8b      db      d8 88       88 88 88       88  ,adPPYb,88
+`8b    d88b    d8' 88       88 88 88       88 a8"    `Y88
+ `8b  d8'`8b  d8'  88       88 88 88       88 8b       88
+  `8bd8'  `8bd8'   "8a,   ,a88 88 "8a,   ,a88 "8a,   ,d88
+    YP      YP      `"YbbdP'Y8 88  `"YbbdP'Y8  `"8bbdP"Y8
+                              ,88
+                            888P"
+""".strip("\n").split("\n")
 # light to dense; the dense end is the hex the board prints, so the body is made of CSI
 RAMP = " .'`,:;-~=+*il1r7vcz4f2e6593a0b8d"
 
@@ -78,19 +90,14 @@ def main():
     image = Image.new("RGB", (WIDTH, HEIGHT), (0, 0, 0))
     draw = ImageDraw.Draw(image)
 
-    # faint CSI rain behind everything: real-looking packet lines
-    for row in range(HEIGHT // CELL_H):
-        line = "".join(rng.choice(list("0123456789abcdef")) for _ in range(WIDTH // CELL_W))
-        draw.text((0, row * CELL_H), line, fill=(14, 14, 14), font=font)
-
     # Wi-Fi waves leaving the board on the right and crossing the person
-    board = (1010, 300)
-    for k, radius in enumerate(range(80, 1000, 75)):
+    board = (930, 280)
+    for k, radius in enumerate(range(80, 620, 90)):
         steps = int(radius * 1.6 / CELL_H) + 3
         for angle in np.linspace(np.pi * 0.66, np.pi * 1.34, steps):
             x, y = board[0] + radius * np.cos(angle), board[1] + radius * 0.6 * np.sin(angle)
             if 0 <= x < WIDTH and 0 <= y < HEIGHT:
-                draw.text((x, y), "(", fill=DIM if k < 4 else (72, 72, 72) if k < 8 else FAINT, font=font, anchor="mm")
+                draw.text((x, y), "(", fill=DIM if k < 3 else (72, 72, 72), font=font, anchor="mm")
 
     cols, rows = 52, 27
     person = shade(walking_person(cols * 8, rows * 16))
@@ -101,12 +108,8 @@ def main():
                 draw.text((60 + c * CELL_W, 0 + r * CELL_H), ch, fill=INK, font=font)
 
     draw.text(board, "[esp32]", fill=INK, font=font, anchor="mm")
-    big = ImageFont.truetype(FONT_LIGHT if os.path.exists(FONT_LIGHT) else FONT, 150)
-    draw.text((1120, 230), "wujud", fill=INK, font=big, anchor="lm")
-    small = ImageFont.truetype(FONT, 26)
-    draw.text((1128, 330), "presence, without a camera", fill=DIM, font=small, anchor="lm")
-    tiny = ImageFont.truetype(FONT, 15)
-    draw.text((1128, 372), "wi-fi csi  ·  esp32  ·  physics-trained", fill=(90, 90, 90), font=tiny, anchor="lm")
+    for r, line in enumerate(WORDMARK):
+        draw.text((1060, 180 + r * CELL_H), line, fill=INK, font=font)
     image.save(OUT)
     print(os.path.relpath(OUT))
 
