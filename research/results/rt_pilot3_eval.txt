@@ -1,0 +1,9 @@
+ray-traced: 60 rooms, 1320 windows; old simulator: 22486 windows
+old simulator    SELECTION motion 1.000/0.000  still-vs-empty AUC window 0.546 recording 0.661
+ray-traced       SELECTION motion 0.958/0.000  still-vs-empty AUC window 0.491 recording 0.714
+both             SELECTION motion 1.000/0.000  still-vs-empty AUC window 0.498 recording 0.571
+
+chosen on selection: old simulator
+old simulator    HOLDOUT   motion 1.000/0.000  still-vs-empty AUC window 0.651 recording 0.688
+ray-traced       HOLDOUT   motion 0.894/0.005  still-vs-empty AUC window 0.650 recording 0.729
+both             HOLDOUT   motion 1.000/0.000  still-vs-empty AUC window 0.751 recording 0.833

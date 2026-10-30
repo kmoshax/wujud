@@ -1,0 +1,57 @@
+{
+ "old simulator": {
+  "selection": {
+   "motion_recall": 1.0,
+   "motion_false_alarm": 0.0,
+   "still_vs_empty_auc": 0.545768691701706,
+   "still_vs_empty_auc_recording": 0.6607142857142857,
+   "n_windows": 1011,
+   "n_recordings": 23
+  },
+  "holdout": {
+   "motion_recall": 1.0,
+   "motion_false_alarm": 0.0,
+   "still_vs_empty_auc": 0.6507597340930673,
+   "still_vs_empty_auc_recording": 0.6875,
+   "n_windows": 1044,
+   "n_recordings": 28
+  }
+ },
+ "ray-traced": {
+  "selection": {
+   "motion_recall": 0.75,
+   "motion_false_alarm": 0.0,
+   "still_vs_empty_auc": 0.5777783819051762,
+   "still_vs_empty_auc_recording": 0.7142857142857143,
+   "n_windows": 1011,
+   "n_recordings": 23
+  },
+  "holdout": {
+   "motion_recall": 0.4111111111111111,
+   "motion_false_alarm": 0.004629629629629629,
+   "still_vs_empty_auc": 0.5151784943451609,
+   "still_vs_empty_auc_recording": 0.5416666666666667,
+   "n_windows": 1044,
+   "n_recordings": 28
+  }
+ },
+ "both": {
+  "selection": {
+   "motion_recall": 1.0,
+   "motion_false_alarm": 0.0,
+   "still_vs_empty_auc": 0.5244188294427529,
+   "still_vs_empty_auc_recording": 0.6785714285714285,
+   "n_windows": 1011,
+   "n_recordings": 23
+  },
+  "holdout": {
+   "motion_recall": 1.0,
+   "motion_false_alarm": 0.0,
+   "still_vs_empty_auc": 0.700482387982388,
+   "still_vs_empty_auc_recording": 0.7708333333333334,
+   "n_windows": 1044,
+   "n_recordings": 28
+  }
+ },
+ "chosen_on_selection": "ray-traced"
+}

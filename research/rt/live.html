@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>wujud · live ray tracing</title>
+<style>
+  /* raw, debug-overlay look: text straight on the scene, no cards, no rounding */
+  :root { --bg: #000; --ink: #e6e6e6; --dim: #7a7a7a; --accent: #7fd7ff; }
+  * { box-sizing: border-box; border-radius: 0 !important; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 14px/1.35 "JetBrains Mono", "Iosevka", ui-monospace, monospace; overflow: hidden; }
+  #view { position: fixed; inset: 0; }
+  .panel { position: fixed; background: none; border: none; padding: 0; text-shadow: 0 0 3px #000, 1px 1px 0 #000; }
+  #info { top: 12px; left: 14px; min-width: 300px; }
+  #info h1 { margin: 0 0 6px; font-size: 14px; font-weight: 700; }
+  #info h1 span { color: var(--accent); }
+  .row { display: flex; justify-content: space-between; gap: 18px; color: var(--dim); }
+  .row b { color: var(--ink); font-weight: 400; }
+  .bar { height: 2px; background: #222; margin-top: 6px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+  #workers { margin-top: 8px; display: flex; gap: 12px; flex-wrap: wrap; }
+  #workers button { background: none; color: var(--dim); border: none; padding: 0; font: inherit; cursor: pointer; }
+  #workers button::before { content: "[ "; } #workers button::after { content: " ]"; }
+  #workers button.on { color: var(--accent); }
+  #csi { right: 14px; bottom: 12px; width: 360px; }
+  #csi canvas { width: 100%; height: 56px; display: block; margin-top: 4px; image-rendering: pixelated; background: #050505; outline: 1px solid #1c1c1c; }
+  .label { color: var(--dim); font-size: 12px; }
+  #legend { left: 14px; bottom: 12px; font-size: 12px; color: var(--dim); }
+  #legend i { display: inline-block; width: 9px; height: 9px; margin: 0 6px -1px 12px; }
+  #legend i:first-child { margin-left: 0; }
+  #wait { position: fixed; inset: 0; display: grid; place-items: center; color: var(--dim); }
+</style>
+</head>
+<body>
+<div id="view"></div>
+<div id="wait">waiting for a generator… (run generate.py with --live)</div>
+<div class="panel" id="info">
+  <h1><span>wujud</span> :: ray tracer</h1>
+  <div class="row">world <b id="world">–</b></div>
+  <div class="row">kind <b id="kind">–</b></div>
+  <div class="row">measured person <b id="activity">–</b></div>
+  <div class="row">elsewhere <b id="others">–</b></div>
+  <div class="row">paths shown <b id="paths">–</b></div>
+  <div class="row">updated <b id="age">–</b></div>
+  <div class="bar"><i id="progress"></i></div>
+  <div id="workers"></div>
+</div>
+<div class="panel" id="csi">
+  <div class="label">csi amplitude / link   (newest →)</div>
+  <div id="csiCanvases"></div>
+</div>
+<div class="panel" id="legend">
+  <i style="background:#7fd7ff"></i>measured person
+  <i style="background:#ffb27a"></i>others
+  <i style="background:#ffffff"></i>rays (brighter = stronger)
+  <i style="background:#c9d3de"></i>metal
+  <i style="background:#9ad1ff;opacity:.5"></i>glass
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+               "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+const MATERIAL_COLOURS = {
+  concrete: 0x4a4f57, brick: 0x8a4c3c, plasterboard: 0xb9b4aa, glass: 0x9ad1ff, wood: 0x8b5e3c,
+  chipboard: 0xa0835f, metal: 0xc9d3de, marble: 0xd8d4cc, body: 0xd9a58a,
+};
+const params = new URLSearchParams(location.search);
+let worker = params.get("worker") || "0";
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(devicePixelRatio);
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+document.getElementById("view").appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x07090c);
+scene.fog = new THREE.Fog(0x07090c, 18, 60);
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.05, 200);
+camera.up.set(0, 0, 1);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+scene.add(new THREE.HemisphereLight(0xbfd8ff, 0x1a1410, 0.9));
+const sun = new THREE.DirectionalLight(0xffffff, 1.4);
+sun.position.set(-6, -8, 14);
+scene.add(sun);
+
+const worldGroup = new THREE.Group(), peopleGroup = new THREE.Group(), rayGroup = new THREE.Group(), radioGroup = new THREE.Group();
+scene.add(worldGroup, peopleGroup, rayGroup, radioGroup);
+let worldKey = null, rayCurves = [];
+const unitBox = new THREE.BoxGeometry(1, 1, 1);
+
+function material(name, boxName) {
+  const colour = MATERIAL_COLOURS[name] ?? 0x777777;
+  const wall = /^(wall|inner|floor|ceiling|step)/.test(boxName);
+  const glassy = name === "glass";
+  return new THREE.MeshStandardMaterial({
+    color: colour, roughness: name === "metal" ? 0.25 : 0.85, metalness: name === "metal" ? 0.8 : 0.0,
+    transparent: wall || glassy, opacity: glassy ? 0.25 : wall ? 0.18 : 1.0, depthWrite: !(wall || glassy),
+  });
+}
+
+function buildWorld(world) {
+  worldGroup.clear(); radioGroup.clear();
+  for (const b of world.boxes) {
+    if (b.name === "ceiling") continue;
+    const mesh = new THREE.Mesh(unitBox, material(b.material, b.name));
+    mesh.scale.set(...b.size);
+    mesh.position.set(...b.centre);
+    worldGroup.add(mesh);
+    if (/^(wall|inner)/.test(b.name)) {
+      const edges = new THREE.LineSegments(new THREE.EdgesGeometry(unitBox), new THREE.LineBasicMaterial({ color: 0x3a4250, transparent: true, opacity: 0.6 }));
+      edges.scale.copy(mesh.scale); edges.position.copy(mesh.position);
+      worldGroup.add(edges);
+    }
+  }
+  const [x0, y0, x1, y1] = world.walkable;
+  const area = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, y1 - y0), new THREE.MeshBasicMaterial({ color: 0x7fd7ff, transparent: true, opacity: 0.07 }));
+  area.position.set((x0 + x1) / 2, (y0 + y1) / 2, 0.01);
+  worldGroup.add(area);
+  const radio = (p, colour, size) => {
+    const s = new THREE.Mesh(new THREE.SphereGeometry(size, 24, 16), new THREE.MeshBasicMaterial({ color: colour }));
+    s.position.set(...p);
+    const glow = new THREE.PointLight(colour, 1.5, 3);
+    glow.position.copy(s.position);
+    radioGroup.add(s, glow);
+  };
+  radio(world.hub, 0xffffff, 0.07);
+  world.devices.forEach(d => radio(d, 0x7fd7ff, 0.055));
+  const cx = world.width / 2, cy = world.depth / 2, span = Math.max(world.width, world.depth);
+  camera.position.set(cx - span * 0.9, cy - span * 1.1, span * 0.95);
+  controls.target.set(cx, cy, 0.8);
+}
+
+// People keep their meshes between updates and glide to each new pose, so motion looks continuous
+// even though the tracer reports a few poses a second.
+const bodies = [];
+function buildPeople(people) {
+  people.forEach((parts, k) => {
+    if (!bodies[k]) {
+      const colour = k === 0 ? 0x7fd7ff : 0xffb27a;
+      const mat = new THREE.MeshStandardMaterial({ color: colour, emissive: colour, emissiveIntensity: 0.35, roughness: 0.6 });
+      bodies[k] = parts.map(() => { const m = new THREE.Mesh(unitBox, mat); m.rotation.order = "ZYX"; peopleGroup.add(m); return { mesh: m, target: null }; });
+    }
+    parts.forEach((p, i) => {
+      const part = bodies[k][i], hidden = p.centre[2] < -10;
+      part.mesh.visible = !hidden;
+      const target = { position: new THREE.Vector3(...p.centre), scale: new THREE.Vector3(...p.size),
+                       rotation: new THREE.Quaternion().setFromEuler(new THREE.Euler(p.orientation[2], p.orientation[1], p.orientation[0], "ZYX")) };
+      if (!part.target || hidden) { part.mesh.position.copy(target.position); part.mesh.scale.copy(target.scale); part.mesh.quaternion.copy(target.rotation); }
+      part.target = target;
+    });
+  });
+}
+
+function glide(dt) {
+  const k = 1 - Math.exp(-dt * 12);
+  for (const body of bodies) for (const part of body || []) {
+    if (!part.target) continue;
+    part.mesh.position.lerp(part.target.position, k);
+    part.mesh.scale.lerp(part.target.scale, k);
+    part.mesh.quaternion.slerp(part.target.rotation, k);
+  }
+}
+
+function buildRays(rays) {
+  rayGroup.clear(); rayCurves = [];
+  if (!rays || !rays.length) return;
+  const best = rays[0].db;
+  for (const r of rays) {
+    const strength = Math.max(0, Math.min(1, 1 + (r.db - best) / 30));
+    const points = r.points.map(p => new THREE.Vector3(...p));
+    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),
+      new THREE.LineBasicMaterial({ color: new THREE.Color().setHSL(0.55, 0.6, 0.35 + 0.55 * strength), transparent: true, opacity: 0.15 + 0.75 * strength, blending: THREE.AdditiveBlending }));
+    rayGroup.add(line);
+    const curve = new THREE.CurvePath();
+    for (let i = 0; i + 1 < points.length; i++) curve.add(new THREE.LineCurve3(points[i], points[i + 1]));
+    const pulse = new THREE.Mesh(new THREE.SphereGeometry(0.025 + 0.025 * strength, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4 + 0.6 * strength }));
+    rayGroup.add(pulse);
+    rayCurves.push({ curve, pulse, offset: Math.random(), speed: 0.25 + 0.5 * strength });
+  }
+}
+
+const history = [];
+function drawCsi(csi) {
+  const holder = document.getElementById("csiCanvases");
+  while (holder.children.length < csi.length) {
+    const c = document.createElement("canvas"); c.width = 160; c.height = 52; holder.appendChild(c);
+  }
+  while (holder.children.length > csi.length) holder.lastChild.remove();
+  history.push(csi); if (history.length > 160) history.shift();
+  csi.forEach((_, link) => {
+    const canvas = holder.children[link], ctx = canvas.getContext("2d");
+    const img = ctx.createImageData(canvas.width, canvas.height);
+    const column = history.map(h => h[link] || []);
+    const all = column.flat(); const lo = Math.min(...all), hi = Math.max(...all);
+    for (let x = 0; x < column.length; x++) {
+      const values = column[x], col = canvas.width - column.length + x;
+      values.forEach((v, k) => {
+        const t = (v - lo) / Math.max(1e-6, hi - lo), i = ((canvas.height - 1 - k) * canvas.width + col) * 4;
+        img.data[i] = 20 + 120 * t * t; img.data[i + 1] = 30 + 190 * t; img.data[i + 2] = 50 + 205 * Math.sqrt(t); img.data[i + 3] = 255;
+      });
+    }
+    ctx.putImageData(img, 0, 0);
+  });
+}
+
+async function poll() {
+  try {
+    const response = await fetch(`../cache/live/worker${worker}.json?${Date.now()}`, { cache: "no-store" });
+    if (response.ok) {
+      const s = await response.json();
+      document.getElementById("wait").style.display = "none";
+      const key = `${s.world_index}`;
+      if (key !== worldKey) { worldKey = key; buildWorld(s.world); history.length = 0; peopleGroup.clear(); bodies.length = 0; }
+      buildPeople(s.people); buildRays(s.rays); drawCsi(s.csi);
+      document.getElementById("world").textContent = `#${s.world_index}`;
+      document.getElementById("kind").textContent = s.kind === "hall" ? "lecture hall" : "room in a flat";
+      document.getElementById("activity").textContent = s.activity;
+      document.getElementById("others").textContent = s.people.length - 1 > 0 ? `${s.people.filter((p, k) => k && p[0].centre[2] > -10).length} moving` : "nobody";
+      document.getElementById("paths").textContent = s.rays ? s.rays.length : 0;
+      document.getElementById("age").textContent = `${Math.max(0, Date.now() / 1000 - s.time).toFixed(1)} s ago`;
+      document.getElementById("progress").style.width = `${100 * s.frame / Math.max(1, s.frames)}%`;
+    }
+  } catch (e) { /* the file is being replaced: try again next tick */ }
+  setTimeout(poll, 120);
+}
+
+async function listWorkers() {
+  const holder = document.getElementById("workers");
+  for (let k = 0; k < 8; k++) {
+    const r = await fetch(`../cache/live/worker${k}.json`, { method: "HEAD", cache: "no-store" }).catch(() => null);
+    if (!r || !r.ok) continue;
+    const b = document.createElement("button"); b.textContent = `worker ${k}`;
+    b.className = `${k}` === worker ? "on" : "";
+    b.onclick = () => { worker = `${k}`; worldKey = null; [...holder.children].forEach(c => c.className = ""); b.className = "on"; };
+    holder.appendChild(b);
+  }
+}
+
+addEventListener("resize", () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+let lastFrame = 0;
+renderer.setAnimationLoop(t => {
+  glide(Math.min(0.1, (t - lastFrame) / 1000)); lastFrame = t;
+  for (const r of rayCurves) r.pulse.position.copy(r.curve.getPointAt(((t / 1000) * r.speed + r.offset) % 1));
+  controls.update();
+  renderer.render(scene, camera);
+});
+poll(); listWorkers();
+</script>
+</body>
+</html>
