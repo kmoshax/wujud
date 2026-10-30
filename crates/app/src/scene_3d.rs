@@ -1,9 +1,9 @@
 use std::f32::consts::TAU;
 
 use eframe::egui::{self, Color32, Mesh, Pos2, Rect, Sense, Shape, Stroke, Vec2};
-use hallsense_model::motion_tracker::Track;
-use hallsense_model::room::{Pose, RoomState, RoomState3};
-use hallsense_model::scene::Scene;
+use wujud_model::motion_tracker::Track;
+use wujud_model::room::{Pose, RoomState, RoomState3};
+use wujud_model::scene::Scene;
 
 use crate::camera::{add, lerp, Camera, Point3, Projection};
 use crate::sensor_feed::SimulatedTruth;

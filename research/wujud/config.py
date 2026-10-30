@@ -1,4 +1,4 @@
-"""Central constants for HallSense.
+"""Central constants for wujud.
 
 Target hardware: ESP32 / ESP32-S3, 2.4 GHz HT20, CSI from the L-LTF
 (52 data subcarriers, indices -26..-1, 1..26), int8 I/Q, RSSI in dBm.

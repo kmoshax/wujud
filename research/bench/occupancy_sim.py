@@ -11,10 +11,10 @@ from multiprocessing import Pool
 import numpy as np
 import joblib
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from hallsense.scenes3d import random_room, ACTIVITIES
-from hallsense.sim3d import simulate_room
-from hallsense.roomfeat import windows, amplitude_from_iq, profile_windows, WIN_S, HOP_S, FS_GRID
-from hallsense.occupancy import OccupancyLatch
+from wujud.scenes3d import random_room, ACTIVITIES
+from wujud.sim3d import simulate_room
+from wujud.roomfeat import windows, amplitude_from_iq, profile_windows, WIN_S, HOP_S, FS_GRID
+from wujud.occupancy import OccupancyLatch
 
 KNOBS = json.load(open("results/sim_calibrate.json"))["chosen_knobs"]
 NA = 17

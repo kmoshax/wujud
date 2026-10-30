@@ -1,6 +1,6 @@
-# hallsense-model
+# wujud-model
 
-Pure logic for HallSense: CSI window features, gradient-boosted trees (inference of the exported sklearn
+Pure logic for wujud: CSI window features, gradient-boosted trees (inference of the exported sklearn
 models and native training), the occupancy latch, the room and hall engines that produce the app's state every
 second, and the motion tracker. No I/O apart from reading model, config and dataset files.
 
@@ -11,21 +11,21 @@ tests in `tests/` compare the two on real recordings (see "Measured parity").
 
 | Module | What it does | Python reference |
 |---|---|---|
-| `features` | Per-packet amplitude and sanitized phase from I/Q, 20 Hz grid, 20-s window features (10 core + RSSI wobble + 6 "what moved" + breathing rate), static profile | `hallsense/roomfeat.py` |
+| `features` | Per-packet amplitude and sanitized phase from I/Q, 20 Hz grid, 20-s window features (10 core + RSSI wobble + 6 "what moved" + breathing rate), static profile | `wujud/roomfeat.py` |
 | `spectrum`, `linalg`, `numeric` | NumPy-equivalent FFT, Hann window, PCA, statistics (including NumPy's float32 pairwise sums and median rules) | NumPy |
 | `gbdt` | `Gbdt` inference of exported `HistGradientBoosting*` models, `SeatModelTrees`, model JSON reader/writer, native trainer | sklearn `HistGradientBoostingClassifier/Regressor`, `tools/export_models.py` |
-| `occupancy` | `OccupancyLatch`: motion latches "someone is here", a quiet room is compared with a fresh empty reference | `hallsense/occupancy.py` |
+| `occupancy` | `OccupancyLatch`: motion latches "someone is here", a quiet room is compared with a fresh empty reference | `wujud/occupancy.py` |
 | `room` | `RoomEngine`: router -> board CSI links in, one `RoomState` per second out (activity model, smoothing, breathing override, latch, pose, breathing rate) | `live.py::RoomEngine` |
-| `roomloc` | Physics-only position from which links light up (off by default) | `hallsense/roomloc.py` |
+| `roomloc` | Physics-only position from which links light up (off by default) | `wujud/roomloc.py` |
 | `scene` | The `scene` object the dashboard draws | `live.py::room_scene_json`, `hall_scene_json` |
-| `hall` | `HallLayout` (hall config), `Windower` (mesh report lines -> 1-s windows), link features, seat descriptors, `SeatModel`, `HallEngine` | `live.py::load_hall`, `Windower`, `HallEngine`; `hallsense/model.py` |
+| `hall` | `HallLayout` (hall config), `Windower` (mesh report lines -> 1-s windows), link features, seat descriptors, `SeatModel`, `HallEngine` | `live.py::load_hall`, `Windower`, `HallEngine`; `wujud/model.py` |
 | `motion_tracker` | `MotionTracker`: per-link disturbance (CSI) says whether someone moves, RSSI shadowing says which link they are near; a belief over the floor carried over time | (Rust only) |
 | `espectre` | Reader for the ESPectre real ESP32 dataset (`dataset_info.json` + compressed `.npz`) | `bench/occupancy_engine_replay.py::stream`, `bench/phase_exp.py::_real` |
 | `metrics` | ROC AUC (ties count half) and the room benchmark metrics | sklearn `roc_auc_score`, `bench/phase_exp.py::metrics` |
 
 ## Public API
 
-All fallible functions return `hallsense_model::Result<T>` with `ModelError` (`Io`, `Json`, `Npz`,
+All fallible functions return `wujud_model::Result<T>` with `ModelError` (`Io`, `Json`, `Npz`,
 `InvalidModel`, `FeatureCount`, `InvalidTrainingData`).
 
 ### features
@@ -71,7 +71,7 @@ pub struct TrainOptions { max_iter, learning_rate, max_leaf_nodes, min_samples_l
 pub enum EarlyStopping { Auto, On, Off }
 pub fn train_classifier(x: ArrayView2<f64>, y: &[i64], options: &TrainOptions) -> Result<Gbdt>
 pub fn train_regressor(x: ArrayView2<f64>, y: &[f64], options: &TrainOptions) -> Result<Gbdt>
-// constants: FORMAT = "hallsense-gbdt-v2", SEAT_MODEL_FORMAT = "hallsense-seat-model-v1"
+// constants: FORMAT = "wujud-gbdt-v2", SEAT_MODEL_FORMAT = "wujud-seat-model-v1"
 ```
 `TrainOptions::default()` has sklearn's defaults (100 iterations, learning rate 0.1, 31 leaves, 20 samples per
 leaf, early stopping above 10 000 samples, 10 % validation, 10 rounds without change, tol 1e-7).
@@ -155,7 +155,7 @@ pub fn room_metrics(model: &Gbdt, recordings: &[LabelledWindows], columns: &[usi
 `research/tools/export_models.py` writes every `research/models/*.joblib` to `models/*.json`:
 
 ```json
-{"format": "hallsense-gbdt-v2", "source": "models/room_sim_all.joblib",
+{"format": "wujud-gbdt-v2", "source": "models/room_sim_all.joblib",
  "loss": "multinomial" | "binomial" | "squared_error",
  "n_features": 17, "classes": [0, 1, 2] | null, "baseline": [b0, b1, b2], "trees_per_iteration": 3,
  "iterations": [[tree, tree, tree], ...]}
@@ -177,14 +177,14 @@ Compared with the first layout (one entry per node with `-1` features and zero t
 23 % smaller: the nine shipped models went from 19 MB to 14 MB with identical predictions.
 
 The hall model (`hall3d.json`) wraps three of these:
-`{"format": "hallsense-seat-model-v1", "source": ..., "stage1": gbdt, "stage2": gbdt, "count": gbdt}`.
+`{"format": "wujud-seat-model-v1", "source": ..., "stage1": gbdt, "stage2": gbdt, "count": gbdt}`.
 
 ## Measured parity
 
 Golden data: `research/tools/export_golden_model.py` (4.84 MB in `tests/golden/`, recordings from the ESPectre
-dataset and `research/rec/`). Run `cargo test -p hallsense-model`; the two ESPectre tests need the dataset
+dataset and `research/rec/`). Run `cargo test -p wujud-model`; the two ESPectre tests need the dataset
 (`ESPECTRE_DATA`, default `~/Projects/ext/espectre/data`) and run with
-`cargo test --release -p hallsense-model --test espectre_data -- --ignored`.
+`cargo test --release -p wujud-model --test espectre_data -- --ignored`.
 
 | What | Compared with | Result |
 |---|---|---|

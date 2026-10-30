@@ -1,14 +1,14 @@
-//! Hall seat model, engine and windower against `research/hallsense/model.py` and `research/live.py`.
+//! Hall seat model, engine and windower against `research/wujud/model.py` and `research/live.py`.
 
 mod common;
 
 use common::*;
-use hallsense_model::hall::{
+use ndarray::{Array2, Array3, Axis, Ix3};
+use serde_json::Value;
+use wujud_model::hall::{
     distance_bins, link_features, scene_vector, seat_descriptor, HallEngine, HallLayout,
     SceneEvidence, SeatModel, Windower, LINK_FEATURE_NAMES,
 };
-use ndarray::{Array2, Array3, Axis, Ix3};
-use serde_json::Value;
 
 fn read_3d(name: &str) -> Array3<f32> {
     read_npy::<f32>(name).into_dimensionality::<Ix3>().unwrap()

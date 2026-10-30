@@ -17,7 +17,7 @@ from sklearn.ensemble import HistGradientBoostingClassifier
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from bench.phase_exp import CLASS, NA, ROOT, _real, metrics  # noqa: E402
-from hallsense.roomfeat import amplitude_from_iq, windows  # noqa: E402
+from wujud.roomfeat import amplitude_from_iq, windows  # noqa: E402
 
 
 def ray_traced_session(path):

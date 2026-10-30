@@ -120,7 +120,7 @@ def profile_windows(t, amp, win_s=WIN_S, hop_s=HOP_S):
     """the room's STATIC fingerprint per window: mean amplitude (dB) of every subcarrier, [W, K'].
     A body standing or sitting somewhere reshapes the multipath, so this profile moves when someone stays in the
     room, even if they don't move at all. It also drifts over hours and days, so it is only compared with a
-    reference taken minutes earlier (hallsense/occupancy.py), never with a stored calibration."""
+    reference taken minutes earlier (wujud/occupancy.py), never with a stored calibration."""
     G = to_grid(t, amp)
     w, h = int(win_s * FS_GRID), int(hop_s * FS_GRID)
     out = [20 * np.log10(np.maximum(G[s:s + w], 1e-3)).mean(0) for s in range(0, len(G) - w + 1, h)]

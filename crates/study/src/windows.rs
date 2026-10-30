@@ -1,16 +1,16 @@
 //! Window features of one link, also when the link hops over several channels.
 //!
-//! With one channel this is exactly `hallsense_model::features::windows` + `profile_windows`. With N channels
+//! With one channel this is exactly `wujud_model::features::windows` + `profile_windows`. With N channels
 //! each channel's packets are turned into amplitude and put on the 20 Hz grid separately, and the grids are
 //! placed side by side as N × K subcarriers; RSSI is centred per channel before its wobble is measured.
 
-use hallsense_model::features::{
+use ndarray::{concatenate, s, Array2, ArrayView2, Axis};
+use wujud_model::features::{
     amplitude_from_iq, extra_features, to_grid, window_features, GRID_RATE_HZ, HOP_SECONDS,
     WINDOW_SECONDS,
 };
-use hallsense_model::numeric::{median, std};
-use hallsense_sim::capture::Capture;
-use ndarray::{concatenate, s, Array2, ArrayView2, Axis};
+use wujud_model::numeric::{median, std};
+use wujud_sim::capture::Capture;
 
 pub const GLRT_COLUMN: usize = 16;
 

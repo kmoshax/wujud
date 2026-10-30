@@ -112,7 +112,7 @@ pub fn for_each_room_scene(
         .for_each(|seed| sink(room_scene(config, seed)));
 }
 
-/// How random hall scenes are drawn (defaults: research/hallsense/dataset3d.py).
+/// How random hall scenes are drawn (defaults: research/wujud/dataset3d.py).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct HallDatasetConfig {
     /// Each hall gets one of these node counts at random.

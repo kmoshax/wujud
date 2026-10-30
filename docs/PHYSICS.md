@@ -2,7 +2,7 @@
 
 الصفحة دي للي عايز يتأكد إن المحاكاة مش "رسمة حلوة". كل معادلة هنا موجودة في الكود زي ما هي، وتحت كل واحدة اسم الملف والدالة اللي بتنفّذها. والأرقام هي القيم الحقيقية اللي المحاكي بيسحب منها عشوائيًا. الترتيب ماشي زي الإشارة نفسها: من الهوائي، للأوضة، للجسم، لحد الـ ESP32، وبعدين الموديل.
 
-> أسامي الملفات هنا من النسخة الأصلية بالـ Python (`research/hallsense/`). نفس المعادلات منقولة لـ Rust في `crates/sim`، والـ README بتاعه بيقول كل معادلة اتنقلت فين.
+> أسامي الملفات هنا من النسخة الأصلية بالـ Python (`research/wujud/`). نفس المعادلات منقولة لـ Rust في `crates/sim`، والـ README بتاعه بيقول كل معادلة اتنقلت فين.
 
 
 ## أ١. القناة: الـ CSI عبارة عن مجموع مسارات
@@ -25,7 +25,7 @@ H(f, t) = Σ_k F_k(t) · g_k · λ / (4π L_k) · e^(−j2π f L_k/c) + H_clutte
 
 **الفكرة ببساطة:** عرض النطاق حوالي 17.5 MHz، يعني دقة التأخير حوالي 1/17.5MHz ≈ 57 ns، وده يساوي ~17 م من المسافة. عشان كده الـ ESP32 مش بيقدر يفصل المسارات عن بعض جوه أوضة. اللي بيشوفه هو "نمط تداخل" على الـ subcarriers، والإنسان بيغيّر النمط ده. وده بالظبط اللي بنحاكيه.
 
-الكود: `hallsense/config.py · hallsense/physics3d.py → path_response(), link_channel()`
+الكود: `wujud/config.py · wujud/physics3d.py → path_response(), link_channel()`
 
 ## أ٢. الانعكاسات: طريقة الصور (Image method)
 
@@ -37,7 +37,7 @@ a′ = (2x_w − a_x, a_y, a_z), P = a′ + t (b − a′), t = (x_w − a′_x)
 
 بنعمل ده لأربع حيطان والأرض والسقف، فيطلع لكل لينك **7 مسارات هندسية**: الخط المستقيم و6 انعكاسات من أول رتبة. الطريقة دي أصلها من صوتيات الأوض [1]. وكل مسار بيتخزن كخط مكسور ثلاثي الأبعاد، عشان نقدر بعدين نشوف لو حد واقف على أي جزء منه.
 
-الكود: `hallsense/physics3d.py → link_paths3()`
+الكود: `wujud/physics3d.py → link_paths3()`
 
 ## أ٣. الـ multipath المنتشر: مسارات عشوائية لكن ليها هندسة
 
@@ -55,7 +55,7 @@ P_k ∝ exp(−(L_k − d) / (c·τ_rms)), Σ_k P_k = (λ/4πd)^(2) · 10^(−K/
 
 **ليه ده مهم؟** لأن كل مسار منتشر ليه مكان، فحد ماشي في أي حتة في الأوضة هيحجب كام مسار منهم. الحتة دي اتضافت بعد ما الداتا الحقيقية وضّحت إن الحركة بتبان من أي مكان، والمحاكي القديم ما كانش بيشوفها.
 
-الكود: `hallsense/physics3d.py → diffuse_paths()`
+الكود: `wujud/physics3d.py → diffuse_paths()`
 
 ## أ٤. الجسم بيحجب: حيود Fresnel-Kirchhoff على عائق مستطيل
 
@@ -87,7 +87,7 @@ u_1,2 = (h ∓ w_h)·k_F, v_1,2 = (v ∓ w_v)·k_F, k_F = √( 2L / (λ d_1(L �
 
 لما يكون فيه أكتر من جسم، المعاملات بتتضرب في بعض. وأي جسم يبعد أكتر من 3.5 وحدة Fresnel عن المسار بيتشال من الحساب عشان السرعة. التكامل ده منفصل في الاتجاهين، فبيدّي النتيجة الدقيقة لحافتين مستقيمتين (knife-edge) [2][3]، وأسرع بكتير من ray-tracing كامل. وده نفس الحساب اللي ورا الرسمة التفاعلية في القسم ٢-أ.
 
-الكود: `hallsense/physics3d.py → segment_shadow(), _I()`
+الكود: `wujud/physics3d.py → segment_shadow(), _I()`
 
 ## أ٥. التنفس والحركات الصغيرة: من المليمتر للزاوية
 
@@ -115,7 +115,7 @@ H_scat(f,t) = λ√σ / ((4π)^(3/2) d_1 d_2) · e^(−j2π f L_0/c) · e^(−j2
 
 - **walk**: المشي بسرعة 0.5–1.2 م/ث لنقط عشوائية. الدكتور بيمشي قدام المدرج بـ 0.3–0.9 م/ث وبيقف فترات أُسّية
 
-الكود: `hallsense/physics3d.py → scatter_series() · hallsense/scenes3d.py → room_person(), seated_bodies(), lecturer(), _ou()`
+الكود: `wujud/physics3d.py → scatter_series() · wujud/scenes3d.py → room_person(), seated_bodies(), lecturer(), _ou()`
 
 ### ليه التنفس ساعات بيبان وساعات لأ؟ (نموذج الـ phasor)
 
@@ -137,7 +137,7 @@ N̂ ≈ (α S / 0.4) · (10^(−Δ/10) − 1), Δ = shadow (dB, session − cali
 
 الـ feature دي (S·(10<sup>−Δ/10</sup>−1)) داخلة فعلًا في موديل العدّ.
 
-الكود: `hallsense/sim3d.py → _absorb(), simulate_hall3() · hallsense/model.py → scene_vector()`
+الكود: `wujud/sim3d.py → _absorb(), simulate_hall3() · wujud/model.py → scene_vector()`
 
 ## أ٧. ورا الحيطة: توهين + "فلاش" ثابت
 
@@ -147,7 +147,7 @@ H_wall(f,t) = 10^(−L_w/20) · H_room(f,t) + H_flash(f), H_flash = Σ_m=1..6 g_
 
 L<sub>w</sub> هو توهين الحيطة من 0 لـ 40 dB، وقيمه مأخوذة من Wi-Vi [6]. والـ "flash" هو انعكاسات من على وش الحيطة وتسريب حواليها: 6 مسارات ثابتة بتأخير زيادة τ<sub>m</sub> ∈ [5, 60] ns، وكسب g<sub>m</sub> مركّب Gaussian على مقياس ~0.35× الفضاء الحر. الفلاش ما بيتأثرش بالحيطة، فكل ما الحيطة تتخن، تعديل الشخص بيغرق تحت الفلاش والضوضاء. ومن هنا بييجي الحد العملي اللي ~18 dB للتنفس.
 
-الكود: `hallsense/sim3d.py → simulate_room(wall_db=…)`
+الكود: `wujud/sim3d.py → simulate_room(wall_db=…)`
 
 ## أ٨. عيوب الـ ESP32: من رقم مثالي لـ int8
 
@@ -175,7 +175,7 @@ RSSI = round(10 log_10 P_rx + b(t) + 𝒩(0, 0.5)), IQ = clip(round(Y · g_AGC/�
 
 **ملحوظة صريحة:** المحاكي **ما بيحاكيش** الـ CFO/STO (إزاحة التردد والتوقيت اللي بتخلّي الطور عشوائي من packet للتانية). ده مقصود، لأن كل الـ pipeline بيستخدم الـ amplitude بس، |CSI|، وبيطبّعه لكل packet على حدة. يعني الطور العشوائي ده ما بيوصلش لأي feature أصلًا، فمش محتاجين نحاكيه.
 
-الكود: `hallsense/sim3d.py → measure(), _radio()`
+الكود: `wujud/sim3d.py → measure(), _radio()`
 
 ## أ٩. الـ features والموديلات
 
@@ -195,7 +195,7 @@ R_band,k = log_10( P̄_k(band) / P̄_k(4–9.5 Hz) ), breath = 0.12–0.6 Hz, mi
 
 المصنِّف هو Gradient-Boosted Trees (HistGradientBoosting، نفس فكرة LightGBM [20]) بأوزان متوازنة للفئات. وفي وضع اللابتوب نفس النطاقات بتتحسب على الـ RSSI بدل الـ CSI.
 
-الكود: `hallsense/roomfeat.py → amplitude_from_iq(), window_features(), extra_features() · hallsense/rssifeat.py`
+الكود: `wujud/roomfeat.py → amplitude_from_iq(), window_features(), extra_features() · wujud/rssifeat.py`
 
 **المدرج (شبكة لينكات):** كل packet بيتحوّل لـ 13 مجموعة (4 subcarriers في كل واحدة) بالشكل a<sub>k</sub> = 10log<sub>10</sub>(p<sub>k</sub>/p̄) + RSSI. والـ packets اللي الـ RSSI بتاعها بيبعد أكتر من 8 dB عن الـ EMA بتترمي. ولكل لينك بنقارن المحاضرة بالمعايرة اللي اتعملت والقاعة فاضية:
 
@@ -219,7 +219,7 @@ shadow_ℓ = median_session(a) − median_calib(a), motion_ℓ = log( σ_session
 
 والمقارنة كانت مع RTI الكلاسيكي [11]: x̂ = (WᵀW + αI)<sup>−1</sup>Wᵀy، حيث W<sub>ℓs</sub> = 𝟙[ε<sub>ℓs</sub> < λ<sub>e</sub>] / √d<sub>ℓ</sub>، وα وλ<sub>e</sub> والعتبة اتظبطوا على داتا التدريب.
 
-الكود: `hallsense/features.py · hallsense/model.py → seat_descriptor(), context_features(), SeatModel, RTIBaseline · hallsense/geometry.py → excess_path()`
+الكود: `wujud/features.py · wujud/model.py → seat_descriptor(), context_features(), SeatModel, RTIBaseline · wujud/geometry.py → excess_path()`
 
 ## أ١٠. إزاي قسنا، ومعنى AUC
 
@@ -235,7 +235,7 @@ AUC = P( score(positive) > score(negative) ) = (1 / n_+n_−) Σ_i∈+ Σ_j∈�
 
 يعني لو اخترت شباك فيه شخص ثابت وشباك تاني الأوضة فيه فاضية، AUC هو احتمال إن الموديل يدّي الأول درجة أعلى. 0.5 معناها تخمين عشوائي، و1 معناها مثالي [21]. ودي الطريقة اللي بتخلّي النتيجة مش معتمدة على عتبة معيّنة.
 
-الكود: `evaluate3d.py · bench/room_eval.py · bench/room_sim2real.py · hallsense/metrics.py`
+الكود: `evaluate3d.py · bench/room_eval.py · bench/room_sim2real.py · wujud/metrics.py`
 
 ## أ١١. ليه الـ sim2real اشتغل، وفين وقف
 

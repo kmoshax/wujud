@@ -3,7 +3,7 @@
 pub const CSI_BUFFER_LEN: usize = 128;
 pub const CSI_BINS: usize = CSI_BUFFER_LEN / 2;
 
-/// L-LTF data subcarriers -26..-1, 1..26, in the order of research/hallsense/config.py::SC_IDX.
+/// L-LTF data subcarriers -26..-1, 1..26, in the order of research/wujud/config.py::SC_IDX.
 pub const L_LTF_DATA_SUBCARRIERS: [i8; 52] = l_ltf_data_subcarriers();
 
 const fn l_ltf_data_subcarriers() -> [i8; 52] {

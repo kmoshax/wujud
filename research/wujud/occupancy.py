@@ -29,7 +29,7 @@ class OccupancyLatch:
         self.state, self.n, self.near, self.ref_t = "unknown", 0, 0, -10 ** 9
 
     def distance(self, x):
-        """x: the window's static profile (hallsense.roomfeat.profile_windows); robust z vs the fresh empty reference"""
+        """x: the window's static profile (wujud.roomfeat.profile_windows); robust z vs the fresh empty reference"""
         R = np.array(self.ref); c = self.cols if self.cols is not None else slice(None)
         R = R[:, c]; mu = np.median(R, 0)
         sd = np.maximum(1.4826 * np.median(np.abs(R - mu), 0), self.sd_floor)

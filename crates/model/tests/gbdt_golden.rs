@@ -3,7 +3,7 @@
 mod common;
 
 use common::*;
-use hallsense_model::gbdt::{Gbdt, Loss, SeatModelTrees};
+use wujud_model::gbdt::{Gbdt, Loss, SeatModelTrees};
 
 /// Measured: 0 (bit-identical); the margin is for libm `exp` differences across platforms.
 const PROBABILITY_TOLERANCE: f64 = 1e-12;

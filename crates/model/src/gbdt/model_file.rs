@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 use super::{Gbdt, Loss, SeatModelTrees, Tree};
 use crate::{ModelError, Result};
 
-pub const FORMAT: &str = "hallsense-gbdt-v2";
-pub const SEAT_MODEL_FORMAT: &str = "hallsense-seat-model-v1";
+pub const FORMAT: &str = "wujud-gbdt-v2";
+pub const SEAT_MODEL_FORMAT: &str = "wujud-seat-model-v1";
 
 #[derive(Serialize, Deserialize)]
 struct TreeFile {

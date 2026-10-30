@@ -131,7 +131,7 @@ impl Gbdt {
     }
 
     pub fn to_json(&self) -> String {
-        model_file::gbdt_to_json(self, "hallsense-model")
+        model_file::gbdt_to_json(self, "wujud-model")
     }
 
     pub fn trees_per_iteration(&self) -> usize {
@@ -229,7 +229,7 @@ pub fn sigmoid(raw: f64) -> f64 {
     1.0 / (1.0 + (-raw).exp())
 }
 
-/// Two-stage seat model of the hall (`research/hallsense/model.py::SeatModel`), as stored in `hall3d.json`.
+/// Two-stage seat model of the hall (`research/wujud/model.py::SeatModel`), as stored in `hall3d.json`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SeatModelTrees {
     pub stage1: Gbdt,

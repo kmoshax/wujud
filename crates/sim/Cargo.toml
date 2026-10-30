@@ -1,5 +1,5 @@
 [package]
-name = "hallsense-sim"
+name = "wujud-sim"
 description = "3-D Wi-Fi CSI physics simulator: rooms, lecture halls, people, walls, ESP32 impairments"
 edition.workspace = true
 version.workspace = true

@@ -1,12 +1,12 @@
 //! Shape, reproducibility and sanity checks of the room and hall session pipelines.
 
-use hallsense_sim::distractors::DistractorKind;
-use hallsense_sim::hall::{random_hall, HallOptions};
-use hallsense_sim::hall_sim::{ArrivalOptions, HallSession, HallSimOptions};
-use hallsense_sim::room::{random_room, Activity, PlanStep, RoomOptions};
-use hallsense_sim::room_sim::{simulate_room, RoomSimOptions};
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
+use wujud_sim::distractors::DistractorKind;
+use wujud_sim::hall::{random_hall, HallOptions};
+use wujud_sim::hall_sim::{ArrivalOptions, HallSession, HallSimOptions};
+use wujud_sim::room::{random_room, Activity, PlanStep, RoomOptions};
+use wujud_sim::room_sim::{simulate_room, RoomSimOptions};
 
 fn short_room_options() -> RoomSimOptions {
     RoomSimOptions {

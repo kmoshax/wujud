@@ -1,11 +1,11 @@
 //! Runs the room demo without a window and scores the engine's 3-state decision against the simulator's truth.
-//! cargo run --release -p hallsense --example demo_accuracy -- <boards> <seed>
+//! cargo run --release -p wujud --example demo_accuracy -- <boards> <seed>
 
-use hallsense_model::gbdt::Gbdt;
-use hallsense_model::room::{activity_model_file, RoomEngine, RoomState3};
-use hallsense_model::scene::Scene;
-use hallsense_sim::room::Activity;
-use hallsense_sim::stream::RoomStream;
+use wujud_model::gbdt::Gbdt;
+use wujud_model::room::{activity_model_file, RoomEngine, RoomState3};
+use wujud_model::scene::Scene;
+use wujud_sim::room::Activity;
+use wujud_sim::stream::RoomStream;
 
 const SETTLE_SECONDS: usize = 20;
 

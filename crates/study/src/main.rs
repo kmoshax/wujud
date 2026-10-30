@@ -49,7 +49,7 @@ struct Args {
 struct ConfigResult {
     config: StudyConfig,
     links: usize,
-    knobs: hallsense_sim::room::RealismKnobs,
+    knobs: wujud_sim::room::RealismKnobs,
     train_rooms: u64,
     test_rooms: u64,
     tune_days: u64,
@@ -172,8 +172,8 @@ fn main() -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hallsense_model::features::amplitude_from_iq;
-    use hallsense_model::features::{
+    use wujud_model::features::amplitude_from_iq;
+    use wujud_model::features::{
         profile_windows, windows as model_windows, HOP_SECONDS, WINDOW_SECONDS,
     };
 
@@ -182,9 +182,9 @@ mod tests {
         let config = all_configs().remove(0);
         let room = study_room(&config, 5, false);
         let simulation = {
-            use hallsense_sim::random::seeded;
-            use hallsense_sim::room::{random_room, Activity, PlanStep, RoomOptions};
-            use hallsense_sim::room_sim::{simulate_room_on_band, RoomSimOptions};
+            use wujud_sim::random::seeded;
+            use wujud_sim::room::{random_room, Activity, PlanStep, RoomOptions};
+            use wujud_sim::room_sim::{simulate_room_on_band, RoomSimOptions};
             let room = random_room(&mut seeded(5, 0), &RoomOptions::default());
             let options = RoomSimOptions {
                 seconds: 40.0,

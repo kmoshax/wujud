@@ -4,8 +4,8 @@ import os, sys
 import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import live
-from hallsense.scenes3d import random_room
-from hallsense.sim3d import simulate_room
+from wujud.scenes3d import random_room
+from wujud.sim3d import simulate_room
 
 PLAN = [("away", 25), ("walk", 15), ("sit", 50), ("walk", 10), ("lie", 80), ("walk", 12), ("away", 25)]
 STATE3 = {"away": "empty", "walk": "moving", "sit": "still", "lie": "still", "stand": "still"}

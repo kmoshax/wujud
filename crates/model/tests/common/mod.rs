@@ -71,7 +71,7 @@ pub fn rows_to_array(rows: &[Vec<f64>], columns: usize) -> Array2<f64> {
     Array2::from_shape_vec((rows.len(), columns), flat).unwrap()
 }
 
-pub use hallsense_model::espectre::Recording;
+pub use wujud_model::espectre::Recording;
 
 pub const RECORDINGS: [&str; 4] = ["c3_empty", "c3_motion", "c3_still", "esp32_still"];
 
@@ -86,9 +86,9 @@ pub fn recording(name: &str) -> Recording {
 /// Streams recordings back to back (0.05 s apart, like `research/bench/occupancy_engine_replay.py`) and ticks the
 /// engine once per second of stream time; `on_tick(segment, now, state)`.
 pub fn replay_room(
-    engine: &mut hallsense_model::room::RoomEngine,
+    engine: &mut wujud_model::room::RoomEngine,
     segments: &[(&str, &Recording)],
-    mut on_tick: impl FnMut(&str, f64, hallsense_model::room::RoomState),
+    mut on_tick: impl FnMut(&str, f64, wujud_model::room::RoomState),
 ) {
     let mut offset = 0.0;
     for (label, recording) in segments {
@@ -110,8 +110,8 @@ pub fn replay_room(
     }
 }
 
-pub fn replay_engine() -> hallsense_model::room::RoomEngine {
-    use hallsense_model::{gbdt::Gbdt, room, scene::Scene};
+pub fn replay_engine() -> wujud_model::room::RoomEngine {
+    use wujud_model::{gbdt::Gbdt, room, scene::Scene};
     let nodes = vec![[0.2, 1.7, 1.0], [3.8, 1.7, 0.8]];
     let scene = Scene::room(
         4.0,

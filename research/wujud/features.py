@@ -1,4 +1,4 @@
-"""Per-packet and per-window CSI features. The firmware (firmware/hallsense_node.ino)
+"""Per-packet and per-window CSI features. The firmware (firmware/wujud_node.ino)
 implements exactly the same arithmetic so simulated and real data look identical.
 
 per packet:

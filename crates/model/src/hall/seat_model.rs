@@ -6,7 +6,7 @@ use super::seat_features::{context_features, SceneEvidence};
 use crate::gbdt::SeatModelTrees;
 use crate::Result;
 
-/// Two-stage seat classifier plus head-count regressor (`research/hallsense/model.py::SeatModel.predict`).
+/// Two-stage seat classifier plus head-count regressor (`research/wujud/model.py::SeatModel.predict`).
 pub struct SeatModel {
     pub trees: SeatModelTrees,
 }

@@ -1,8 +1,8 @@
 /*
- * HallSense ROOM firmware: one ESP32, no router. Every phone or laptop that joins its Wi-Fi
+ * wujud ROOM firmware: one ESP32, no router. Every phone or laptop that joins its Wi-Fi
  * becomes one sensing link.
  *
- * The board opens its own Wi-Fi network (HALLSENSE_SSID) and pings every device that joins,
+ * The board opens its own Wi-Fi network (WUJUD_SSID) and pings every device that joins,
  * ping_hz times per second each (100 unless set). Every reply is OFDM, so it carries CSI. One line per packet,
  * tagged with the device that sent it:
  *     <device mac>|P,<rssi>,<rx timestamp us>,<128 hex chars = 64 subcarriers x [imag, real] int8>
@@ -15,7 +15,7 @@
  *     GET  /set?ping_hz=200&channel=6    change settings (kept across reboots), then reboot
  *     GET  /reboot
  *     POST /update                       new firmware
- * All but /status need user "hallsense" and the key in ota_key.h. Status lines (I,...) also go to
+ * All but /status need user "wujud" and the key in ota_key.h. Status lines (I,...) also go to
  * the UDP listeners, so a board on a charger is as visible as one on USB.
  *
  * Why not the home router: cheap routers answer the ESP32 in 802.11b (DSSS), which has no
@@ -33,7 +33,7 @@
 #include "lwip/sockets.h"
 #include "ota_key.h"
 
-#define HALLSENSE_SSID "hallsense"
+#define WUJUD_SSID "wujud"
 #define DEFAULT_CHANNEL 9
 #define DEFAULT_PING_HZ 100
 #define LED_PIN 2
@@ -190,7 +190,7 @@ static void device_joined(const uint8_t *mac, esp_ip4_addr_t ip) {
     d.ping = start_ping(ip);
     d.connected = true;
     digitalWrite(LED_PIN, HIGH);
-    report("I,hallsense-room,joined=" MACSTR ",devices=%d", MAC2STR(mac), connected_devices());
+    report("I,wujud-room,joined=" MACSTR ",devices=%d", MAC2STR(mac), connected_devices());
     return;
   }
 }
@@ -206,7 +206,7 @@ static void device_left(const uint8_t *mac) {
     d.ping = nullptr;
   }
   digitalWrite(LED_PIN, connected_devices() > 0);
-  report("I,hallsense-room,left=" MACSTR ",devices=%d", MAC2STR(mac), connected_devices());
+  report("I,wujud-room,left=" MACSTR ",devices=%d", MAC2STR(mac), connected_devices());
 }
 
 static void on_wifi_event(arduino_event_t *event) {
@@ -217,13 +217,13 @@ static void on_wifi_event(arduino_event_t *event) {
 }
 
 static void load_settings() {
-  stored.begin("hallsense", false);
+  stored.begin("wujud", false);
   settings.channel = stored.getInt("channel", DEFAULT_CHANNEL);
   settings.ping_hz = stored.getInt("ping_hz", DEFAULT_PING_HZ);
 }
 
 static bool authorised() {
-  if (web.authenticate("hallsense", OTA_KEY)) return true;
+  if (web.authenticate("wujud", OTA_KEY)) return true;
   web.requestAuthentication();
   return false;
 }
@@ -285,7 +285,7 @@ void setup() {
   WiFi.onEvent(on_wifi_event);
   WiFi.mode(WIFI_AP);
   xTaskCreate(send_lines, "send_lines", 4096, nullptr, 5, nullptr);
-  WiFi.softAP(HALLSENSE_SSID, nullptr, settings.channel, 0, MAX_DEVICES);
+  WiFi.softAP(WUJUD_SSID, nullptr, settings.channel, 0, MAX_DEVICES);
   esp_wifi_set_ps(WIFI_PS_NONE);
 
   wifi_csi_config_t cfg = {};
@@ -294,12 +294,12 @@ void setup() {
   esp_wifi_set_csi_rx_cb(csi_cb, NULL);
   esp_wifi_set_csi(true);
 
-  firmware_update.setup(&web, "hallsense", OTA_KEY);
+  firmware_update.setup(&web, "wujud", OTA_KEY);
   web.on("/status", serve_status);
   web.on("/set", serve_set);
   web.on("/reboot", serve_reboot);
   web.begin();
-  report("I,hallsense-room,waiting for devices on Wi-Fi \"%s\",ch=%d,ping_hz=%d", HALLSENSE_SSID, settings.channel,
+  report("I,wujud-room,waiting for devices on Wi-Fi \"%s\",ch=%d,ping_hz=%d", WUJUD_SSID, settings.channel,
          settings.ping_hz);
 }
 

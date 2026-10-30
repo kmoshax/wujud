@@ -1,13 +1,13 @@
 //! Train one classifier per configuration and score it on held-out rooms, with room-level bootstrap errors.
 
-use hallsense_model::gbdt::{train_classifier, Gbdt, TrainOptions};
-use hallsense_model::metrics::roc_auc;
-use hallsense_model::numeric::{argmax, median, percentile};
-use hallsense_model::occupancy::{LatchConfig, Occupancy, OccupancyLatch};
 use ndarray::Array2;
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 use serde::Serialize;
+use wujud_model::gbdt::{train_classifier, Gbdt, TrainOptions};
+use wujud_model::metrics::roc_auc;
+use wujud_model::numeric::{argmax, median, percentile};
+use wujud_model::occupancy::{LatchConfig, Occupancy, OccupancyLatch};
 
 use crate::scenes::{DayWindows, StudyRoom, EMPTY, MOTION, STILL};
 use crate::windows::{LinkWindows, GLRT_COLUMN};

@@ -1,4 +1,4 @@
-//! When a hall node sends its next beacon and its next report (hallsense_node.ino loop).
+//! When a hall node sends its next beacon and its next report (wujud_node.ino loop).
 
 use crate::REPORT_INTERVAL_MS;
 

@@ -1,10 +1,10 @@
-//! `OccupancyLatch` against `research/hallsense/occupancy.py` step by step.
+//! `OccupancyLatch` against `research/wujud/occupancy.py` step by step.
 
 mod common;
 
 use common::read_json;
-use hallsense_model::occupancy::{LatchConfig, Occupancy, OccupancyLatch};
 use serde::Deserialize;
+use wujud_model::occupancy::{LatchConfig, Occupancy, OccupancyLatch};
 
 /// Measured: last-bit differences (NumPy sums the mean pairwise).
 const DISTANCE_TOLERANCE: f64 = 1e-12;

@@ -9,8 +9,8 @@ use crate::hex::{decode_hex, write_hex};
 use crate::mac::{MacAddress, MacCase};
 use crate::N_GROUPS;
 
-pub const ROOM_FIRMWARE: &str = "hallsense-room";
-pub const NODE_FIRMWARE: &str = "hallsense";
+pub const ROOM_FIRMWARE: &str = "wujud-room";
+pub const NODE_FIRMWARE: &str = "wujud";
 
 const CSI_HEX_LEN: usize = 2 * CSI_BUFFER_LEN;
 const CSI_FIELDS: usize = 4;
@@ -94,7 +94,7 @@ impl fmt::Display for LineError {
 
 impl core::error::Error for LineError {}
 
-/// Any line a HallSense board prints. `Display` gives the line without its trailing `\n`.
+/// Any line a wujud board prints. `Display` gives the line without its trailing `\n`.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Line<'a> {
     Info(Info<'a>),
@@ -200,7 +200,7 @@ impl fmt::Display for Info<'_> {
     }
 }
 
-/// The room firmware's banner: `I,hallsense-room,ch=6,gw=192.168.1.1,mac=24:0A:C4:00:BE:EF`.
+/// The room firmware's banner: `I,wujud-room,ch=6,gw=192.168.1.1,mac=24:0A:C4:00:BE:EF`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RoomBanner {
     pub channel: u8,
@@ -233,7 +233,7 @@ impl fmt::Display for RoomBanner {
     }
 }
 
-/// The hall node's banner: `I,hallsense,node=3,ch=6,mac=24:0A:C4:00:BE:EF`.
+/// The hall node's banner: `I,wujud,node=3,ch=6,mac=24:0A:C4:00:BE:EF`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct NodeBanner {
     pub node: u8,

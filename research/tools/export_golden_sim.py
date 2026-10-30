@@ -12,11 +12,11 @@ from scipy.special import fresnel
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, HERE)
-from hallsense.config import LAM
-from hallsense.physics3d import (link_paths3, path_response, segment_shadow, scatter_series, link_channel,
+from wujud.config import LAM
+from wujud.physics3d import (link_paths3, path_response, segment_shadow, scatter_series, link_channel,
                                  static_rest, diffuse_paths, concat)
-from hallsense.scenes3d import random_room, random_hall3, room_person, seated_bodies, lecturer, distractor
-from hallsense.sim3d import measure, FREQS52, FREQS56
+from wujud.scenes3d import random_room, random_hall3, room_person, seated_bodies, lecturer, distractor
+from wujud.sim3d import measure, FREQS52, FREQS56
 
 OUT = os.path.join(HERE, "..", "crates", "sim", "tests", "golden")
 

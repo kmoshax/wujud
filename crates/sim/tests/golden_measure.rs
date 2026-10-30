@@ -3,7 +3,7 @@
 mod common;
 
 use common::Npz;
-use hallsense_sim::radio::{measure_with_noise, LinkRadio, MeasureNoise};
+use wujud_sim::radio::{measure_with_noise, LinkRadio, MeasureNoise};
 
 /// Python and Rust sum the per-packet power in a different order, so a value within ~1e-15 of a
 /// rounding boundary may land one int8/dB step apart.

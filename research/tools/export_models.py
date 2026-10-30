@@ -11,7 +11,7 @@ from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostin
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, HERE)
-FORMAT = "hallsense-gbdt-v2"
+FORMAT = "wujud-gbdt-v2"
 
 
 def tree_json(predictor):
@@ -68,10 +68,10 @@ def export_file(src, out_dir):
     rel = os.path.relpath(src, HERE)
     if isinstance(m, dict) and "model" in m:                         # bench caches: {"model": ..., "cols": ...}
         m = m["model"]
-    if hasattr(m, "m1") and hasattr(m, "mc"):                        # hallsense.model.SeatModel
+    if hasattr(m, "m1") and hasattr(m, "mc"):                        # wujud.model.SeatModel
         if m.feat_mask is not None:
             raise ValueError("SeatModel with a feature mask is not supported")
-        seat = dict(format="hallsense-seat-model-v1", source=rel, stage1=model_json(m.m1, rel + "::m1"),
+        seat = dict(format="wujud-seat-model-v1", source=rel, stage1=model_json(m.m1, rel + "::m1"),
                     stage2=model_json(m.m2, rel + "::m2"), count=model_json(m.mc, rel + "::mc"))
         export(seat, rel, os.path.join(out_dir, name + ".json"))
         return

@@ -1,6 +1,6 @@
 [package]
-name = "hallsense-proto"
-description = "Wire format between HallSense ESP32 boards and the host (no_std)"
+name = "wujud-proto"
+description = "Wire format between wujud ESP32 boards and the host (no_std)"
 edition.workspace = true
 version.workspace = true
 license.workspace = true

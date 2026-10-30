@@ -11,9 +11,9 @@ from multiprocessing import Pool
 import numpy as np
 import joblib
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from hallsense.scenes3d import random_room
-from hallsense.sim3d import simulate_room
-from hallsense.roomfeat import windows, amplitude_from_iq, FEAT_NAMES
+from wujud.scenes3d import random_room
+from wujud.sim3d import simulate_room
+from wujud.roomfeat import windows, amplitude_from_iq, FEAT_NAMES
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.metrics import roc_auc_score, confusion_matrix
 
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     print(f"sim windows: {sum(len(r['X']) for r in sim)} ({time.time() - t0:.0f}s)")
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     from espectre_real import load_real
-    if os.path.exists("cache/espectre_feats_all.joblib") and os.path.getmtime("cache/espectre_feats_all.joblib") > os.path.getmtime("hallsense/roomfeat.py"):
+    if os.path.exists("cache/espectre_feats_all.joblib") and os.path.getmtime("cache/espectre_feats_all.joblib") > os.path.getmtime("wujud/roomfeat.py"):
         real = joblib.load("cache/espectre_feats_all.joblib")
     else:
         real = load_real(skip_long=False); joblib.dump(real, "cache/espectre_feats_all.joblib")

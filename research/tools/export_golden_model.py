@@ -12,9 +12,9 @@ import joblib
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, HERE)
 os.chdir(HERE)
-from hallsense.roomfeat import (to_grid, amplitude_from_iq, phase_from_iq, windows, phase_windows, profile_windows,
+from wujud.roomfeat import (to_grid, amplitude_from_iq, phase_from_iq, windows, phase_windows, profile_windows,
                                 FS_GRID)
-from hallsense.occupancy import OccupancyLatch
+from wujud.occupancy import OccupancyLatch
 
 OUT = os.path.join(HERE, "..", "crates", "model", "tests", "golden")
 ROOT = os.environ.get("ESPECTRE_DATA", os.path.expanduser("~/Projects/ext/espectre/data"))
@@ -168,8 +168,8 @@ THREE_LINK_PLAN = [("away", 25), ("walk", 15), ("sit", 40)]
 def export_room_engine_three_links(seed=7, fs=25):
     """live.py demo-room with 3 boards (simulated, short and at 25 packets/s to stay small), ticked at sec + 1"""
     import live
-    from hallsense.scenes3d import random_room
-    from hallsense.sim3d import simulate_room
+    from wujud.scenes3d import random_room
+    from wujud.sim3d import simulate_room
     published = []
     live.publish = lambda st: published.append(st)
     m1, m3 = live.models(types.SimpleNamespace(model=None))
@@ -194,7 +194,7 @@ def export_room_engine_three_links(seed=7, fs=25):
 
 def export_hall():
     import live
-    from hallsense.model import scene_from_arrays, geometry_cache
+    from wujud.model import scene_from_arrays, geometry_cache
     z = np.load("cache/demo_hall_3.npz")
     W = 12
     cal_mean, cal_std = z["cal_mean"].astype(np.float32), z["cal_std"].astype(np.float32)
@@ -202,7 +202,7 @@ def export_hall():
     ses_mean[3, 2] = np.nan; ses_std[3, 2] = np.nan                      # a dead link-second
     save("hall_cal_mean", cal_mean); save("hall_cal_std", cal_std)
     save("hall_ses_mean", ses_mean); save("hall_ses_std", ses_std)
-    from hallsense.scenes3d import random_hall3
+    from wujud.scenes3d import random_hall3
     sc = random_hall3(np.random.default_rng(3), n_nodes=12, tiered=True, placement="walls", W=13.0, D=12.0)
     hall = dict(W=sc.W, D=sc.D, H=sc.H, front=sc.tiers["front"], ids=list(range(len(sc.nodes))), nodes=sc.nodes,
                 seats=sc.seats, chest=sc.seats + [0, 0, 1.0], links=[list(map(int, l)) for l in sc.links],

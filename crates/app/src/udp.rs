@@ -47,7 +47,7 @@ impl UdpReader {
         self.last_ask = Some(Instant::now());
         let board = self.board.clone();
         if let Some(socket) = self.socket() {
-            let _ = socket.send_to(b"hallsense?", &board);
+            let _ = socket.send_to(b"wujud?", &board);
         }
     }
 }

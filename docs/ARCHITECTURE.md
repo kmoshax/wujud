@@ -1,11 +1,11 @@
-# HallSense من جوه: كل جزء بيعمل إيه
+# wujud من جوه: كل جزء بيعمل إيه
 
 ده دليل للي عايز يفهم المشروع من غير ما يقرا الكود سطر سطر. الكود نفسه مكتوب بأسامي واضحة ومن غير كومنتات كتير، والشرح التفصيلي لكل جزء موجود في الـ README بتاعه.
 
 ## الصورة الكبيرة
 
 ```
- موبايل / لابتوب ──ping──► ESP32 (research/firmware/hallsense_room)
+ موبايل / لابتوب ──ping──► ESP32 (research/firmware/wujud_room)
         ▲                   │ بيقيس الـ CSI من ردودهم
         └────── رد ─────────┘ ويبعته سطر لكل packet
                             │ واي فاي (UDP) أو USB
@@ -17,7 +17,7 @@
        crates/sim ──┘  (نفس السطور بالظبط، بس من محاكاة)
 ```
 
-1. **البوردة** بتعمل شبكة واي فاي اسمها `hallsense`. أي موبايل أو لابتوب يتصل بيها **بيبقى link**.
+1. **البوردة** بتعمل شبكة واي فاي اسمها `wujud`. أي موبايل أو لابتوب يتصل بيها **بيبقى link**.
 2. البوردة بتعمل ping لكل جهاز 100 مرة في الثانية، **وكل رد بيوصلها بيطلع منه CSI**: 64 رقم مركّب، كل رقم بيقول قوة الإشارة وزاويتها على تردد معيّن.
 3. **البوردة بتاخد بس الـ packets النضيفة:** 802.11n من غير STBC. كروت اللابتوب اللي فيها أنتينتين بتبعت STBC، وده بيخلي الـ CSI يتنطط 4.5 dB بين كل packet واللي بعدها، فبيبان كأنه حركة وهي مش حركة.
 4. البوردة بتبعت كل packet كـ**سطر نص**، على الواي فاي لأي حد طلب، أو على الـ USB.
@@ -31,7 +31,7 @@
 | `crates/proto` | شكل الرسايل بين البوردة والكمبيوتر | Rust |
 | `crates/sim` | المحاكي الفيزيائي: الأوضة، والمدرج، والناس، والحيطان، وعيوب الـ ESP32 | Rust |
 | `crates/model` | الـ features، والموديلات، والـ occupancy latch، والـ motion tracker | Rust |
-| `crates/app` | البرنامج اللي بتشغّله: `hallsense` | Rust |
+| `crates/app` | البرنامج اللي بتشغّله: `wujud` | Rust |
 | `crates/study` | دراسة الحدود: إيه اللي بيكسر حد البوردة الواحدة | Rust |
 | `research/firmware` | فيرموير البوردة اللي شغال فعلًا، و`board.sh` عشان تكلّمها | Arduino C++ |
 | `firmware/` | نسخة Rust من الفيرموير (لسه ما اتجربتش على بوردة) | Rust |
@@ -68,10 +68,10 @@
 
 ### `crates/app`: البرنامج
 ```bash
-cargo run --release -p hallsense -- live --ports udp:192.168.4.1 --room research/rec/room.json
-cargo run --release -p hallsense -- demo --boards 3
-cargo run --release -p hallsense -- demo-hall
-cargo run --release -p hallsense -- monitor --ports udp:192.168.4.1
+cargo run --release -p wujud -- live --ports udp:192.168.4.1 --room research/rec/room.json
+cargo run --release -p wujud -- demo --boards 3
+cargo run --release -p wujud -- demo-hall
+cargo run --release -p wujud -- monitor --ports udp:192.168.4.1
 ```
 - **`live`:** البوردة الحقيقية. كل جهاز متصل بيها بيظهر كـ link لوحده.
 - **`demo` و`demo-hall`:** المحاكي بيلعب أوضة أو مدرج، والشبح الرمادي هو مكان الإنسان الحقيقي.

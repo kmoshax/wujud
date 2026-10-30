@@ -1,9 +1,9 @@
 //! The simulated rooms of the study: per room, one minute of each activity and a "day" of entering,
 //! staying still and leaving; each reduced to window features right away.
 
-use hallsense_sim::random::{pick, seeded, uniform, SimRng};
-use hallsense_sim::room::{random_room, Activity, PlanStep, RealismKnobs, Room, RoomOptions};
-use hallsense_sim::room_sim::{simulate_room_on_band, RoomSimOptions, RoomSimulation};
+use wujud_sim::random::{pick, seeded, uniform, SimRng};
+use wujud_sim::room::{random_room, Activity, PlanStep, RealismKnobs, Room, RoomOptions};
+use wujud_sim::room_sim::{simulate_room_on_band, RoomSimOptions, RoomSimulation};
 
 use crate::configs::StudyConfig;
 use crate::windows::{link_windows, LinkWindows};
@@ -155,7 +155,7 @@ fn day(config: &StudyConfig, room: &Room, harsh: f64, seed: u64) -> DayWindows {
 
 /// Window `k` covers `[5k, 5k + 20)` s: occupied when most of its frames have someone in, walking if any frame does.
 fn window_truth(activity: &[Activity], fs: f64, windows: usize) -> (Vec<bool>, Vec<bool>) {
-    use hallsense_model::features::{HOP_SECONDS, WINDOW_SECONDS};
+    use wujud_model::features::{HOP_SECONDS, WINDOW_SECONDS};
     (0..windows)
         .map(|k| {
             let first = (k as f64 * HOP_SECONDS * fs).ceil() as usize;

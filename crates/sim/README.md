@@ -1,7 +1,7 @@
-# hallsense-sim
+# wujud-sim
 
-The 3-D Wi-Fi CSI physics simulator of HallSense, ported from the Python research code
-(`research/hallsense/{physics3d,scenes3d,sim3d}.py`). It builds random bedrooms and lecture halls,
+The 3-D Wi-Fi CSI physics simulator of wujud, ported from the Python research code
+(`research/wujud/{physics3d,scenes3d,sim3d}.py`). It builds random bedrooms and lecture halls,
 moves people (and pets, fans, doors) through them, computes the complex channel of every ESP32 link
 and turns it into what the board reports: int8 I/Q per subcarrier, RSSI, lost packets.
 
@@ -30,7 +30,7 @@ points to the matching subsection (A.1 is أ١, and so on).
 | `capture` | `Capture` (kept packets of one direction), `LinkCapture` | the `out` dicts of `simulate_room` |
 | `room_sim` | a room session: walls/flash, distractors, realism knobs; batch `simulate_room` | `sim3d.py::simulate_room` |
 | `hall_sim` | hall sessions: a lecture with fixed occupancy, or students arriving over time | `sim3d.py::simulate_hall3, simulate_hall_timeline3` |
-| `dataset` | reproducible rayon dataset generation (room and hall) | `bench/room_sim2real.py`, `hallsense/dataset3d.py` |
+| `dataset` | reproducible rayon dataset generation (room and hall) | `bench/room_sim2real.py`, `wujud/dataset3d.py` |
 | `stream` | second-by-second streams for the live demos | `live.py demo-room / demo-hall` |
 
 ## Physics summary
@@ -148,8 +148,8 @@ impl HallStream {   // Item = HallSecond { second, links: Vec<Capture>, present:
 }
 ```
 
-Examples: `cargo run -p hallsense-sim --release --example stream_demo -- room|hall [seconds]`,
-`cargo run -p hallsense-sim --release --example bench_room [rooms]`.
+Examples: `cargo run -p wujud-sim --release --example stream_demo -- room|hall [seconds]`,
+`cargo run -p wujud-sim --release --example bench_room [rooms]`.
 
 ## Parity with the Python reference
 
@@ -177,7 +177,7 @@ recipe in Rust (random room, smart placement 30 %, fs ~ U(50, 120), harsh ~ U(0.
 board link) over 100 rooms and compares the per-room statistics per activity. Tolerances: two-sample Kolmogorov-Smirnov
 distance ≤ 0.276 (critical value at α = 0.001 for 100 vs 100) and |median difference| ≤ 0.35 × pooled IQR.
 It is `#[ignore]`d because it is slow in debug builds; run it with
-`cargo test -p hallsense-sim --release --test parity -- --ignored --nocapture` (≈ 5 s).
+`cargo test -p wujud-sim --release --test parity -- --ignored --nocapture` (≈ 5 s).
 
 | activity | statistic | Python median | Rust median | KS | shift / IQR |
 |---|---|---|---|---|---|

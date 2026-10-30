@@ -1,7 +1,7 @@
 mod common;
 
 use common::read_json;
-use hallsense_model::metrics::roc_auc;
+use wujud_model::metrics::roc_auc;
 
 #[test]
 fn auc_matches_sklearn_with_ties() {

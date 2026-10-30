@@ -4,11 +4,11 @@
 mod common;
 
 use common::{relative_error, Npz};
-use hallsense_sim::channel::{link_channel, Link};
-use hallsense_sim::scatter::{add_moving_scatterer, mean_present_position, MovingScatterer};
-use hallsense_sim::shadow::{apply_segment_shadow, Segment, ShadowCasters};
 use ndarray::Array2;
 use num_complex::Complex64;
+use wujud_sim::channel::{link_channel, Link};
+use wujud_sim::scatter::{add_moving_scatterer, mean_present_position, MovingScatterer};
+use wujud_sim::shadow::{apply_segment_shadow, Segment, ShadowCasters};
 
 const SCENES: [&str; 2] = ["room_channel.npz", "hall_channel.npz"];
 

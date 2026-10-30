@@ -1,9 +1,9 @@
 //! Prints the live-demo streams second by second and how long each simulated second took.
-//! Run: cargo run -p hallsense-sim --release --example stream_demo -- room|hall [seconds]
+//! Run: cargo run -p wujud-sim --release --example stream_demo -- room|hall [seconds]
 
 use std::time::Instant;
 
-use hallsense_sim::stream::{HallStream, RoomStream};
+use wujud_sim::stream::{HallStream, RoomStream};
 
 fn main() {
     let mut args = std::env::args().skip(1);

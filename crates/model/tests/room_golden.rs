@@ -105,8 +105,8 @@ fn three_link_packets() -> Vec<LinkPackets> {
         .collect()
 }
 
-fn three_link_engine(golden: &Value) -> hallsense_model::room::RoomEngine {
-    use hallsense_model::{gbdt::Gbdt, room, scene::Scene};
+fn three_link_engine(golden: &Value) -> wujud_model::room::RoomEngine {
+    use wujud_model::{gbdt::Gbdt, room, scene::Scene};
     let nodes: Vec<[f64; 3]> = golden["nodes"]
         .as_array()
         .unwrap()

@@ -8,8 +8,8 @@ python bench/occupancy_real_fa.py
 import json, os, sys
 import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from hallsense.roomfeat import amplitude_from_iq, profile_windows
-from hallsense.occupancy import OccupancyLatch
+from wujud.roomfeat import amplitude_from_iq, profile_windows
+from wujud.occupancy import OccupancyLatch
 
 ROOT = os.environ.get("ESPECTRE_DATA", os.path.expanduser("~/Projects/ext/espectre/data"))
 THRS = (0.4, 0.6, 0.8, 1.0, 1.5, 2.0, 3.0)

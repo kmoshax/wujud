@@ -1,14 +1,14 @@
 # Firmware (Arduino)
 
-## `hallsense_room`: one ESP32, no router
+## `wujud_room`: one ESP32, no router
 
-The board opens an open Wi-Fi network called `hallsense`. Every laptop or phone that joins it becomes one sensing link, up to 4. The blue LED lights up while at least one device is connected.
+The board opens an open Wi-Fi network called `wujud`. Every laptop or phone that joins it becomes one sensing link, up to 4. The blue LED lights up while at least one device is connected.
 
 - Flash it once over USB with `board.sh flash`. After that, it updates over Wi-Fi.
 - Put the board on any phone charger, where the links cross the places people sit, sleep and walk.
 - Watch it with:
   ```bash
-  cargo run --release -p hallsense -- live --ports udp:192.168.4.1 --room research/rec/room.json
+  cargo run --release -p wujud -- live --ports udp:192.168.4.1 --room research/rec/room.json
   ```
   The app finds the devices by itself; every device's MAC becomes one link.
 
@@ -21,7 +21,7 @@ The board opens an open Wi-Fi network called `hallsense`. Every laptop or phone 
 | `board.sh set ping_hz=200 channel=6` | changes settings, which are kept across reboots, then the board reboots |
 | `board.sh reboot` | restarts the board |
 
-Everything except `status` needs the key in `hallsense_room/ota_key.h`:
+Everything except `status` needs the key in `wujud_room/ota_key.h`:
 
 - `board.sh` creates it the first time.
 - git ignores it.
@@ -40,6 +40,6 @@ On the D-Link here, the router answers the ESP32 with 802.11b frames at 2 Mbps. 
 
 With the laptop as the other end, each device gives 100–110 CSI packets/s at `ping_hz=100`, and about 185 at `ping_hz=150`. Measured on 2026-10-30.
 
-## `hallsense_node`
+## `wujud_node`
 
 Firmware for a hall node, meant for many boards. It has not been run on hardware yet.

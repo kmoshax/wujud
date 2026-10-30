@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use eframe::egui::{self, Color32, Sense, Vec2};
-use hallsense_model::hall::HallState;
+use wujud_model::hall::HallState;
 
 use crate::camera::{Camera, Point3};
 use crate::scene_3d::{

@@ -10,8 +10,8 @@ from multiprocessing import Pool
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from hallsense.scenes3d import random_room, ACTIVITIES
-from hallsense.sim3d import simulate_room
+from wujud.scenes3d import random_room, ACTIVITIES
+from wujud.sim3d import simulate_room
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "..", "crates", "sim", "tests", "golden", "parity_room.json")
 SECONDS = 60

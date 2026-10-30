@@ -11,11 +11,11 @@ use esp_idf_svc::sys::{
     wifi_ps_type_t_WIFI_PS_NONE, wifi_second_chan_t_WIFI_SECOND_CHAN_NONE,
 };
 use esp_idf_svc::wifi::{BlockingWifi, ClientConfiguration, Configuration, EspWifi, WifiDeviceId};
-use hallsense_firmware::beacon_clock::{BeaconClock, BEACON_JITTER_MS};
-use hallsense_proto::node_report::{group_levels_db, subcarrier_powers, LinkWindow};
-use hallsense_firmware::node_table::NodeTable;
-use hallsense_firmware::{HALL_BEACON_HZ, HALL_CHANNEL};
-use hallsense_proto::{
+use wujud_firmware::beacon_clock::{BeaconClock, BEACON_JITTER_MS};
+use wujud_proto::node_report::{group_levels_db, subcarrier_powers, LinkWindow};
+use wujud_firmware::node_table::NodeTable;
+use wujud_firmware::{HALL_BEACON_HZ, HALL_CHANNEL};
+use wujud_proto::{
     BeaconFrame, Frame, MacAddress, NodeBanner, NodeSeen, ReportFrame, MAX_NODES,
     MAX_REPORT_FRAME_LEN,
 };
@@ -23,7 +23,7 @@ use hallsense_proto::{
 use super::csi::{self, CsiEvent};
 use super::serial::send_line;
 
-const NODE_ID: u8 = parse_node_id(env!("HALLSENSE_NODE_ID"));
+const NODE_ID: u8 = parse_node_id(env!("WUJUD_NODE_ID"));
 
 pub fn run() -> anyhow::Result<()> {
     let peripherals = Peripherals::take()?;
@@ -176,14 +176,14 @@ const fn parse_node_id(text: &str) -> u8 {
     while i < bytes.len() {
         assert!(
             bytes[i].is_ascii_digit(),
-            "HALLSENSE_NODE_ID must be a number"
+            "WUJUD_NODE_ID must be a number"
         );
         value = value * 10 + (bytes[i] - b'0') as u32;
         i += 1;
     }
     assert!(
         value < MAX_NODES as u32,
-        "HALLSENSE_NODE_ID must be below MAX_NODES"
+        "WUJUD_NODE_ID must be below MAX_NODES"
     );
     value as u8
 }

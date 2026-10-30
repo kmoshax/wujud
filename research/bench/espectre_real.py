@@ -5,7 +5,7 @@ Splits follow ESPectre's own dataset roles: train -> fit, selection+holdout -> t
 import json, os, sys, glob
 import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from hallsense.roomfeat import windows, amplitude_from_iq, FEAT_NAMES
+from wujud.roomfeat import windows, amplitude_from_iq, FEAT_NAMES
 
 ROOT = os.environ.get("ESPECTRE_DATA", "/home/claude/ext/espectre/data")
 LAB = {"empty": 0, "static_presence": 1, "motion": 2}

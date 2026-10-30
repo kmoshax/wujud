@@ -1,11 +1,11 @@
 //! Native trainer on small synthetic problems (the sklearn comparison is the ignored test in espectre_data.rs).
 
-use hallsense_model::gbdt::{
-    train_classifier, train_regressor, EarlyStopping, Gbdt, Loss, TrainOptions,
-};
 use ndarray::Array2;
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
+use wujud_model::gbdt::{
+    train_classifier, train_regressor, EarlyStopping, Gbdt, Loss, TrainOptions,
+};
 
 fn three_blobs(n: usize, seed: u64) -> (Array2<f64>, Vec<i64>) {
     let mut rng = ChaCha8Rng::seed_from_u64(seed);

@@ -2,13 +2,13 @@
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use hallsense_sim::dataset::{
+use wujud_sim::dataset::{
     for_each_room_scene, hall_dataset, hall_scene, room_dataset, room_scene, HallDatasetConfig,
     RoomDatasetConfig,
 };
-use hallsense_sim::hall_sim::HallSimOptions;
-use hallsense_sim::room::{Activity, PlanStep};
-use hallsense_sim::stream::{HallStream, RoomStream};
+use wujud_sim::hall_sim::HallSimOptions;
+use wujud_sim::room::{Activity, PlanStep};
+use wujud_sim::stream::{HallStream, RoomStream};
 
 fn small_room_config() -> RoomDatasetConfig {
     RoomDatasetConfig {
@@ -90,7 +90,7 @@ fn room_stream_yields_every_second_with_truth() {
     assert!(first.links[0].t.iter().all(|&t| (-0.01..1.01).contains(&t)));
 
     let room = stream.room().clone();
-    let options = hallsense_sim::room_sim::RoomSimOptions {
+    let options = wujud_sim::room_sim::RoomSimOptions {
         seconds: 4.0,
         fs: 30.0,
         plan: Some(vec![PlanStep {

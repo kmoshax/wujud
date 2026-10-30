@@ -6,13 +6,13 @@ mod common;
 
 use std::collections::BTreeMap;
 
-use hallsense_sim::capture::Capture;
-use hallsense_sim::random::{chance, uniform};
-use hallsense_sim::room::{random_room, Activity, PlanStep, RoomOptions};
-use hallsense_sim::room_sim::{simulate_room, RoomSimOptions};
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
 use rayon::prelude::*;
+use wujud_sim::capture::Capture;
+use wujud_sim::random::{chance, uniform};
+use wujud_sim::room::{random_room, Activity, PlanStep, RoomOptions};
+use wujud_sim::room_sim::{simulate_room, RoomSimOptions};
 
 const ROOMS: u64 = 100;
 const SECONDS: f64 = 60.0;
@@ -134,7 +134,7 @@ fn ks_distance(a: &[f64], b: &[f64]) -> f64 {
 }
 
 #[test]
-#[ignore = "slow in debug builds: cargo test -p hallsense-sim --release --test parity -- --ignored --nocapture"]
+#[ignore = "slow in debug builds: cargo test -p wujud-sim --release --test parity -- --ignored --nocapture"]
 fn room_statistics_match_python_distributions() {
     let golden = common::read_json("parity_room.json");
     let rooms: Vec<_> = (0..ROOMS).into_par_iter().map(one_room).collect();

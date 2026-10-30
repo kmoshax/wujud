@@ -1,15 +1,15 @@
 //! Streaming second by second must give exactly the session simulated at once, with no seams.
 
-use hallsense_sim::capture::Capture;
-use hallsense_sim::distractors::DistractorKind;
-use hallsense_sim::hall::{random_hall, HallOptions};
-use hallsense_sim::hall_sim::{ArrivalOptions, HallSession};
-use hallsense_sim::random::seeded;
-use hallsense_sim::room::{random_room, Activity, PlanStep, RoomOptions};
-use hallsense_sim::room_sim::{simulate_room, RoomSession, RoomSimOptions};
-use hallsense_sim::stream::{HallStream, RoomStream};
 use ndarray::{concatenate, Array2, Axis};
 use num_complex::Complex64;
+use wujud_sim::capture::Capture;
+use wujud_sim::distractors::DistractorKind;
+use wujud_sim::hall::{random_hall, HallOptions};
+use wujud_sim::hall_sim::{ArrivalOptions, HallSession};
+use wujud_sim::random::seeded;
+use wujud_sim::room::{random_room, Activity, PlanStep, RoomOptions};
+use wujud_sim::room_sim::{simulate_room, RoomSession, RoomSimOptions};
+use wujud_sim::stream::{HallStream, RoomStream};
 
 const SEED: u64 = 7;
 
@@ -33,7 +33,7 @@ fn room_options() -> RoomSimOptions {
     }
 }
 
-fn test_room() -> hallsense_sim::room::Room {
+fn test_room() -> wujud_sim::room::Room {
     random_room(
         &mut seeded(SEED, 0),
         &RoomOptions {

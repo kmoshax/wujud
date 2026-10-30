@@ -1,7 +1,7 @@
 # Which physical change breaks the single-link limit of Wi-Fi presence sensing?
 
-A simulation study with the HallSense Rust simulator (`crates/sim`) and the native trainer (`crates/model`).
-Driver: `crates/study` (`cargo run --release -p hallsense-study --bin limits_study -- --configs all`),
+A simulation study with the wujud Rust simulator (`crates/sim`) and the native trainer (`crates/model`).
+Driver: `crates/study` (`cargo run --release -p wujud-study --bin limits_study -- --configs all`),
 figures and table: `research/tools/limits_figures.py`. Everything here is simulation. Nothing in this folder
 has been measured on hardware.
 
@@ -169,7 +169,7 @@ bands); higher packet rates are free in hardware but cost airtime (not quantifie
 ## Reproduce
 
 ```
-cargo run --release -p hallsense-study --bin limits_study -- --configs all       # ~1 h on 12 threads
+cargo run --release -p wujud-study --bin limits_study -- --configs all       # ~1 h on 12 threads
 cd research && .venv/bin/python tools/limits_figures.py
 ```
 Existing `config_*.json` are skipped (use `--force`).

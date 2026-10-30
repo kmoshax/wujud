@@ -5,7 +5,7 @@ use esp_idf_svc::sys::{
     esp, esp_wifi_set_csi, esp_wifi_set_csi_config, esp_wifi_set_csi_rx_cb, wifi_csi_config_t,
     wifi_csi_info_t, EspError,
 };
-use hallsense_proto::{CsiBuffer, MacAddress, CSI_BUFFER_LEN};
+use wujud_proto::{CsiBuffer, MacAddress, CSI_BUFFER_LEN};
 
 #[cfg(esp32c6)]
 compile_error!(

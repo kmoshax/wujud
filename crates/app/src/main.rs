@@ -13,12 +13,12 @@ mod serial;
 mod udp;
 
 use clap::{Parser, Subcommand};
-use hallsense_proto::{Line, LineError};
+use wujud_proto::{Line, LineError};
 
 use live_window::LiveWindow;
 
 #[derive(Parser)]
-#[command(name = "hallsense", about = "Wi-Fi sensing with ESP32 boards")]
+#[command(name = "wujud", about = "Wi-Fi sensing with ESP32 boards")]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -85,7 +85,7 @@ fn live(
 }
 
 fn demo(boards: usize, seed: u64) -> anyhow::Result<()> {
-    let stream = hallsense_sim::stream::RoomStream::demo(seed, boards);
+    let stream = wujud_sim::stream::RoomStream::demo(seed, boards);
     let room = room_setup::simulated_room_engine(stream.room())?;
     let names: Vec<String> = (1..=boards)
         .map(|k| format!("simulated ESP32 {k}"))
@@ -98,10 +98,9 @@ fn demo(boards: usize, seed: u64) -> anyhow::Result<()> {
 }
 
 fn demo_hall(seed: u64) -> anyhow::Result<()> {
-    let hall = hall_feed::simulate(hallsense_sim::stream::HallStream::demo(seed))?;
-    let model =
-        hallsense_model::hall::SeatModel::load(&room_setup::models_dir().join("hall3d.json"))?;
-    let engine = hallsense_model::hall::HallEngine::new(
+    let hall = hall_feed::simulate(wujud_sim::stream::HallStream::demo(seed))?;
+    let model = wujud_model::hall::SeatModel::load(&room_setup::models_dir().join("hall3d.json"))?;
+    let engine = wujud_model::hall::HallEngine::new(
         hall.layout,
         model,
         hall.calibration_mean,
@@ -114,12 +113,12 @@ fn demo_hall(seed: u64) -> anyhow::Result<()> {
 fn open_window(window: impl eframe::App + 'static) -> anyhow::Result<()> {
     let options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
-            .with_title("HallSense")
+            .with_title("wujud")
             .with_inner_size([1200.0, 820.0]),
         ..Default::default()
     };
     eframe::run_native(
-        "HallSense",
+        "wujud",
         options,
         Box::new(move |_| Ok(screenshot::wrap(window))),
     )

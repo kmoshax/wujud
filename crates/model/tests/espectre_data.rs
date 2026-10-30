@@ -5,7 +5,7 @@ mod common;
 use std::path::PathBuf;
 
 use common::*;
-use hallsense_model::espectre::EspectreDataset;
+use wujud_model::espectre::EspectreDataset;
 
 pub fn espectre_root() -> Option<PathBuf> {
     let root = std::env::var_os("ESPECTRE_DATA")
@@ -33,11 +33,7 @@ fn loader_matches_python_excerpt() {
     assert_eq!(excerpt.rssi, expected.rssi);
 }
 
-fn session(
-    dataset: &EspectreDataset,
-    label: &str,
-    when: &str,
-) -> hallsense_model::espectre::Recording {
+fn session(dataset: &EspectreDataset, label: &str, when: &str) -> wujud_model::espectre::Recording {
     let info = dataset.find(label, when, Some("vacation_home")).unwrap();
     dataset.load(label, info).unwrap()
 }
@@ -116,8 +112,8 @@ fn room_engine_replay_agrees_with_python_bench() {
     assert!(same_state * 100 >= total * 99);
 }
 
-fn amplitude_windows(recording: &hallsense_model::espectre::Recording) -> Vec<Vec<f64>> {
-    use hallsense_model::features::{amplitude_from_iq, windows, HOP_SECONDS, WINDOW_SECONDS};
+fn amplitude_windows(recording: &wujud_model::espectre::Recording) -> Vec<Vec<f64>> {
+    use wujud_model::features::{amplitude_from_iq, windows, HOP_SECONDS, WINDOW_SECONDS};
     let amplitude = amplitude_from_iq(recording.iq.view()).mapv(f64::from);
     windows(
         &recording.times,
@@ -129,20 +125,17 @@ fn amplitude_windows(recording: &hallsense_model::espectre::Recording) -> Vec<Ve
     .rows
 }
 
-fn real_split(
-    dataset: &EspectreDataset,
-    role: &str,
-) -> Vec<hallsense_model::metrics::LabelledWindows> {
-    use hallsense_model::espectre::room_class;
+fn real_split(dataset: &EspectreDataset, role: &str) -> Vec<wujud_model::metrics::LabelledWindows> {
     use rayon::prelude::*;
-    let jobs: Vec<(&String, &hallsense_model::espectre::RecordingInfo)> = dataset
+    use wujud_model::espectre::room_class;
+    let jobs: Vec<(&String, &wujud_model::espectre::RecordingInfo)> = dataset
         .files
         .iter()
         .flat_map(|(label, files)| files.iter().map(move |info| (label, info)))
         .filter(|(_, info)| info.dataset_role.as_deref() == Some(role))
         .collect();
     jobs.par_iter()
-        .map(|(label, info)| hallsense_model::metrics::LabelledWindows {
+        .map(|(label, info)| wujud_model::metrics::LabelledWindows {
             rows: amplitude_windows(&dataset.load(label, info).unwrap()),
             label: room_class(label).unwrap(),
         })
@@ -158,7 +151,7 @@ fn research_path(relative: &str) -> PathBuf {
 fn print_metrics(
     name: &str,
     split: &str,
-    m: &hallsense_model::metrics::RoomMetrics,
+    m: &wujud_model::metrics::RoomMetrics,
     python: &serde_json::Value,
 ) {
     eprintln!(
@@ -174,13 +167,13 @@ fn print_metrics(
 /// Native trainer vs sklearn on the `research/bench/phase_exp.py` protocol, "amplitude (current)" variant:
 /// train on the simulation (`research/cache/room_sim_amp_{X,y}.npy`, written by
 /// `tools/export_golden_model.py --bench`), evaluate on ESPectre selection + holdout.
-/// `HALLSENSE_SKLEARN_ROOM_MODEL` may point to `cache/phase_exp_amplitude_current.joblib` exported with
+/// `WUJUD_SKLEARN_ROOM_MODEL` may point to `cache/phase_exp_amplitude_current.joblib` exported with
 /// `tools/export_models.py`, to also score sklearn's own trees on the Rust features. Run with `--release --ignored`.
 #[test]
 #[ignore]
 fn native_trainer_matches_sklearn_on_real_data() {
-    use hallsense_model::gbdt::{train_classifier, Gbdt, TrainOptions};
-    use hallsense_model::metrics::room_metrics;
+    use wujud_model::gbdt::{train_classifier, Gbdt, TrainOptions};
+    use wujud_model::metrics::room_metrics;
     let (Some(root), true) = (
         espectre_root(),
         research_path("cache/room_sim_amp_X.npy").exists(),
@@ -213,7 +206,7 @@ fn native_trainer_matches_sklearn_on_real_data() {
     )
     .unwrap();
     let columns: Vec<usize> = (0..17).collect();
-    let sklearn = std::env::var_os("HALLSENSE_SKLEARN_ROOM_MODEL")
+    let sklearn = std::env::var_os("WUJUD_SKLEARN_ROOM_MODEL")
         .map(|p| Gbdt::load(std::path::Path::new(&p)).unwrap());
     for split in ["selection", "holdout"] {
         let recordings = real_split(&dataset, split);

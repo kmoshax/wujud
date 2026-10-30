@@ -11,10 +11,10 @@ from matplotlib import animation
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from hallsense.config import LAM
-from hallsense.physics3d import link_paths3, diffuse_paths, link_channel, static_rest
-from hallsense.scenes3d import random_room, random_hall3, room_person, _standing
-from hallsense.sim3d import measure, _radio, FREQS56
+from wujud.config import LAM
+from wujud.physics3d import link_paths3, diffuse_paths, link_channel, static_rest
+from wujud.scenes3d import random_room, random_hall3, room_person, _standing
+from wujud.sim3d import measure, _radio, FREQS56
 
 OUT = "results/sim_visuals"
 INK, ACCENT, MID, FAINT, BODY = "#1b1b1b", "#1f4e79", "#7a7a7a", "#c9c9c9", "#c0504d"

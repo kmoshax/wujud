@@ -3,12 +3,12 @@
 use std::fs::File;
 use std::path::PathBuf;
 
-use hallsense_sim::bodies::Body;
-use hallsense_sim::paths::PropagationPath;
-use hallsense_sim::vec3::Vec3;
 use ndarray::{Array2, ArrayD, Axis, Ix2, IxDyn};
 use ndarray_npy::NpzReader;
 use num_complex::Complex64;
+use wujud_sim::bodies::Body;
+use wujud_sim::paths::PropagationPath;
+use wujud_sim::vec3::Vec3;
 
 pub fn golden_path(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))

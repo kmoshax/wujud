@@ -1,6 +1,6 @@
 """Train on simulated halls, evaluate on halls the model has never seen, make figures.
 
-python evaluate.py            -> results/results.json, results/*.png, models/hallsense.joblib
+python evaluate.py            -> results/results.json, results/*.png, models/wujud.joblib
 """
 import glob, json, os, sys, time, warnings
 import numpy as np
@@ -9,8 +9,8 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from hallsense.model import load_scene, SeatModel, RTIBaseline
-from hallsense.metrics import auc, seat_f1, tolerant_f1, block_corr
+from wujud.model import load_scene, SeatModel, RTIBaseline
+from wujud.metrics import auc, seat_f1, tolerant_f1, block_corr
 
 warnings.filterwarnings("ignore")
 OUT = "results"
@@ -68,7 +68,7 @@ def main():
     print(f"train scenes: {len(train)} ({time.time() - t0:.0f}s)", flush=True)
     model = SeatModel().fit(train)
     rti = RTIBaseline().fit(train[::4])
-    joblib.dump(model, "models/hallsense.joblib")
+    joblib.dump(model, "models/wujud.joblib")
     print(f"trained ({time.time() - t0:.0f}s)", flush=True)
 
     res = {}
@@ -131,7 +131,7 @@ def figures(res, sets, model):
     t = np.array([r["true"] for r in rows]); c = np.array([r["count"] for r in rows]); b = np.array([r["rti_count"] for r in rows])
     fig, ax = plt.subplots(1, 2, figsize=(10, 4.4), sharey=True)
     m = max(t.max(), c.max(), b.max()) * 1.05
-    for a, v, col, name in ((ax[0], c, BLUE, "HallSense (this work)"), (ax[1], b, ORANGE, "Classic RTI baseline")):
+    for a, v, col, name in ((ax[0], c, BLUE, "wujud (this work)"), (ax[1], b, ORANGE, "Classic RTI baseline")):
         a.plot([0, m], [0, m], color=INK2, lw=1, ls="--")
         a.scatter(t, v, s=28, color=col, edgecolor=SURF, linewidth=1.2, zorder=3)
         mae = np.mean(np.abs(v - t))
@@ -202,7 +202,7 @@ def figures(res, sets, model):
     vr = [res[k]["rti"]["mae_pct_of_seats"] for k, _ in names]
     x = np.arange(len(names)); w = 0.36
     fig, ax = plt.subplots(figsize=(8, 3.8))
-    ax.bar(x - w / 2 - 0.01, v, w, color=BLUE, label="HallSense")
+    ax.bar(x - w / 2 - 0.01, v, w, color=BLUE, label="wujud")
     ax.bar(x + w / 2 + 0.01, vr, w, color=ORANGE, label="Classic RTI")
     for xi, vi in zip(x, v):
         ax.text(xi - w / 2, vi + 0.4, f"{vi:.1f}%", ha="center", fontsize=9, color=INK)

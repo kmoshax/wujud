@@ -1,14 +1,14 @@
 [package]
-name = "hallsense"
-description = "HallSense desktop app: live view of ESP32 boards, recording, replay"
+name = "wujud"
+description = "wujud desktop app: live view of ESP32 boards, recording, replay"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
 
 [dependencies]
-hallsense-proto.workspace = true
-hallsense-model.workspace = true
-hallsense-sim.workspace = true
+wujud-proto.workspace = true
+wujud-model.workspace = true
+wujud-sim.workspace = true
 anyhow.workspace = true
 clap.workspace = true
 serde.workspace = true

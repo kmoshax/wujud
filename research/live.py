@@ -1,11 +1,11 @@
-"""HallSense live system, the Python reference of the Rust app: one state line per second on the terminal.
+"""wujud live system, the Python reference of the Rust app: one state line per second on the terminal.
 
 No hardware:
   python live.py demo-room                 # simulated bedroom: away -> walk -> sit -> lie (breathing) -> ...
   python live.py demo-hall                 # simulated tiered lecture hall filling up
-Room (router + 1..N ESP32 running firmware/hallsense_room, one USB port per board):
+Room (router + 1..N ESP32 running firmware/wujud_room, one USB port per board):
   python live.py room --room room.json --ports COM5 [COM6 COM7]
-Hall (ESP32 mesh running firmware/hallsense_node, one board on USB as sink):
+Hall (ESP32 mesh running firmware/wujud_node, one board on USB as sink):
   python live.py calibrate --hall hall.json --port COM5      # 30 s, hall EMPTY
   python live.py hall --hall hall.json --port COM5 --record rec.csv
   python live.py replay --hall hall.json --file rec.csv
@@ -17,11 +17,11 @@ os.environ.setdefault("OMP_NUM_THREADS", "1")
 import numpy as np
 import joblib
 
-from hallsense.config import N_GROUPS
-from hallsense.model import scene_from_arrays, geometry_cache
-from hallsense.roomfeat import windows, amplitude_from_iq, profile_windows
-from hallsense.occupancy import OccupancyLatch
-from hallsense.roomloc import locate
+from wujud.config import N_GROUPS
+from wujud.model import scene_from_arrays, geometry_cache
+from wujud.roomfeat import windows, amplitude_from_iq, profile_windows
+from wujud.occupancy import OccupancyLatch
+from wujud.roomloc import locate
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 STATE = {"mode": "starting"}
@@ -148,7 +148,7 @@ class RoomEngine:
         self.smooth = None
         self.locate = False
         # still person vs empty: compare the static multipath profile with the empty room of a few MINUTES ago
-        # (day-to-day drift is bigger than a still person, minute-to-minute drift is not; see hallsense/occupancy.py)
+        # (day-to-day drift is bigger than a still person, minute-to-minute drift is not; see wujud/occupancy.py)
         self.latch = OccupancyLatch(thr=0.4); self.latch_state = None; self.latch_d = None; self.prof_dim = None
         self.ticks = 0
 
@@ -299,8 +299,8 @@ def main():
     os.makedirs(os.path.join(HERE, "cache"), exist_ok=True)
 
     if a.cmd == "demo-room":
-        from hallsense.scenes3d import random_room
-        from hallsense.sim3d import simulate_room
+        from wujud.scenes3d import random_room
+        from wujud.sim3d import simulate_room
         sc = random_room(np.random.default_rng(a.seed), n_esp=a.boards, smart=True)
         plan = [("away", 25), ("walk", 15), ("sit", 50), ("walk", 10), ("lie", 80), ("walk", 12), ("away", 25)]
         cache = os.path.join(HERE, "cache", f"demo_room_{a.seed}_{a.boards}.joblib")
@@ -327,8 +327,8 @@ def main():
                 time.sleep(1.0 / a.speed)
 
     if a.cmd == "demo-hall":
-        from hallsense.scenes3d import random_hall3
-        from hallsense.sim3d import simulate_hall_timeline3
+        from wujud.scenes3d import random_hall3
+        from wujud.sim3d import simulate_hall_timeline3
         sc = random_hall3(np.random.default_rng(a.hall_seed), n_nodes=12, tiered=True, placement="walls", W=13.0, D=12.0)
         cache = os.path.join(HERE, "cache", f"demo_hall_{a.hall_seed}.npz")
         if not os.path.exists(cache):

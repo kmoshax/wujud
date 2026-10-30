@@ -1,7 +1,7 @@
 //! Real serial lines and frames against what the Python host decodes from them (research/tools/export_golden_proto.py).
 
-use hallsense_proto::{to_wire_line, Frame, Line, ReportRecord, RxClockUnwrapper, N_GROUPS};
 use serde::Deserialize;
+use wujud_proto::{to_wire_line, Frame, Line, ReportRecord, RxClockUnwrapper, N_GROUPS};
 
 #[derive(Deserialize)]
 struct RoomGolden {

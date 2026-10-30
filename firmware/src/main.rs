@@ -8,5 +8,5 @@ fn main() -> anyhow::Result<()> {
 
 #[cfg(not(target_os = "espidf"))]
 fn main() {
-    eprintln!("hallsense-firmware runs on an ESP32; see firmware/README.md for the build command.");
+    eprintln!("wujud-firmware runs on an ESP32; see firmware/README.md for the build command.");
 }

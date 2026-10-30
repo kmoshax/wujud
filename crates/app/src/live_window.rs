@@ -4,8 +4,8 @@ use std::time::{Duration, Instant};
 use eframe::egui::{
     self, Color32, ColorImage, Pos2, Sense, Stroke, TextureHandle, TextureOptions, Vec2,
 };
-use hallsense_model::motion_tracker::{MotionTracker, Track};
-use hallsense_model::room::{RoomEngine, RoomState};
+use wujud_model::motion_tracker::{MotionTracker, Track};
+use wujud_model::room::{RoomEngine, RoomState};
 
 use crate::link_history::LinkHistory;
 use crate::room_setup::LiveRoom;

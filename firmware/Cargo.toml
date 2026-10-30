@@ -1,6 +1,6 @@
 [package]
-name = "hallsense-firmware"
-description = "HallSense ESP32 firmware: room mode (router -> board CSI) and hall node mode (ESP-NOW mesh)"
+name = "wujud-firmware"
+description = "wujud ESP32 firmware: room mode (router -> board CSI) and hall node mode (ESP-NOW mesh)"
 version = "0.1.0"
 edition = "2021"
 license = "TBD"
@@ -9,7 +9,7 @@ license = "TBD"
 path = "src/lib.rs"
 
 [[bin]]
-name = "hallsense-firmware"
+name = "wujud-firmware"
 path = "src/main.rs"
 
 [features]
@@ -18,7 +18,7 @@ room = []
 hall-node = []
 
 [dependencies]
-hallsense-proto = { path = "../crates/proto", default-features = false }
+wujud-proto = { path = "../crates/proto", default-features = false }
 
 [target.'cfg(target_os = "espidf")'.dependencies]
 esp-idf-svc = "0.53"

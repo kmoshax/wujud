@@ -96,7 +96,7 @@ fn per_row(x: &Array2<f64>, statistic: impl Fn(&[f64]) -> f64) -> Vec<f64> {
         .collect()
 }
 
-/// `research/hallsense/model.py::link_features` on `[links, windows, 13]` calibration and session windows.
+/// `research/wujud/model.py::link_features` on `[links, windows, 13]` calibration and session windows.
 pub fn link_features(
     cal_mean: ArrayView3<f32>,
     cal_std: ArrayView3<f32>,

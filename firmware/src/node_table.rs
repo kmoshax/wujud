@@ -1,6 +1,6 @@
 //! Which MAC address belongs to which hall node, learned from the nodes' beacons.
 
-use hallsense_proto::{MacAddress, MAX_NODES};
+use wujud_proto::{MacAddress, MAX_NODES};
 
 #[derive(Clone, Debug, Default)]
 pub struct NodeTable {

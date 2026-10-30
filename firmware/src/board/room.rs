@@ -8,8 +8,8 @@ use esp_idf_svc::sys::{esp, esp_wifi_set_ps, wifi_ps_type_t_WIFI_PS_NONE};
 use esp_idf_svc::wifi::{
     AuthMethod, BlockingWifi, ClientConfiguration, Configuration, EspWifi, WifiDeviceId,
 };
-use hallsense_firmware::ROOM_PING_HZ;
-use hallsense_proto::{CsiPacket, MacAddress, RoomBanner};
+use wujud_firmware::ROOM_PING_HZ;
+use wujud_proto::{CsiPacket, MacAddress, RoomBanner};
 
 use super::csi;
 use super::serial::send_line;

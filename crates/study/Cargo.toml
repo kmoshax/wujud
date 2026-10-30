@@ -1,5 +1,5 @@
 [package]
-name = "hallsense-study"
+name = "wujud-study"
 description = "Simulation studies: which physical change breaks the single-link limit of Wi-Fi presence sensing"
 edition.workspace = true
 version.workspace = true
@@ -10,8 +10,8 @@ name = "limits_study"
 path = "src/main.rs"
 
 [dependencies]
-hallsense-sim.workspace = true
-hallsense-model.workspace = true
+wujud-sim.workspace = true
+wujud-model.workspace = true
 anyhow.workspace = true
 clap.workspace = true
 ndarray.workspace = true

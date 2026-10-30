@@ -1,7 +1,7 @@
 """3-D hall datasets (flat + tiered amphitheatres, nodes at mixed heights).
 
-python -m hallsense.dataset3d --out data3/train --halls 80 --scenes 4 --seed 11 --nodes 6,8,10,12,16
-python -m hallsense.dataset3d --out data3/sweep --halls 10 --seed 13 --node-sweep 4,6,8,12,16
+python -m wujud.dataset3d --out data3/train --halls 80 --scenes 4 --seed 11 --nodes 6,8,10,12,16
+python -m wujud.dataset3d --out data3/sweep --halls 10 --seed 13 --node-sweep 4,6,8,12,16
 """
 import argparse, json, os, time
 from multiprocessing import Pool

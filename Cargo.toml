@@ -11,9 +11,9 @@ license = "TBD"   # pick before publishing (see README)
 repository = ""
 
 [workspace.dependencies]
-hallsense-proto = { path = "crates/proto" }
-hallsense-sim = { path = "crates/sim" }
-hallsense-model = { path = "crates/model" }
+wujud-proto = { path = "crates/proto" }
+wujud-sim = { path = "crates/sim" }
+wujud-model = { path = "crates/model" }
 anyhow = "1"
 thiserror = "1"
 serde = { version = "1", features = ["derive"] }

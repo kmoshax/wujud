@@ -11,9 +11,9 @@ import os, sys, json, time
 from multiprocessing import Pool
 import numpy as np, joblib
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from hallsense.scenes3d import random_room
-from hallsense.sim3d import simulate_room
-from hallsense.roomfeat import windows, amplitude_from_iq
+from wujud.scenes3d import random_room
+from wujud.sim3d import simulate_room
+from wujud.roomfeat import windows, amplitude_from_iq
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.metrics import roc_auc_score, confusion_matrix
 

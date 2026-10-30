@@ -1,5 +1,5 @@
 """Test the ESP32 room path without an ESP32: replay REAL ESPectre recordings as the serial stream
-firmware/hallsense_room prints (I,... banner, then P,<rssi>,<rx timestamp us>,<128 hex = 64 x [imag, real] int8>),
+firmware/wujud_room prints (I,... banner, then P,<rssi>,<rx timestamp us>,<128 hex = 64 x [imag, real] int8>),
 on pseudo-terminals, so live.py opens them through pyserial exactly like a board on USB.
 
 One recording per fake board. Prints the pty paths and writes a room.json keyed by them:
@@ -33,7 +33,7 @@ def lines(path, wrap_at=None):
 
 
 def play(master, path, speed, loop, wrap_at=None):
-    os.write(master, b"\nI,hallsense-room,ch=6,gw=192.168.1.1,mac=replay\n")
+    os.write(master, b"\nI,wujud-room,ch=6,gw=192.168.1.1,mac=replay\n")
     while True:
         L = lines(path, wrap_at); t0 = time.time()
         for t, line in L:

@@ -2,7 +2,7 @@ use std::sync::mpsc::Receiver;
 use std::time::Instant;
 
 use eframe::egui::{self, Pos2, RichText, Sense, Stroke, Vec2};
-use hallsense_model::hall::{HallEngine, HallState};
+use wujud_model::hall::{HallEngine, HallState};
 
 use crate::hall_feed::HallSecond;
 use crate::hall_view::HallView;

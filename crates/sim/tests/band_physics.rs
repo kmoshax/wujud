@@ -3,25 +3,25 @@
 
 use std::f64::consts::PI;
 
-use hallsense_sim::band::{
+use ndarray::Array2;
+use num_complex::Complex64;
+use wujud_sim::band::{
     carrier_of, channel_2g4_hz, channel_5g_hz, wavelength_at, BandPlan, FrequencyEffects,
     SubcarrierLayout,
 };
-use hallsense_sim::channel::Link;
-use hallsense_sim::constants::{
+use wujud_sim::channel::Link;
+use wujud_sim::constants::{
     ht_ltf_frequencies, l_ltf_frequencies, CARRIER_HZ, SPEED_OF_LIGHT, WAVELENGTH,
 };
-use hallsense_sim::fresnel::{
+use wujud_sim::fresnel::{
     fresnel_scale, fresnel_scale_at, fresnel_zone_radius, fresnel_zone_radius_at,
 };
-use hallsense_sim::paths::path_response;
-use hallsense_sim::random::seeded;
-use hallsense_sim::room::{random_room, Activity, PlanStep, RoomOptions};
-use hallsense_sim::room_sim::{simulate_room, simulate_room_on_band, RoomSession, RoomSimOptions};
-use hallsense_sim::scatter::{add_moving_scatterer, MovingScatterer};
-use hallsense_sim::shadow::{path_shadow, ShadowCasters};
-use ndarray::Array2;
-use num_complex::Complex64;
+use wujud_sim::paths::path_response;
+use wujud_sim::random::seeded;
+use wujud_sim::room::{random_room, Activity, PlanStep, RoomOptions};
+use wujud_sim::room_sim::{simulate_room, simulate_room_on_band, RoomSession, RoomSimOptions};
+use wujud_sim::scatter::{add_moving_scatterer, MovingScatterer};
+use wujud_sim::shadow::{path_shadow, ShadowCasters};
 
 const FIVE_GHZ: f64 = 5.18e9;
 

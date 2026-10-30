@@ -1,7 +1,7 @@
 """How often is a still person's breathing visible on ONE link? Simulator prediction vs real ESP32 recordings.
 
 "Visible" is defined identically in both worlds (CFAR style): take the breathing detector score (the
-Patwari-style GLRT feature 'glrt' and the breathing-band ratio 'br_top' from hallsense/roomfeat.py), set its
+Patwari-style GLRT feature 'glrt' and the breathing-band ratio 'br_top' from wujud/roomfeat.py), set its
 threshold so that only 5% of EMPTY-room windows of that same world exceed it, and count the share of
 still-person windows above it. Each world is calibrated on its own empty rooms, nothing is tuned across.
 
@@ -13,7 +13,7 @@ import numpy as np
 import joblib
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from hallsense.roomfeat import FEAT_NAMES, EXTRA_NAMES
+from wujud.roomfeat import FEAT_NAMES, EXTRA_NAMES
 from phase_exp import _real, ROOT, NA
 
 NAMES = FEAT_NAMES + ["rssi"] + EXTRA_NAMES

@@ -27,13 +27,13 @@ def label_bars(ax, bars, fmt="{:.2f}", dy=0.012):
 
 
 def fig_ruview():
-    r = J("ruview_compare_native.json"); h, v = r["HallSense (sim-only)"], r["RuView edge"]
+    r = J("ruview_compare_native.json"); h, v = r["wujud (sim-only)"], r["RuView edge"]
     fig, (a, b) = plt.subplots(1, 2, figsize=(7.0, 2.7), gridspec_kw=dict(width_ratios=[1, 2.1], wspace=0.35))
     bars = a.bar([0, 1], [h["motion_false_alarm"] * 100, v["motion_false_alarm"] * 100], color=[OURS, THEIRS], width=0.6)
     label_bars(a, bars, "{:.1f}%", 1.5)
-    a.set_xticks([0, 1], ["HallSense", "RuView"]); a.set_ylim(0, 115); a.set_ylabel("Motion false-alarm rate (%)")
+    a.set_xticks([0, 1], ["wujud", "RuView"]); a.set_ylim(0, 115); a.set_ylabel("Motion false-alarm rate (%)")
     x = np.arange(2); w = 0.36
-    b1 = b.bar(x - w / 2, [h["motion_auc"], h["still_vs_empty_auc"]], w, color=OURS, label="HallSense (trained on simulation only)")
+    b1 = b.bar(x - w / 2, [h["motion_auc"], h["still_vs_empty_auc"]], w, color=OURS, label="wujud (trained on simulation only)")
     b2 = b.bar(x + w / 2, [v["motion_auc"], v["still_vs_empty_auc"]], w, color=THEIRS, label="RuView on-device detector (original C)")
     label_bars(b, list(b1) + list(b2))
     b.axhline(0.5, color=GREY, lw=0.8, ls="--"); b.text(1.62, 0.51, "chance", fontsize=8, color=GREY, ha="right")
@@ -62,7 +62,7 @@ def fig_hall():
     m = max(t.max(), c.max(), rt.max()) * 1.05
     a.plot([0, m], [0, m], color=GREY, lw=0.8, ls="--")
     a.scatter(t, rt, s=14, facecolors="none", edgecolors=GREY, lw=0.8, label=f"RTI baseline (MAE {r['test']['rti']['mae_pct_of_seats']:.1f}% of seats)")
-    a.scatter(t, c, s=14, color=OURS, label=f"HallSense (MAE {r['test']['ours']['mae_pct_of_seats']:.1f}% of seats)")
+    a.scatter(t, c, s=14, color=OURS, label=f"wujud (MAE {r['test']['ours']['mae_pct_of_seats']:.1f}% of seats)")
     a.set_xlim(0, m); a.set_ylim(0, m); a.set_xlabel("True head-count"); a.set_ylabel("Estimated head-count"); a.legend(frameon=False, loc="upper left")
     sw = sorted(r["sweep"].items(), key=lambda kv: int(kv[0]))
     n = [int(k) for k, _ in sw]; e = [v["mae_pct_of_seats"] for _, v in sw]

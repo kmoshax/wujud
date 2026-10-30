@@ -1,15 +1,15 @@
 //! Seconds per simulated room-minute, the recipe of research/tools/export_parity_sim.py
 //! (random room, fs ~ U(50,120), 60 s of one activity + 20 s calibration).
-//! Run: cargo run -p hallsense-sim --release --example bench_room [rooms]
+//! Run: cargo run -p wujud-sim --release --example bench_room [rooms]
 
 use std::time::Instant;
 
-use hallsense_sim::random::{chance, uniform};
-use hallsense_sim::room::{random_room, Activity, PlanStep, RoomOptions};
-use hallsense_sim::room_sim::{simulate_room, RoomSimOptions};
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
 use rayon::prelude::*;
+use wujud_sim::random::{chance, uniform};
+use wujud_sim::room::{random_room, Activity, PlanStep, RoomOptions};
+use wujud_sim::room_sim::{simulate_room, RoomSimOptions};
 
 fn room_minutes(seed: u64) -> usize {
     let mut rng = ChaCha8Rng::seed_from_u64(seed);

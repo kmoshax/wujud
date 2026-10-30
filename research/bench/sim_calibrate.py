@@ -15,9 +15,9 @@ import joblib
 from sklearn.ensemble import HistGradientBoostingClassifier
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from hallsense.scenes3d import random_room
-from hallsense.sim3d import simulate_room
-from hallsense.roomfeat import windows, amplitude_from_iq
+from wujud.scenes3d import random_room
+from wujud.sim3d import simulate_room
+from wujud.roomfeat import windows, amplitude_from_iq
 from phase_exp import _real, metrics, ROOT, NA, RSSI_COL
 from breath_visibility import NAMES, FA
 

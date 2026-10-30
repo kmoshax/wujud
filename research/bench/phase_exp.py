@@ -14,9 +14,9 @@ import joblib
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.metrics import roc_auc_score
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from hallsense.scenes3d import random_room
-from hallsense.sim3d import simulate_room
-from hallsense.roomfeat import windows, amplitude_from_iq, phase_from_iq, phase_windows, FEAT_NAMES
+from wujud.scenes3d import random_room
+from wujud.sim3d import simulate_room
+from wujud.roomfeat import windows, amplitude_from_iq, phase_from_iq, phase_windows, FEAT_NAMES
 
 ROOT = os.environ.get("ESPECTRE_DATA", os.path.expanduser("~/Projects/ext/espectre/data"))
 CLASS = {"away": 0, "lie": 1, "sit": 1, "stand": 1, "walk": 2}

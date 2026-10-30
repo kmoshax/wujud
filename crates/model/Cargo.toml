@@ -1,5 +1,5 @@
 [package]
-name = "hallsense-model"
+name = "wujud-model"
 description = "CSI features, gradient-boosted trees (train + infer), occupancy latch, room/hall engines"
 edition.workspace = true
 version.workspace = true

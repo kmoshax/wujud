@@ -1,7 +1,7 @@
 {
  "n_windows": 2055,
  "n_recordings": 51,
- "HallSense (sim-only)": {
+ "wujud (sim-only)": {
   "motion_recall": 1.0,
   "motion_false_alarm": 0.0,
   "motion_auc": 1.0,

@@ -1,16 +1,16 @@
 //! Plays a recording (`live --record`) through the room engine and the motion tracker, and prints
 //! what they would have said every few seconds, with the wall-clock time, to compare against what
 //! really happened in the room.
-//! cargo run --release -p hallsense --example replay -- <recording.csv> <room.json> [seconds per line]
+//! cargo run --release -p wujud --example replay -- <recording.csv> <room.json> [seconds per line]
 
 use std::collections::{BTreeMap, VecDeque};
 
-use hallsense_model::gbdt::Gbdt;
-use hallsense_model::motion_tracker::{disturbance_db, rssi_spread_db, MotionTracker};
-use hallsense_model::room::{activity_model_file, RoomEngine};
-use hallsense_model::scene::Scene;
-use hallsense_proto::{Line, RxClockUnwrapper};
 use serde_json::Value;
+use wujud_model::gbdt::Gbdt;
+use wujud_model::motion_tracker::{disturbance_db, rssi_spread_db, MotionTracker};
+use wujud_model::room::{activity_model_file, RoomEngine};
+use wujud_model::scene::Scene;
+use wujud_proto::{Line, RxClockUnwrapper};
 
 const RECENT_PACKETS: usize = 50;
 

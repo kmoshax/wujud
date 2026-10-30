@@ -4,8 +4,8 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use hallsense_proto::{Line, RxClockUnwrapper};
-use hallsense_sim::stream::{RoomSecond, RoomStream};
+use wujud_proto::{Line, RxClockUnwrapper};
+use wujud_sim::stream::{RoomSecond, RoomStream};
 
 use crate::serial;
 

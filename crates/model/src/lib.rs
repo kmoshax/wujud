@@ -1,4 +1,4 @@
-//! HallSense model: CSI features, gradient-boosted trees, the occupancy latch and the room and hall engines.
+//! wujud model: CSI features, gradient-boosted trees, the occupancy latch and the room and hall engines.
 
 pub mod error;
 pub mod espectre;

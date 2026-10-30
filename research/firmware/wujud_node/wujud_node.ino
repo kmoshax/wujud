@@ -1,11 +1,11 @@
 /*
- * HallSense node firmware — ESP32 / ESP32-S3 (Arduino-ESP32 core 3.x, ESP-IDF 5.x)
+ * wujud node firmware — ESP32 / ESP32-S3 (Arduino-ESP32 core 3.x, ESP-IDF 5.x)
  *
  * Every node:
  *   - broadcasts a tiny ESP-NOW frame FS times per second at HT20 MCS0 (OFDM, so it yields CSI)
- *   - captures the L-LTF CSI of every frame it hears from other HallSense nodes
+ *   - captures the L-LTF CSI of every frame it hears from other wujud nodes
  *   - turns each packet into 13 subcarrier-group levels in absolute dB
- *       a_k = 10 log10(p_k / mean p) + RSSI       (same math as hallsense/features.py)
+ *       a_k = 10 log10(p_k / mean p) + RSSI       (same math as wujud/features.py)
  *   - once per second broadcasts a REPORT with mean/std per source node
  * The SINK (any node with its USB plugged into the laptop) prints every
  * report it hears, plus its own, as CSV lines on Serial.
@@ -207,7 +207,7 @@ void setup() {
   esp_wifi_set_csi_rx_cb(csi_cb, NULL);
   esp_wifi_set_csi(true);
 
-  Serial.printf("I,hallsense,node=%d,ch=%d,mac=%s\n", NODE_ID, CHANNEL, WiFi.macAddress().c_str());
+  Serial.printf("I,wujud,node=%d,ch=%d,mac=%s\n", NODE_ID, CHANNEL, WiFi.macAddress().c_str());
 }
 
 void loop() {

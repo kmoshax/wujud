@@ -1,10 +1,10 @@
 use std::path::{Path, PathBuf};
 
-use hallsense_model::gbdt::Gbdt;
-use hallsense_model::room::{activity_model_file, RoomEngine};
-use hallsense_model::scene::Scene;
-use hallsense_sim::room::{Furniture, Room};
 use serde::Deserialize;
+use wujud_model::gbdt::Gbdt;
+use wujud_model::room::{activity_model_file, RoomEngine};
+use wujud_model::scene::Scene;
+use wujud_sim::room::{Furniture, Room};
 
 /// research/room.example.json: metres, origin in a corner, z up.
 /// `router` is the node every link shares (the board, in the room firmware's setup); `boards` are the
@@ -33,7 +33,7 @@ fn default_height() -> f64 {
 }
 
 pub fn models_dir() -> PathBuf {
-    std::env::var_os("HALLSENSE_MODELS")
+    std::env::var_os("WUJUD_MODELS")
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/../model/models")))
 }

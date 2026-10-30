@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use hallsense_model::motion_tracker;
+use wujud_model::motion_tracker;
 
 use crate::sensor_feed::CsiFrame;
 

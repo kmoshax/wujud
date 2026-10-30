@@ -1,4 +1,4 @@
-//! HallSense 3-D Wi-Fi CSI physics simulator (port of `research/hallsense/{physics3d,scenes3d,sim3d}.py`).
+//! wujud 3-D Wi-Fi CSI physics simulator (port of `research/wujud/{physics3d,scenes3d,sim3d}.py`).
 
 pub mod band;
 pub mod bodies;

@@ -1,11 +1,11 @@
 //! Scores the motion tracker's position against the simulator's truth while the person walks.
-//! cargo run --release -p hallsense --example demo_tracking -- <boards> <seeds>
+//! cargo run --release -p wujud --example demo_tracking -- <boards> <seeds>
 
-use hallsense_model::motion_tracker::{disturbance_db, rssi_spread_db, MotionTracker};
-use hallsense_model::numeric::median;
-use hallsense_sim::room::Activity;
-use hallsense_sim::stream::RoomStream;
 use ndarray::{s, Axis};
+use wujud_model::motion_tracker::{disturbance_db, rssi_spread_db, MotionTracker};
+use wujud_model::numeric::median;
+use wujud_sim::room::Activity;
+use wujud_sim::stream::RoomStream;
 
 const UPDATES_PER_SECOND: usize = 1;
 

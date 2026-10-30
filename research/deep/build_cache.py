@@ -40,7 +40,7 @@ def process_sim_chunk(stem):
 
 
 def export_batch(first_room, rooms, out_dir):
-    subprocess.run(["cargo", "run", "--release", "-q", "-p", "hallsense", "--example", "export_sim_windows", "--",
+    subprocess.run(["cargo", "run", "--release", "-q", "-p", "wujud", "--example", "export_sim_windows", "--",
                     os.path.abspath(out_dir), str(first_room), str(rooms), "60"], cwd=REPO, check=True)
 
 

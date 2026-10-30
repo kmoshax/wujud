@@ -1,4 +1,4 @@
-//! The two ESP-NOW frames hall nodes broadcast to each other (packed little-endian structs of hallsense_node.ino).
+//! The two ESP-NOW frames hall nodes broadcast to each other (packed little-endian structs of wujud_node.ino).
 
 use crate::line::LinkReport;
 use crate::N_GROUPS;
@@ -17,7 +17,7 @@ const REPORT_TYPE: u8 = 2;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FrameError {
     TooShort { needed: usize, found: usize },
-    NotHallSense,
+    NotWujud,
     UnknownType(u8),
     ReportFull,
 }
@@ -185,7 +185,7 @@ impl Frame {
     pub fn decode(bytes: &[u8]) -> Result<Self, FrameError> {
         require_len(bytes, 3)?;
         if bytes[0] != FRAME_MAGIC {
-            return Err(FrameError::NotHallSense);
+            return Err(FrameError::NotWujud);
         }
         match bytes[1] {
             BEACON_TYPE => BeaconFrame::decode(bytes).map(Frame::Beacon),
@@ -256,7 +256,7 @@ mod tests {
     fn rejects_foreign_and_truncated_frames() {
         assert_eq!(
             Frame::decode(&[0x00, 1, 2, 3, 4]),
-            Err(FrameError::NotHallSense)
+            Err(FrameError::NotWujud)
         );
         assert_eq!(
             Frame::decode(&[FRAME_MAGIC, 9, 0]),

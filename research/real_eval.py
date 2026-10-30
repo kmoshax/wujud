@@ -17,8 +17,8 @@ import numpy as np
 import joblib
 
 from live import load_hall, Windower
-from hallsense.model import scene_from_arrays, geometry_cache
-from hallsense.metrics import auc, tolerant_f1
+from wujud.model import scene_from_arrays, geometry_cache
+from wujud.metrics import auc, tolerant_f1
 
 
 def windows_from_recording(path, hall):
@@ -40,7 +40,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd", choices=["eval", "mark"])
     ap.add_argument("--rec"); ap.add_argument("--labels"); ap.add_argument("--hall", default="hall.json")
-    ap.add_argument("--calib", default="calib.npz"); ap.add_argument("--model", default="models/hallsense.joblib")
+    ap.add_argument("--calib", default="calib.npz"); ap.add_argument("--model", default="models/wujud.joblib")
     a = ap.parse_args()
     if a.cmd == "mark":
         print("press Enter at the START and END of each session; type seat ids before the END Enter")

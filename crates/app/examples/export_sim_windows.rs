@@ -1,17 +1,17 @@
 //! Exports raw single-link room sessions (router -> one board) with domain-randomised realism for the
 //! deep-learning study in research/deep/. One chunk per worker: `<out>/chunk_<c>.{iq,t,rssi}.npy` + `.json`.
-//! cargo run --release -p hallsense --example export_sim_windows -- <out_dir> <first_room> <rooms> [seconds]
+//! cargo run --release -p wujud --example export_sim_windows -- <out_dir> <first_room> <rooms> [seconds]
 
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 
-use hallsense_sim::capture::Capture;
-use hallsense_sim::distractors::DistractorKind;
-use hallsense_sim::random::{chance, seeded, uniform, SimRng};
-use hallsense_sim::room::{random_room, Activity, PlanStep, RealismKnobs, RoomOptions};
-use hallsense_sim::room_sim::{simulate_room, RoomSimOptions};
 use serde_json::json;
+use wujud_sim::capture::Capture;
+use wujud_sim::distractors::DistractorKind;
+use wujud_sim::random::{chance, seeded, uniform, SimRng};
+use wujud_sim::room::{random_room, Activity, PlanStep, RealismKnobs, RoomOptions};
+use wujud_sim::room_sim::{simulate_room, RoomSimOptions};
 
 const WORKERS: usize = 12;
 const ACTIVITIES: [Activity; 5] = [

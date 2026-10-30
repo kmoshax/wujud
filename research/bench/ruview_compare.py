@@ -1,4 +1,4 @@
-"""Head-to-head on REAL ESP32 recordings: RuView's on-device detector vs HallSense's simulation-trained model.
+"""Head-to-head on REAL ESP32 recordings: RuView's on-device detector vs wujud's simulation-trained model.
 
 RuView detector = a line-by-line port of firmware/esp32-csi-node/main/edge_processing.c (process_frame, steps 1-9):
 frames gated to EDGE_DSP_SAMPLE_HZ (20 Hz; 8 Hz on C6) as in csi_collector.c ->
@@ -8,7 +8,7 @@ presence = motion_energy > adaptive threshold (mean + 3 sigma of the first 1200 
 clear after 5 frames; motion flag = motion_energy > 0.01 (send_vitals_packet).
 
 Both systems are scored on the same ESPectre test split (selection + holdout) and the same 20 s / 5 s windows.
-HallSense never saw a real sample (models/room_sim_all.joblib was trained on simulation only).
+wujud never saw a real sample (models/room_sim_all.joblib was trained on simulation only).
 
 RuView side runs RuView's own compiled C by default (bench/ruview_native/build.sh first);
 RUVIEW_IMPL=python uses the line-by-line Python port instead (kept to cross-check it).
@@ -19,7 +19,7 @@ import numpy as np
 import joblib
 from sklearn.metrics import roc_auc_score
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from hallsense.roomfeat import windows, amplitude_from_iq, WIN_S, HOP_S
+from wujud.roomfeat import windows, amplitude_from_iq, WIN_S, HOP_S
 
 ROOT = os.environ.get("ESPECTRE_DATA", os.path.expanduser("~/Projects/ext/espectre/data"))
 LAB = {"empty": 0, "static_presence": 1, "motion": 2}
@@ -131,12 +131,12 @@ def main():
             print(f"{lab:16s} {m['chip']:6s} windows={len(X):3d} thr={thr if thr is None else round(thr, 4)}", flush=True)
     y = np.array([r["y"] for r in rows])
     res = {"n_windows": len(rows), "n_recordings": len({r["file"] for r in rows})}
-    for name, move, pmove in (("HallSense (sim-only)", np.array([r["hs_pred"] == 2 for r in rows]), np.array([r["hs_move"] for r in rows])),
+    for name, move, pmove in (("wujud (sim-only)", np.array([r["hs_pred"] == 2 for r in rows]), np.array([r["hs_move"] for r in rows])),
                               ("RuView edge", np.array([r["rv_move"] for r in rows]), np.array([r["rv_me"] for r in rows]))):
         res[name] = dict(motion_recall=float(move[y == 2].mean()), motion_false_alarm=float(move[y < 2].mean()),
                          motion_auc=float(roc_auc_score(y == 2, pmove)))
     s = y < 2
-    res["HallSense (sim-only)"]["still_vs_empty_auc"] = float(roc_auc_score(y[s], np.array([r["hs_still"] for r in rows])[s]))
+    res["wujud (sim-only)"]["still_vs_empty_auc"] = float(roc_auc_score(y[s], np.array([r["hs_still"] for r in rows])[s]))
     res["RuView edge"]["still_vs_empty_auc"] = float(roc_auc_score(y[s], np.array([r["rv_me"] for r in rows])[s]))
     # RuView's own yes/no presence flag, only in windows after its 1200-frame boot calibration
     c = np.array([r["rv_calibrated"] for r in rows]) & s
@@ -144,7 +144,7 @@ def main():
     res["RuView edge"]["presence_flag_after_calibration"] = dict(windows=int(c.sum()), says_present_when_empty=float(p[c & (y == 0)].mean()),
                                                                says_present_when_still=float(p[c & (y == 1)].mean()))
     hp = np.array([r["hs_pred"] for r in rows])
-    res["HallSense (sim-only)"]["presence_call"] = dict(says_present_when_empty=float((hp[y == 0] >= 1).mean()), says_present_when_still=float((hp[y == 1] >= 1).mean()))
+    res["wujud (sim-only)"]["presence_call"] = dict(says_present_when_empty=float((hp[y == 0] >= 1).mean()), says_present_when_still=float((hp[y == 1] >= 1).mean()))
     os.makedirs("results", exist_ok=True)
     res["ruview_impl"] = os.environ.get("RUVIEW_IMPL", "native")
     json.dump(res, open(f"results/ruview_compare_{res['ruview_impl']}.json", "w"), indent=1)

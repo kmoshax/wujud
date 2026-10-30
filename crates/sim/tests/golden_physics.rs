@@ -1,16 +1,16 @@
-//! Exact comparisons with research/hallsense/physics3d.py (golden data: research/tools/export_golden_sim.py).
+//! Exact comparisons with research/wujud/physics3d.py (golden data: research/tools/export_golden_sim.py).
 
 mod common;
 
 use common::{json_complex, json_complexes, json_f64s, json_point, read_json, relative_error};
-use hallsense_sim::constants::{ht_ltf_frequencies, WAVELENGTH};
-use hallsense_sim::fresnel::{fresnel_integrals, fresnel_scale, fresnel_zone_radius};
-use hallsense_sim::paths::{
+use num_complex::Complex64;
+use wujud_sim::constants::{ht_ltf_frequencies, WAVELENGTH};
+use wujud_sim::fresnel::{fresnel_integrals, fresnel_scale, fresnel_zone_radius};
+use wujud_sim::paths::{
     diffuse_paths, geometric_paths, DiffuseDraws, Enclosure, PropagationPath, RoomShape,
 };
-use hallsense_sim::radio::quantize_to_int8;
-use hallsense_sim::scatter::{static_rest, Scatterer};
-use num_complex::Complex64;
+use wujud_sim::radio::quantize_to_int8;
+use wujud_sim::scatter::{static_rest, Scatterer};
 
 #[test]
 fn wavelength_matches_config() {
@@ -162,8 +162,7 @@ fn quantization_rounds_half_to_even_and_clips() {
 #[test]
 fn path_response_is_free_space_at_unit_gain() {
     let length = 3.0;
-    let response =
-        hallsense_sim::paths::path_response(length, Complex64::new(1.0, 0.0), &[2.437e9]);
+    let response = wujud_sim::paths::path_response(length, Complex64::new(1.0, 0.0), &[2.437e9]);
     assert!(
         (response[0].norm() - WAVELENGTH / (4.0 * std::f64::consts::PI * length)).abs() < 1e-15
     );

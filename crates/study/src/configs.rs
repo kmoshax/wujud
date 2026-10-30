@@ -1,9 +1,9 @@
 //! The hardware configurations compared by the study and what each costs on top of the baseline.
 
-use hallsense_sim::band::{
+use serde::Serialize;
+use wujud_sim::band::{
     channel_2g4_hz, channel_5g_hz, BandPlan, FrequencyEffects, SubcarrierLayout,
 };
-use serde::Serialize;
 
 /// One ESP32 board (2.4 GHz, e.g. ESP32-S3/C3 dev board), the baseline receiver (USD, 2026 retail).
 pub const ESP32_BOARD_USD: f64 = 5.0;

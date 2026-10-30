@@ -1,13 +1,13 @@
-//! Feature ports against `research/hallsense/roomfeat.py` on real ESP32 recordings.
+//! Feature ports against `research/wujud/roomfeat.py` on real ESP32 recordings.
 
 mod common;
 
 use common::*;
-use hallsense_model::features::{
+use ndarray::{s, Array2};
+use wujud_model::features::{
     amplitude_from_iq, phase_from_iq, phase_windows, profile_windows, to_grid, windows,
     GRID_RATE_HZ, HOP_SECONDS, WINDOW_SECONDS,
 };
-use ndarray::{s, Array2};
 
 const BIT_EXACT: f64 = 0.0;
 /// Measured: f32-rounded features identical, the f64 RSSI column within 1.2e-15.

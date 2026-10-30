@@ -1,4 +1,4 @@
-//! Wire format between HallSense ESP32 boards and the host. The format is described in README.md.
+//! Wire format between wujud ESP32 boards and the host. The format is described in README.md.
 #![no_std]
 
 #[cfg(feature = "std")]
@@ -30,8 +30,8 @@ pub use rx_clock::RxClockUnwrapper;
 #[cfg(feature = "std")]
 pub use line::to_wire_line;
 
-/// Subcarrier groups per report: 52 L-LTF data subcarriers in groups of 4 (research/hallsense/config.py).
+/// Subcarrier groups per report: 52 L-LTF data subcarriers in groups of 4 (research/wujud/config.py).
 pub const N_GROUPS: usize = 13;
 
-/// Node ids are 0..MAX_NODES (hallsense_node.ino).
+/// Node ids are 0..MAX_NODES (wujud_node.ino).
 pub const MAX_NODES: usize = 32;

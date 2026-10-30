@@ -2,7 +2,7 @@
 import glob, json, os, sys
 import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from hallsense.selfmap import self_map, align
+from wujud.selfmap import self_map, align
 
 errs_sim, errs_1d, halls = [], [], []
 for f in sorted(glob.glob("data3/test/*_s0.npz")):
@@ -25,7 +25,7 @@ json.dump(res, open("results/selfmap.json", "w"), indent=1)
 print({k: v for k, v in res.items() if k != "per_hall"})
 
 # with the wall prior (boards are on the walls, hall size typed in)
-from hallsense.selfmap import self_map_walls
+from wujud.selfmap import self_map_walls
 ew = []
 for f in sorted(glob.glob("data3/test/*_s0.npz")):
     z = np.load(f); P = np.nanmean(z["cal_mean"].astype(np.float32), axis=(1, 2))

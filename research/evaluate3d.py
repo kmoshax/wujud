@@ -6,8 +6,8 @@ import glob, json, os, time, warnings
 import numpy as np, joblib
 import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from hallsense.model import load_scene, SeatModel, RTIBaseline
-from hallsense.metrics import auc
+from wujud.model import load_scene, SeatModel, RTIBaseline
+from wujud.metrics import auc
 from evaluate import score, summarize, BLUE, ORANGE, INK, INK2, GRID, SURF
 warnings.filterwarnings("ignore")
 
@@ -36,7 +36,7 @@ json.dump(res, open("results/results3d.json", "w"), indent=1, default=float)
 t = np.array([r["true"] for r in rows]); c = np.array([r["count"] for r in rows]); b = np.array([r["rti_count"] for r in rows])
 tier = np.array([r["tiered"] for r in rows])
 fig, ax = plt.subplots(1, 2, figsize=(10, 4.4), sharey=True); m = max(t.max(), c.max(), b.max()) * 1.05
-for a, v, col, nm in ((ax[0], c, BLUE, "HallSense"), (ax[1], b, ORANGE, "Classic RTI")):
+for a, v, col, nm in ((ax[0], c, BLUE, "wujud"), (ax[1], b, ORANGE, "Classic RTI")):
     a.plot([0, m], [0, m], color=INK2, lw=1, ls="--")
     a.scatter(t[tier], v[tier], s=30, color=col, edgecolor=SURF, linewidth=1.2, zorder=3, label="tiered hall")
     a.scatter(t[~tier], v[~tier], s=30, marker="s", facecolor=SURF, edgecolor=col, linewidth=1.5, zorder=3, label="flat hall")

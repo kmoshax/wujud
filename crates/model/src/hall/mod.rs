@@ -1,4 +1,4 @@
-//! Lecture-hall seat occupancy from an ESP32 link mesh (`research/hallsense/model.py`, `research/live.py`).
+//! Lecture-hall seat occupancy from an ESP32 link mesh (`research/wujud/model.py`, `research/live.py`).
 
 mod engine;
 mod layout;

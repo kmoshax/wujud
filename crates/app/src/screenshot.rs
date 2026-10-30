@@ -1,4 +1,4 @@
-//! `HALLSENSE_SCREENSHOT=out.ppm`: run any window for a few seconds, save what it shows, and quit.
+//! `WUJUD_SCREENSHOT=out.ppm`: run any window for a few seconds, save what it shows, and quit.
 //! For README pictures and for checking the 3D view without a person at the screen.
 
 use std::time::{Duration, Instant};
@@ -15,7 +15,7 @@ pub struct Screenshot<A> {
 }
 
 pub fn wrap<A: eframe::App + 'static>(app: A) -> Box<dyn eframe::App> {
-    match std::env::var("HALLSENSE_SCREENSHOT") {
+    match std::env::var("WUJUD_SCREENSHOT") {
         Ok(path) => Box::new(Screenshot {
             app,
             path,

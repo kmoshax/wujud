@@ -1070,79 +1070,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hallsense"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "eframe",
- "hallsense-model",
- "hallsense-proto",
- "hallsense-sim",
- "ndarray",
- "serde",
- "serde_json",
- "serialport",
-]
-
-[[package]]
-name = "hallsense-model"
-version = "0.1.0"
-dependencies = [
- "ndarray",
- "ndarray-npy",
- "num-complex",
- "rand",
- "rand_chacha",
- "rayon",
- "rustfft",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "hallsense-proto"
-version = "0.1.0"
-dependencies = [
- "libm",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "hallsense-sim"
-version = "0.1.0"
-dependencies = [
- "ndarray",
- "ndarray-npy",
- "num-complex",
- "rand",
- "rand_chacha",
- "rand_distr",
- "rayon",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "hallsense-study"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "hallsense-model",
- "hallsense-sim",
- "ndarray",
- "rand",
- "rand_chacha",
- "rayon",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "hashbrown"
 version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3690,6 +3617,79 @@ name = "writeable"
 version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ad82d2a33cdc9674dc7465672f271e096168fcdbe0f799d9e6db8c5892679dc"
+
+[[package]]
+name = "wujud"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "eframe",
+ "ndarray",
+ "serde",
+ "serde_json",
+ "serialport",
+ "wujud-model",
+ "wujud-proto",
+ "wujud-sim",
+]
+
+[[package]]
+name = "wujud-model"
+version = "0.1.0"
+dependencies = [
+ "ndarray",
+ "ndarray-npy",
+ "num-complex",
+ "rand",
+ "rand_chacha",
+ "rayon",
+ "rustfft",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "wujud-proto"
+version = "0.1.0"
+dependencies = [
+ "libm",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "wujud-sim"
+version = "0.1.0"
+dependencies = [
+ "ndarray",
+ "ndarray-npy",
+ "num-complex",
+ "rand",
+ "rand_chacha",
+ "rand_distr",
+ "rayon",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "wujud-study"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "ndarray",
+ "rand",
+ "rand_chacha",
+ "rayon",
+ "serde",
+ "serde_json",
+ "wujud-model",
+ "wujud-sim",
+]
 
 [[package]]
 name = "x11-dl"

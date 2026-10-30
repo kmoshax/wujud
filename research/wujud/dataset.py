@@ -1,6 +1,6 @@
 """Generate simulated lecture-hall datasets in parallel.
 
-python -m hallsense.dataset --out data/train --halls 90 --scenes 4 --seed 1
+python -m wujud.dataset --out data/train --halls 90 --scenes 4 --seed 1
 Each scene -> one .npz with hall geometry, per-link window features, seat labels.
 """
 import argparse, json, os, time

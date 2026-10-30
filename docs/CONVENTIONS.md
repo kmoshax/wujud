@@ -1,6 +1,6 @@
 # Code conventions
 
-HallSense is open source and is read by students who are learning what it does. Clarity beats cleverness.
+wujud is open source and is read by students who are learning what it does. Clarity beats cleverness.
 
 ## Layout
 | Path | What lives there |
@@ -8,7 +8,7 @@ HallSense is open source and is read by students who are learning what it does. 
 | `crates/proto` | Wire format between ESP32 boards and the host. `no_std`, shared with `firmware/`. |
 | `crates/sim` | The 3-D physics simulator (rooms, halls, bodies, walls, ESP32 impairments) and dataset generation. |
 | `crates/model` | Features from CSI, gradient-boosted trees (training + inference), the occupancy latch, room/hall/beacon engines. Pure logic, no I/O besides reading files. |
-| `crates/app` | The `hallsense` binary: CLI, live dashboard server, serial ports, laptop beacon capture, replay, train, bench. |
+| `crates/app` | The `wujud` binary: CLI, live dashboard server, serial ports, laptop beacon capture, replay, train, bench. |
 | `firmware/` | ESP32 firmware in Rust (separate Cargo project, targets the board). |
 | `research/` | The original Python research code. It is the reference: Rust ports must reproduce its numbers. |
 

@@ -1,6 +1,6 @@
 use eframe::egui;
-use hallsense_model::motion_tracker::Track;
-use hallsense_model::room::{RoomState, RoomState3};
+use wujud_model::motion_tracker::Track;
+use wujud_model::room::{RoomState, RoomState3};
 
 use crate::sensor_feed::SimulatedTruth;
 

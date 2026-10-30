@@ -1,8 +1,8 @@
-//! The firmware's per-link reports on a real ESP32 recording, against the Python emulation of hallsense_node.ino
+//! The firmware's per-link reports on a real ESP32 recording, against the Python emulation of wujud_node.ino
 //! (research/tools/export_golden_proto.py -> crates/proto/tests/golden/hall_reports.json).
 
-use hallsense_proto::node_report::{group_levels_db, subcarrier_powers, LinkWindow};
-use hallsense_proto::{CsiBuffer, ReportRecord, RxClockUnwrapper, CSI_BUFFER_LEN};
+use wujud_proto::node_report::{group_levels_db, subcarrier_powers, LinkWindow};
+use wujud_proto::{CsiBuffer, ReportRecord, RxClockUnwrapper, CSI_BUFFER_LEN};
 use ndarray::{Array1, Array2};
 use ndarray_npy::NpzReader;
 use serde::Deserialize;

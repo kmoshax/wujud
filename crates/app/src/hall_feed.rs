@@ -5,13 +5,13 @@ use std::sync::mpsc::{channel, Receiver};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use hallsense_model::hall::{HallLayout, Windower};
-use hallsense_proto::node_report::{group_levels_db, LinkWindow};
-use hallsense_proto::N_GROUPS;
-use hallsense_sim::capture::Capture;
-use hallsense_sim::hall::Hall;
-use hallsense_sim::stream::HallStream;
 use ndarray::{Array2, Array3, Axis};
+use wujud_model::hall::{HallLayout, Windower};
+use wujud_proto::node_report::{group_levels_db, LinkWindow};
+use wujud_proto::N_GROUPS;
+use wujud_sim::capture::Capture;
+use wujud_sim::hall::Hall;
+use wujud_sim::stream::HallStream;
 
 const DATA_SUBCARRIERS: usize = 52;
 
