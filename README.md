@@ -1,6 +1,8 @@
-# HallSense
+<p align="center"><img src="docs/banner.png" alt="wujud: a walking person drawn in Wi-Fi CSI hex, with the waves of an ESP32 crossing them"></p>
 
-HallSense senses people with Wi-Fi channel state information (CSI) from a $5 ESP32. It tells:
+# wujud
+
+wujud senses people with Wi-Fi channel state information (CSI) from a $5 ESP32. It tells:
 
 - an empty room;
 - a person holding still;
@@ -19,7 +21,7 @@ Every model is trained on physics simulation. None of them has seen a labelled r
 | `crates/proto` | the line protocol between board and host (`no_std`, shared with the firmware) |
 | `crates/sim` | physics simulator: rooms, lecture halls, people, walls, ESP32 impairments |
 | `crates/model` | features, gradient-boosted models (bit-exact with sklearn), occupancy latch, motion tracker |
-| `crates/app` | the `hallsense` program: live view, simulator demos, monitor, recording and replay |
+| `crates/app` | the `wujud` program: live view, simulator demos, monitor, recording and replay |
 | `crates/study` | limits study: which change in the hardware breaks the single-link limit |
 | `research/firmware` | the ESP32 room firmware (Arduino) and `board.sh` to flash and control it over Wi-Fi |
 | `research/rt` | GPU ray-traced CSI dataset (Sionna RT) |
@@ -32,7 +34,7 @@ Every model is trained on physics simulation. None of them has seen a labelled r
 You need a Rust toolchain. To see the simulator, no hardware required:
 
 ```bash
-cargo run --release -p hallsense -- demo --boards 3
+cargo run --release -p wujud -- demo --boards 3
 ```
 
 To run with a real board:
@@ -42,10 +44,10 @@ To run with a real board:
    ```bash
    research/firmware/board.sh flash
    ```
-3. Join the laptop and a phone to the Wi-Fi network `hallsense`.
+3. Join the laptop and a phone to the Wi-Fi network `wujud`.
 4. Start the live view:
    ```bash
-   cargo run --release -p hallsense -- live --ports udp:192.168.4.1
+   cargo run --release -p wujud -- live --ports udp:192.168.4.1
    ```
 
 Run the tests, which include golden comparisons against the Python reference:
