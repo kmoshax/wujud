@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>wujud ضد RuView</title>
+<style>
+  :root { --bg: #111; --fg: #eee; --dim: #777; --ok: #4ade80; --bad: #f87171; --wait: #fbbf24; --line: #333; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 18px/1.5 system-ui, "Noto Sans Arabic", sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 32px 16px; }
+  h1 { font-size: 20px; font-weight: 500; color: var(--dim); margin: 0 0 24px; }
+  .now { font-size: clamp(40px, 9vw, 84px); font-weight: 800; line-height: 1.15; margin: 8px 0; }
+  .clock { font: 700 clamp(64px, 16vw, 150px)/1 ui-monospace, monospace; direction: ltr; text-align: right; }
+  .next { color: var(--dim); font-size: 22px; margin-top: 8px; }
+  .says { margin-top: 40px; font-size: 26px; }
+  .says { margin-top: 16px; }
+  .says b { font-size: 44px; }
+  h2 { font-size: 36px; margin: 40px 0 0; }
+  .vitals { margin-top: 24px; }
+  canvas#wave { width: 100%; max-width: 800px; height: 120px; display: block; margin-top: 8px; }
+  .pace-box { position: relative; height: 260px; display: flex; align-items: center; justify-content: center; }
+  #pace { width: 240px; height: 240px; border-radius: 50%; background: var(--fg); opacity: .85; }
+  #pace-word { position: absolute; font-size: 40px; font-weight: 800; color: var(--bg); }
+  .meter { display: inline-block; width: 200px; height: 14px; background: var(--line); vertical-align: middle; margin-right: 12px; }
+  .meter span { display: block; height: 100%; background: var(--fg); }
+  .timeline { display: flex; gap: 3px; margin: 32px 0 8px; direction: rtl; }
+  .timeline div { height: 10px; background: var(--line); }
+  .timeline .done { background: var(--dim); }
+  .timeline .here { background: var(--fg); }
+  button { font: inherit; font-size: 28px; font-weight: 700; padding: 16px 48px; background: var(--fg); color: var(--bg); border: 0; cursor: pointer; margin-top: 24px; }
+  table { border-collapse: collapse; margin-top: 24px; font-size: 22px; }
+  td, th { padding: 6px 18px; text-align: center; border-bottom: 1px solid var(--line); }
+  th { color: var(--dim); font-weight: 500; }
+  .score { font-size: 64px; font-weight: 800; margin-top: 24px; }
+  ol { color: var(--dim); padding-right: 24px; }
+  ol li.here { color: var(--fg); font-weight: 700; }
+</style>
+</head>
+<body>
+<main id="app"><h1>wujud ضد RuView</h1>جاري التحميل…</main>
+<script>
+const NAMES = { empty: "فاضية", still: "حد ساكن", moving: "حد بيتحرك" };
+const COLOR = { ok: "var(--ok)", bad: "var(--bad)", wait: "var(--wait)" };
+const SETTLE = 25;
+const app = document.getElementById("app");
+let lastStep = -2, audio;
+
+function bell() {
+  if (!audio) return;
+  const t = audio.currentTime;
+  for (const [delay, freq] of [[0, 880], [0.25, 660], [0.5, 880]]) {
+    const osc = audio.createOscillator(), gain = audio.createGain();
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.4, t + delay);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.22);
+    osc.connect(gain).connect(audio.destination);
+    osc.start(t + delay);
+    osc.stop(t + delay + 0.25);
+  }
+}
+
+function clock(seconds) {
+  const s = Math.max(0, Math.ceil(seconds));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+function steps(plan, here) {
+  return "<ol>" + plan.map((s, i) =>
+    `<li class="${i === here ? "here" : ""}">${s.text} — ${Math.round(s.end - s.start)} ثانية</li>`).join("") + "</ol>";
+}
+
+function timeline(plan, now) {
+  return `<div class="timeline">` + plan.map(s => {
+    const cls = now >= s.end ? "done" : now >= s.start ? "here" : "";
+    return `<div class="${cls}" style="flex:${s.end - s.start}"></div>`;
+  }).join("") + "</div>";
+}
+
+function results(table, name) {
+  const classes = ["empty", "still", "moving"];
+  let right = 0, total = 0, rows = "";
+  for (const truth of classes) {
+    const counts = classes.map(c => table[truth][c]);
+    const n = counts.reduce((a, b) => a + b, 0);
+    right += table[truth][truth];
+    total += n;
+    rows += `<tr><th>${NAMES[truth]}</th>${counts.map(c => `<td>${c}</td>`).join("")}
+             <td>${n ? Math.round(100 * table[truth][truth] / n) : "–"}%</td></tr>`;
+  }
+  return `<h2>${name}: ${total ? Math.round(100 * right / total) : 0}% صح</h2>
+          <table><tr><th>الحقيقة ↓ / قال →</th>${classes.map(c => `<th>${NAMES[c]}</th>`).join("")}<th>صح</th></tr>${rows}</table>`;
+}
+
+function verdict(name, said, state, step, drift) {
+  if (!said) return `<div class="says">${name}: <b style="color:var(--dim)">لسه</b></div>`;
+  let color = "var(--fg)", note = "";
+  if (step !== null) {
+    const s = state.plan[step];
+    if (state.now - s.start < SETTLE) { color = COLOR.wait; note = " (بيتأقلم)"; }
+    else if (said === s.label) { color = COLOR.ok; note = " ✓"; }
+    else { color = COLOR.bad; note = " ✗"; }
+  }
+  const meter = drift == null ? "" : ` <span class="meter"><span style="width:${Math.min(100, drift / 0.2 * 100)}%"></span></span> <span class="next">${drift.toFixed(3)}</span>`;
+  return `<div class="says">${name}: <b style="color:${color}">${NAMES[said] || said}</b>${note}${meter}</div>`;
+}
+
+function says(state, step) {
+  const signal = state.signal ? "" : `<div class="now" style="color:var(--bad);font-size:34px">مفيش إشارة من الموبايل! افتح شاشته واتأكد إنه متوصل بشبكة wujud</div>`;
+  return signal + verdict("wujud الجديد", state.says.drift, state, step, state.drift) + verdict("wujud القديم", state.says.ours, state, step) + verdict("RuView", state.says.ruview, state, step);
+}
+
+async function start() {
+  audio = new AudioContext();
+  bell();
+  await fetch("/start", { method: "POST" });
+}
+
+let pace = null;
+
+function vitalsPanel(state) {
+  const v = state.vitals;
+  if (!v) return `<div class="vitals"><div class="next">التنفس: بيجمع 30 ثانية الأول…</div></div>`;
+  const sure = v.breath_snr >= 6 ? "واضح" : v.breath_snr >= 3 ? "ضعيف" : "مش واضح";
+  return `<div class="vitals">
+    <div class="says">التنفس: <b>${Math.round(v.breath_bpm)}</b> في الدقيقة <span class="next">(${sure}، SNR ${v.breath_snr.toFixed(1)})</span></div>
+    <canvas id="wave" width="800" height="120" data-wave="${v.wave.join(",")}"></canvas>
+    <div class="next">نبض القلب: مش معروض. على بوردة واحدة طلع تشويش ثابت (94/دقيقة حتى والأوضة فاضية)، مش نبض.</div>
+  </div>`;
+}
+
+function drawWave() {
+  const canvas = document.getElementById("wave");
+  if (!canvas || !canvas.dataset.wave) return;
+  const wave = canvas.dataset.wave.split(",").map(Number), ctx = canvas.getContext("2d");
+  const style = getComputedStyle(document.body);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = style.color;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  wave.forEach((y, i) => {
+    const px = canvas.width - i * canvas.width / (wave.length - 1);
+    const py = canvas.height / 2 - y * canvas.height / 6;
+    i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+  });
+  ctx.stroke();
+}
+
+function breathingResults(state) {
+  const rows = state.plan.filter(s => s.pace || s.label === "hold").map(s => {
+    const seen = state.vitals_seen.filter(v => v.t >= s.start + (s.pace ? 30 : 8) && v.t < s.end);
+    if (!seen.length) return `<tr><th>${s.text}</th><td colspan="2">مفيش قراءة</td></tr>`;
+    const median = xs => xs.slice().sort((a, b) => a - b)[Math.floor(xs.length / 2)];
+    if (s.pace) {
+      const bpm = median(seen.map(v => v.breath_bpm));
+      const ok = Math.abs(bpm - s.pace) <= 2;
+      return `<tr><th>${s.text}</th><td>قرا ${bpm.toFixed(1)}</td><td style="color:${ok ? COLOR.ok : COLOR.bad}">${ok ? "✓ اتبع الإيقاع" : "✗ ما اتبعش"}</td></tr>`;
+    }
+    const recent = median(seen.map(v => v.recent));
+    return `<tr><th>${s.text}</th><td>قوة الحركة آخر 8 ثواني: ${recent.toFixed(2)} (العادي 1)</td>
+      <td style="color:${recent < 0.6 ? COLOR.ok : COLOR.bad}">${recent < 0.6 ? "✓ حس إنك كتمت" : "✗ ما حسّش"}</td></tr>`;
+  }).join("");
+  return `<h2>التنفس: هل اتبع الإيقاع؟</h2><table>${rows}</table>`;
+}
+
+function animate() {
+  const circle = document.getElementById("pace");
+  if (circle && pace) {
+    const period = 60 / pace.bpm, phase = ((Date.now() / 1000 - pace.start) % period) / period;
+    const inhale = phase < 0.5, size = 0.35 + 0.65 * (inhale ? phase * 2 : 2 - phase * 2);
+    circle.style.transform = `scale(${size})`;
+    document.getElementById("pace-word").textContent = inhale ? "شهيق" : "زفير";
+  }
+  requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+
+function render(state) {
+  if (!state.started) {
+    app.innerHTML = `<h1>wujud ضد RuView</h1>
+      <div class="now">الصفحة دي هتقولك تعمل إيه وإمتى</div>
+      <div class="next">هيرن جرس مع كل خطوة جديدة، فخلي صوت اللابتوب عالي.
+        وانت برا الأوضة مش لازم تبص على الشاشة: ارجع لما تسمع الجرس.</div>
+      <div class="next">قبل ما تبدأ: الموبايل متوصل بشبكة wujud، ومحطوط ثابت على الشباك، والفيديو شغال، وما تلمسوش لحد ما الاختبار يخلص.</div>
+      ${says(state, null)}
+      ${vitalsPanel(state)}
+      <button onclick="start()">ابدأ</button>
+      ${steps(state.preview, -1)}`;
+    return;
+  }
+  if (state.done) {
+    if (lastStep !== -3) { bell(); lastStep = -3; }
+    app.innerHTML = `<h1>wujud ضد RuView — خلص</h1><div class="now">النتيجة، من نفس الإشارة بالظبط</div>
+      ${state.plan.some(s => s.pace) ? breathingResults(state) : ""}
+      ${results(state.tables.drift, "wujud الجديد (حركة بس: ساكن أو بيتحرك)")}${results(state.tables.ours, "wujud القديم")}${results(state.tables.ruview, "RuView")}
+      <div class="next">أول ${SETTLE} ثانية بعد كل تغيير مش بتتحسب</div>`;
+    return;
+  }
+  if (state.step === null) {
+    pace = null;
+    app.innerHTML = `<h1>wujud ضد RuView</h1><div class="now">جهّز نفسك</div>
+      <div class="clock">${clock(state.prep_left)}</div>
+      <div class="next">الأول: ${state.plan[0].text}</div>${says(state, null)}${timeline(state.plan, state.now)}`;
+    return;
+  }
+  if (state.step !== lastStep) { bell(); lastStep = state.step; }
+  const s = state.plan[state.step], next = state.plan[state.step + 1];
+  pace = s.pace ? { bpm: s.pace, start: s.start } : null;
+  app.innerHTML = `<h1>wujud ضد RuView — خطوة ${state.step + 1} من ${state.plan.length}</h1>
+    <div class="now">${s.text}</div>
+    ${s.pace ? `<div class="pace-box"><div id="pace"></div><div id="pace-word"></div></div>` : ""}
+    <div class="clock">${clock(s.end - state.now)}</div>
+    <div class="next">${next ? "بعدها: " + next.text : "دي آخر خطوة"}</div>
+    ${says(state, state.step)}
+    ${vitalsPanel(state)}
+    ${timeline(state.plan, state.now)}`;
+}
+
+
+async function tick() {
+  try { render(await (await fetch("/state")).json()); drawWave(); } catch (e) {}
+  setTimeout(tick, 500);
+}
+tick();
+</script>
+</body>
+</html>

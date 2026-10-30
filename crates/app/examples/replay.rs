@@ -2,8 +2,10 @@
 //! what they would have said every few seconds, with the wall-clock time, to compare against what
 //! really happened in the room.
 //! cargo run --release -p wujud --example replay -- <recording.csv> <room.json> [seconds per line]
+//! With `-` for the recording it reads lines from stdin as they come, to judge a room live.
 
 use std::collections::{BTreeMap, VecDeque};
+use std::io::BufRead;
 
 use serde_json::Value;
 use wujud_model::gbdt::Gbdt;
@@ -59,7 +61,13 @@ fn main() -> anyhow::Result<()> {
 
     let (mut newest_board, mut next_tick, mut next_print) = (f64::NAN, f64::NAN, f64::NAN);
     let mut last_track = None;
-    for row in std::fs::read_to_string(recording)?.lines() {
+    let rows: Box<dyn BufRead> = if recording == "-" {
+        Box::new(std::io::stdin().lock())
+    } else {
+        Box::new(std::io::BufReader::new(std::fs::File::open(recording)?))
+    };
+    for row in rows.lines() {
+        let row = row?;
         let mut fields = row.splitn(3, ',');
         let (Some(wall), Some(port), Some(text)) = (fields.next(), fields.next(), fields.next())
         else {
@@ -102,7 +110,7 @@ fn main() -> anyhow::Result<()> {
             let clock = chrono_like(wall);
             match (decision, &last_track) {
                 (Some(d), Some(t)) => println!(
-                    "{clock}  {:<7} {:<6} probs {:?}  latch {:?}  motion {:.1}x",
+                    "{clock}  {:<7} {:<6} probs {:?}  latch {:?}  motion {:.1}x  unix {wall:.1}",
                     format!("{:?}", d.state3),
                     format!("{:?}", d.state),
                     d.probs,
