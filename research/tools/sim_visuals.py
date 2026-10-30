@@ -261,7 +261,6 @@ def walk_animation(seconds=16, fps=12):
         return img, cursor, person, trail, link
 
     anim = animation.FuncAnimation(fig, draw, frames=frames, blit=False)
-    anim.save(f"{OUT}/walking.mp4", writer=animation.FFMpegWriter(fps=fps, bitrate=1800), dpi=150)
     anim.save(f"{OUT}/walking.gif", writer=animation.PillowWriter(fps=fps), dpi=80)
     plt.close(fig)
 

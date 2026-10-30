@@ -1,4 +1,4 @@
-"""HallSense live system (3-D dashboard at http://localhost:8000).
+"""HallSense live system, the Python reference of the Rust app: one state line per second on the terminal.
 
 No hardware:
   python live.py demo-room                 # simulated bedroom: away -> walk -> sit -> lie (breathing) -> ...
@@ -14,7 +14,6 @@ import argparse, collections, json, os, sys, threading, time
 # one row per second: OpenMP thread start-up in sklearn's predict costs more than the prediction, and on a busy
 # laptop it made one room tick take ~20 s instead of 0.1 s (the dashboard froze). Must be set before sklearn loads.
 os.environ.setdefault("OMP_NUM_THREADS", "1")
-from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 import numpy as np
 import joblib
 
@@ -33,6 +32,18 @@ ACT = ["away", "lie", "sit", "stand", "walk"]
 def publish(st):
     with LOCK:
         STATE.clear(); STATE.update(st)
+    print(summary(st), flush=True)
+
+
+def summary(st):
+    if "hall" in st:
+        h = st["hall"]
+        truth = f"  (really {h['true_count']})" if h.get("true_count") is not None else ""
+        return f"{st['t']:7.1f} s  students {h.get('count')}{truth}"
+    r = st["room"]
+    breath = f"  breathing {r['breath_bpm']}/min" if r.get("breath_bpm") else ""
+    really = f"  (really {r['truth']})" if r.get("truth") else ""
+    return f"{st['t']:7.1f} s  {r.get('state', 'warming up')}{breath}{really}"
 
 
 # ---------------------------------------------------------------------------
@@ -223,31 +234,6 @@ def room_scene_json(W, D, H, nodes, furniture, roles):
                 links=[[0, k] for k in range(1, len(nodes))], furniture=furniture)
 
 
-# ---------------------------------------------------------------------------
-class Handler(BaseHTTPRequestHandler):
-    def log_message(self, *a):
-        pass
-
-    def do_GET(self):
-        p = self.path.split("?")[0]
-        if p.startswith("/state"):
-            with LOCK:
-                body = json.dumps(STATE).encode()
-            ctype = "application/json"
-        elif p.startswith("/vendor/") and ".." not in p:
-            body = open(os.path.join(HERE, "realtime", p.lstrip("/")), "rb").read(); ctype = "text/javascript"
-        else:
-            body = open(os.path.join(HERE, "realtime", "dashboard3d.html"), "rb").read(); ctype = "text/html; charset=utf-8"
-        self.send_response(200); self.send_header("Content-Type", ctype); self.send_header("Cache-Control", "no-store")
-        self.end_headers(); self.wfile.write(body)
-
-
-def serve(port):
-    srv = ThreadingHTTPServer(("0.0.0.0", port), Handler)
-    threading.Thread(target=srv.serve_forever, daemon=True).start()
-    print(f"dashboard: http://localhost:{port}", flush=True)
-
-
 def serial_lines(port, baud=921600, record=None):
     import serial
     ser = serial.Serial(port, baud, timeout=0.2)
@@ -307,7 +293,7 @@ def main():
     ap.add_argument("--room", default="room.json"); ap.add_argument("--calib", default="calib.npz")
     ap.add_argument("--model", default=os.path.join(HERE, "models", "hall3d.joblib"))
     ap.add_argument("--seconds", type=int, default=30); ap.add_argument("--record"); ap.add_argument("--file")
-    ap.add_argument("--speed", type=float, default=1.0); ap.add_argument("--http", type=int, default=8000)
+    ap.add_argument("--speed", type=float, default=1.0)
     ap.add_argument("--seed", type=int, default=7); ap.add_argument("--boards", type=int, default=3); ap.add_argument("--hall-seed", type=int, default=3)
     a = ap.parse_args()
     os.makedirs(os.path.join(HERE, "cache"), exist_ok=True)
@@ -325,7 +311,6 @@ def main():
         sj = room_scene_json(sc.W, sc.D, sc.H, sc.nodes, sc.furniture, ["router"] + ["esp"] * (len(sc.nodes) - 1))
         m1, m3 = models(a)
         eng = RoomEngine(sj, len(out), [tuple(l) for l in sc.links], "SIMULATION", m1, m3, sc.nodes)
-        serve(a.http)
         fs = lab["fs"]
         while True:
             eng.buf = [collections.deque() for _ in out]; eng.hist.clear(); eng.t0 = None; eng.smooth = None; eng.still_for = 0; eng.br_run = 0; eng.calm_for = 0
@@ -353,7 +338,6 @@ def main():
         hall = dict(W=sc.W, D=sc.D, H=sc.H, front=sc.tiers["front"], ids=list(range(len(sc.nodes))), nodes=sc.nodes,
                     seats=sc.seats, chest=sc.seats + [0, 0, 1.0], links=sc.links, tiers=sc.tiers)
         eng = HallEngine(hall, joblib.load(a.model), z["cal_mean"], z["cal_std"], "SIMULATION")
-        serve(a.http)
         while True:
             for w in range(z["ses_mean"].shape[1]):
                 eng.push(z["ses_mean"][:, w], z["ses_std"][:, w], truth=z["present"][w]); time.sleep(1.0 / a.speed)
@@ -366,7 +350,6 @@ def main():
         sj = room_scene_json(r["W"], r["D"], r.get("H", 2.8), nodes, r.get("furniture", []), ["router"] + ["esp"] * len(ports))
         m1, m3 = models(a)
         eng = RoomEngine(sj, len(ports), [(0, k + 1) for k in range(len(ports))], "LIVE", m1, m3, nodes)
-        serve(a.http)
         lock = threading.Lock()
 
         def reader(k, port):
@@ -406,7 +389,6 @@ def main():
 
     c = np.load(a.calib)
     eng = HallEngine(hall, joblib.load(a.model), c["cal_mean"], c["cal_std"], "LIVE" if a.cmd == "hall" else "REPLAY")
-    serve(a.http)
     if a.cmd == "hall":
         hall_stream(serial_lines(a.port, record=a.record), hall, eng.push)
     else:

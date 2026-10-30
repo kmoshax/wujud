@@ -5,8 +5,8 @@ The 3-D Wi-Fi CSI physics simulator of HallSense, ported from the Python researc
 moves people (and pets, fans, doors) through them, computes the complex channel of every ESP32 link
 and turns it into what the board reports: int8 I/Q per subcarrier, RSSI, lost packets.
 
-The math is explained step by step (in Arabic, with figures) in `research/explainer/template.html`,
-**Appendix A** (`#math`). Each section below points to the matching subsection.
+The math is explained step by step (in Egyptian Arabic) in `docs/PHYSICS.md`. Each section below
+points to the matching subsection (A.1 is أ١, and so on).
 
 ## Module map
 
@@ -35,22 +35,22 @@ The math is explained step by step (in Arabic, with figures) in `research/explai
 
 ## Physics summary
 
-* **Channel** (A.1 `#m-csi`): `H[t,k] = absorb·rest[k] + Σ_paths F_p(t)·g_p·λ/(4πL_p)·e^{-j2πf_k L_p/c} + absorb·(chest + limb scatter)`.
-* **Reflections** (A.2 `#m-image`): first-order image method on the four walls, the floor (gain −0.5, shadowed at 0.7 strength;
+* **Channel** (A.1): `H[t,k] = absorb·rest[k] + Σ_paths F_p(t)·g_p·λ/(4πL_p)·e^{-j2πf_k L_p/c} + absorb·(chest + limb scatter)`.
+* **Reflections** (A.2): first-order image method on the four walls, the floor (gain −0.5, shadowed at 0.7 strength;
   absent in tiered halls) and the ceiling (−0.35). Wall gains are random per scene.
-* **Diffuse field** (A.3 `#m-diffuse`): 24 (room) / 8 (hall) paths `a → random point → b` with an exponential power-delay
+* **Diffuse field** (A.3): 24 (room) / 8 (hall) paths `a → random point → b` with an exponential power-delay
   profile (15–40 ns) whose total is `10^{-K/10}` of the line-of-sight power, K ~ U(−3, 6) dB. Because each one has a geometry,
   a person anywhere in the room shadows some of them.
-* **Bodies block** (A.4 `#m-fresnel`): every path segment is multiplied per frame by
+* **Bodies block** (A.4): every path segment is multiplied per frame by
   `1 − η·(j/2)·I(u1,u2)·I(v1,v2)`, `I(α,β) = ∫_α^β e^{−jπt²/2}dt`, the exact diffraction of a rectangular absorber in
   Fresnel units `k_F = sqrt(2L/(λ d1 d2))`; bodies more than 3.5 Fresnel units away are skipped.
-* **Breathing and fidgets** (A.5 `#m-breath`): chest and limb are bistatic point scatterers
+* **Breathing and fidgets** (A.5): chest and limb are bistatic point scatterers
   `λ√σ/((4π)^{1.5} d1 d2)`; their motion changes the carrier phase and 1/L amplitude around the track's mean position.
-* **People absorb** (A.6 `#m-sabine`): the reverberant clutter `rest` is scaled by `sqrt(A0/(A0 + 0.4 m²·N))`,
+* **People absorb** (A.6): the reverberant clutter `rest` is scaled by `sqrt(A0/(A0 + 0.4 m²·N))`,
   `A0 = α·S`, α ~ U(0.1, 0.3).
-* **Through walls** (A.7 `#m-wall`): everything is attenuated by `wall_db` except a static "flash" of six echoes off the
+* **Through walls** (A.7): everything is attenuated by `wall_db` except a static "flash" of six echoes off the
   outside of the wall.
-* **ESP32** (A.8 `#m-esp`): Tx power, thermal + EVM noise, interference bursts, RSSI with AGC-state bias and jitter,
+* **ESP32** (A.8): Tx power, thermal + EVM noise, interference bursts, RSSI with AGC-state bias and jitter,
   AGC scaling to a target, int8 quantisation (round half to even, clip ±127), packet loss.
 
 ## Public API (main entry points, exact signatures)

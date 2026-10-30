@@ -4,7 +4,7 @@ on pseudo-terminals, so live.py opens them through pyserial exactly like a board
 
 One recording per fake board. Prints the pty paths and writes a room.json keyed by them:
     python tools/replay_espectre.py ~/Projects/ext/espectre/data/motion/<file>.npz --room-out cache/replay_room.json
-    python live.py room --room cache/replay_room.json --ports /dev/pts/N --http 8011
+    python live.py room --room cache/replay_room.json --ports /dev/pts/N
 Real-time pacing from the recording's own timestamps; --speed 4 plays 4x faster, --loop repeats.
 """
 import argparse, json, os, sys, threading, time, tty
