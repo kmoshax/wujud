@@ -1,0 +1,662 @@
+[
+ {
+  "name": "baseline",
+  "factor": "baseline",
+  "links": 1,
+  "extra_cost_usd": 0.0,
+  "still_vs_empty_auc": {
+   "value": 0.642797552836485,
+   "se": 0.013786310051301208
+  },
+  "latch_distance_auc": {
+   "value": 0.8016696273577004,
+   "se": 0.017934990200907795
+  },
+  "breathing_visible": {
+   "value": 0.19662713120830244,
+   "se": 0.018854305564795677
+  },
+  "rate_error_median_bpm": {
+   "value": 4.281201714526061,
+   "se": 0.30698994979038025
+  },
+  "motion_recall": {
+   "value": 0.9410127991096272,
+   "se": 0.010865283133272358
+  },
+  "motion_false_alarm": {
+   "value": 0.03363914373088685,
+   "se": 0.005335614278922014
+  }
+ },
+ {
+  "name": "5ghz_conservative",
+  "factor": "band",
+  "links": 1,
+  "extra_cost_usd": 5.0,
+  "still_vs_empty_auc": {
+   "value": 0.6701694123525769,
+   "se": 0.014106586971017314
+  },
+  "latch_distance_auc": {
+   "value": 0.726659735437188,
+   "se": 0.01666001752234731
+  },
+  "breathing_visible": {
+   "value": 0.2025574499629355,
+   "se": 0.017420150982461687
+  },
+  "rate_error_median_bpm": {
+   "value": 4.77571187644088,
+   "se": 0.24403531962918984
+  },
+  "motion_recall": {
+   "value": 0.9170840289371174,
+   "se": 0.013598634866625254
+  },
+  "motion_false_alarm": {
+   "value": 0.055601890464275786,
+   "se": 0.00736427489565553
+  }
+ },
+ {
+  "name": "5ghz_optimistic",
+  "factor": "band",
+  "links": 1,
+  "extra_cost_usd": 5.0,
+  "still_vs_empty_auc": {
+   "value": 0.6881326010038334,
+   "se": 0.013062642592946313
+  },
+  "latch_distance_auc": {
+   "value": 0.7418111247671222,
+   "se": 0.016542194250451003
+  },
+  "breathing_visible": {
+   "value": 0.2348035581912528,
+   "se": 0.01872137351288945
+  },
+  "rate_error_median_bpm": {
+   "value": 4.453777186875763,
+   "se": 0.2892905259831785
+  },
+  "motion_recall": {
+   "value": 0.9443516972732332,
+   "se": 0.01002944472832629
+  },
+  "motion_false_alarm": {
+   "value": 0.0540728384765082,
+   "se": 0.007386299175207586
+  }
+ },
+ {
+  "name": "ht40_114",
+  "factor": "bandwidth",
+  "links": 1,
+  "extra_cost_usd": 0.0,
+  "still_vs_empty_auc": {
+   "value": 0.7383640471935573,
+   "se": 0.011161360074971158
+  },
+  "latch_distance_auc": {
+   "value": 0.8957477238751641,
+   "se": 0.013717192050883528
+  },
+  "breathing_visible": {
+   "value": 0.3492858467816732,
+   "se": 0.01853872648432953
+  },
+  "rate_error_median_bpm": {
+   "value": 3.7719606450429044,
+   "se": 0.23813450687913915
+  },
+  "motion_recall": {
+   "value": 0.9477487493051695,
+   "se": 0.01100256116999877
+  },
+  "motion_false_alarm": {
+   "value": 0.021421616358325218,
+   "se": 0.004354336512353871
+  }
+ },
+ {
+  "name": "he20_242",
+  "factor": "bandwidth",
+  "links": 1,
+  "extra_cost_usd": 1.0,
+  "still_vs_empty_auc": {
+   "value": 0.6915215583744683,
+   "se": 0.012547331532871825
+  },
+  "latch_distance_auc": {
+   "value": 0.8208338906043143,
+   "se": 0.016967011277572344
+  },
+  "breathing_visible": {
+   "value": 0.2683107732245503,
+   "se": 0.01644261430938258
+  },
+  "rate_error_median_bpm": {
+   "value": 3.9600243534602733,
+   "se": 0.23432798083761064
+  },
+  "motion_recall": {
+   "value": 0.9432387312186978,
+   "se": 0.01068528894624021
+  },
+  "motion_false_alarm": {
+   "value": 0.02878197997775306,
+   "se": 0.004902891763393782
+  }
+ },
+ {
+  "name": "hop3_2g4",
+  "factor": "hopping",
+  "links": 1,
+  "extra_cost_usd": 5.0,
+  "still_vs_empty_auc": {
+   "value": 0.6414584635416667,
+   "se": 0.012538278774079642
+  },
+  "latch_distance_auc": {
+   "value": 0.8477031889414858,
+   "se": 0.017328553558732696
+  },
+  "breathing_visible": {
+   "value": 0.22333333333333333,
+   "se": 0.01698808160449145
+  },
+  "rate_error_median_bpm": {
+   "value": 3.85398992877864,
+   "se": 0.21940190537652038
+  },
+  "motion_recall": {
+   "value": 0.90375,
+   "se": 0.015959676463485062
+  },
+  "motion_false_alarm": {
+   "value": 0.02796875,
+   "se": 0.004434353742172163
+  }
+ },
+ {
+  "name": "hop4_5g",
+  "factor": "hopping",
+  "links": 1,
+  "extra_cost_usd": 15.0,
+  "still_vs_empty_auc": {
+   "value": 0.648722265625,
+   "se": 0.01291366907631414
+  },
+  "latch_distance_auc": {
+   "value": 0.7939033949532777,
+   "se": 0.01865504063583113
+  },
+  "breathing_visible": {
+   "value": 0.215625,
+   "se": 0.018163742074050533
+  },
+  "rate_error_median_bpm": {
+   "value": 3.935542473931193,
+   "se": 0.2554268319491446
+  },
+  "motion_recall": {
+   "value": 0.938125,
+   "se": 0.012961292406894594
+  },
+  "motion_false_alarm": {
+   "value": 0.03171875,
+   "se": 0.0053277103717435615
+  }
+ },
+ {
+  "name": "rate25",
+  "factor": "packet_rate",
+  "links": 1,
+  "extra_cost_usd": 0.0,
+  "still_vs_empty_auc": {
+   "value": 0.596953886659769,
+   "se": 0.012244869076074312
+  },
+  "latch_distance_auc": {
+   "value": 0.7819959841853754,
+   "se": 0.01865423093315072
+  },
+  "breathing_visible": {
+   "value": 0.14658408408408408,
+   "se": 0.012717626423465111
+  },
+  "rate_error_median_bpm": {
+   "value": 4.845176959002137,
+   "se": 0.20133070993470992
+  },
+  "motion_recall": {
+   "value": 0.939120631341601,
+   "se": 0.011319799038928357
+  },
+  "motion_false_alarm": {
+   "value": 0.03500632644453817,
+   "se": 0.005150080006486277
+  }
+ },
+ {
+  "name": "rate100",
+  "factor": "packet_rate",
+  "links": 1,
+  "extra_cost_usd": 0.0,
+  "still_vs_empty_auc": {
+   "value": 0.691751646090535,
+   "se": 0.013026920068304809
+  },
+  "latch_distance_auc": {
+   "value": 0.8251217312259091,
+   "se": 0.01659612904500639
+  },
+  "breathing_visible": {
+   "value": 0.2577777777777778,
+   "se": 0.01719467021164638
+  },
+  "rate_error_median_bpm": {
+   "value": 3.7255416960329972,
+   "se": 0.26608954069886576
+  },
+  "motion_recall": {
+   "value": 0.9333333333333333,
+   "se": 0.011339741626197608
+  },
+  "motion_false_alarm": {
+   "value": 0.022916666666666665,
+   "se": 0.004728157383652495
+  }
+ },
+ {
+  "name": "rate200",
+  "factor": "packet_rate",
+  "links": 1,
+  "extra_cost_usd": 0.0,
+  "still_vs_empty_auc": {
+   "value": 0.7417108024691358,
+   "se": 0.013480291339080774
+  },
+  "latch_distance_auc": {
+   "value": 0.823477315380104,
+   "se": 0.015620073866454712
+  },
+  "breathing_visible": {
+   "value": 0.3125925925925926,
+   "se": 0.0179938736097967
+  },
+  "rate_error_median_bpm": {
+   "value": 3.785767568484383,
+   "se": 0.19279140665069824
+  },
+  "motion_recall": {
+   "value": 0.9266666666666666,
+   "se": 0.013934461464935304
+  },
+  "motion_false_alarm": {
+   "value": 0.02847222222222222,
+   "se": 0.004762294905950307
+  }
+ },
+ {
+  "name": "links2",
+  "factor": "links",
+  "links": 2,
+  "extra_cost_usd": 5.0,
+  "still_vs_empty_auc": {
+   "value": 0.7483833971411611,
+   "se": 0.012566678206042351
+  },
+  "latch_distance_auc": {
+   "value": 0.9258317838326078,
+   "se": 0.010886556705792135
+  },
+  "breathing_visible": {
+   "value": 0.3187384044526902,
+   "se": 0.01746901068685947
+  },
+  "rate_error_median_bpm": {
+   "value": 4.10464019376273,
+   "se": 0.21790355922760227
+  },
+  "motion_recall": {
+   "value": 0.9777654252362423,
+   "se": 0.007487180067301191
+  },
+  "motion_false_alarm": {
+   "value": 0.009743875278396437,
+   "se": 0.002380795844841043
+  }
+ },
+ {
+  "name": "links3",
+  "factor": "links",
+  "links": 3,
+  "extra_cost_usd": 10.0,
+  "still_vs_empty_auc": {
+   "value": 0.7765557946287354,
+   "se": 0.010280081373372918
+  },
+  "latch_distance_auc": {
+   "value": 0.9597098018450355,
+   "se": 0.008383510878757954
+  },
+  "breathing_visible": {
+   "value": 0.3966957490254316,
+   "se": 0.018147600186948807
+  },
+  "rate_error_median_bpm": {
+   "value": 3.669508704950726,
+   "se": 0.18895365993753618
+  },
+  "motion_recall": {
+   "value": 0.9888579387186629,
+   "se": 0.005332903046308734
+  },
+  "motion_false_alarm": {
+   "value": 0.0059855233853006685,
+   "se": 0.002043568760699945
+  }
+ },
+ {
+  "name": "mesh2",
+  "factor": "links",
+  "links": 3,
+  "extra_cost_usd": 5.0,
+  "still_vs_empty_auc": {
+   "value": 0.7811680949569392,
+   "se": 0.010801451132251822
+  },
+  "latch_distance_auc": {
+   "value": 0.961314282640692,
+   "se": 0.008340188178121141
+  },
+  "breathing_visible": {
+   "value": 0.3953185955786736,
+   "se": 0.01840943937490312
+  },
+  "rate_error_median_bpm": {
+   "value": 3.8557337983872975,
+   "se": 0.17826263847249335
+  },
+  "motion_recall": {
+   "value": 0.9871866295264624,
+   "se": 0.0054232218571853355
+  },
+  "motion_false_alarm": {
+   "value": 0.0037614934522151016,
+   "se": 0.001691885160808763
+  }
+ },
+ {
+  "name": "smart",
+  "factor": "placement",
+  "links": 1,
+  "extra_cost_usd": 0.0,
+  "still_vs_empty_auc": {
+   "value": 0.6638996148749758,
+   "se": 0.012434852501504522
+  },
+  "latch_distance_auc": {
+   "value": 0.8396789390747804,
+   "se": 0.013423276571567742
+  },
+  "breathing_visible": {
+   "value": 0.16045260619551105,
+   "se": 0.01396205372411198
+  },
+  "rate_error_median_bpm": {
+   "value": 4.225241742516019,
+   "se": 0.2898240880760369
+  },
+  "motion_recall": {
+   "value": 0.9549499443826474,
+   "se": 0.008243163453433778
+  },
+  "motion_false_alarm": {
+   "value": 0.018219749652294854,
+   "se": 0.0033379419836860025
+  }
+ },
+ {
+  "name": "smart_rate100",
+  "factor": "combination",
+  "links": 1,
+  "extra_cost_usd": 0.0,
+  "still_vs_empty_auc": {
+   "value": 0.7119815843621399,
+   "se": 0.011870413649769299
+  },
+  "latch_distance_auc": {
+   "value": 0.861669180221911,
+   "se": 0.014281883493600125
+  },
+  "breathing_visible": {
+   "value": 0.26185185185185184,
+   "se": 0.01602724031731575
+  },
+  "rate_error_median_bpm": {
+   "value": 3.4469239239729195,
+   "se": 0.30875427983292764
+  },
+  "motion_recall": {
+   "value": 0.9711111111111111,
+   "se": 0.006047709748858305
+  },
+  "motion_false_alarm": {
+   "value": 0.01625,
+   "se": 0.0034558909570377543
+  }
+ },
+ {
+  "name": "smart_mesh2",
+  "factor": "combination",
+  "links": 3,
+  "extra_cost_usd": 5.0,
+  "still_vs_empty_auc": {
+   "value": 0.8127470833824495,
+   "se": 0.010499625047394066
+  },
+  "latch_distance_auc": {
+   "value": 0.9782199579590107,
+   "se": 0.004863899167280899
+  },
+  "breathing_visible": {
+   "value": 0.4112080163295602,
+   "se": 0.02011428625225904
+  },
+  "rate_error_median_bpm": {
+   "value": 3.365646429485465,
+   "se": 0.20829721647146252
+  },
+  "motion_recall": {
+   "value": 0.9905186837702176,
+   "se": 0.003591084632607171
+  },
+  "motion_false_alarm": {
+   "value": 0.0026455026455026454,
+   "se": 0.001371534102608596
+  }
+ },
+ {
+  "name": "5ghz_smart",
+  "factor": "combination",
+  "links": 1,
+  "extra_cost_usd": 5.0,
+  "still_vs_empty_auc": {
+   "value": 0.7506422960714484,
+   "se": 0.011691240045396352
+  },
+  "latch_distance_auc": {
+   "value": 0.8223256286854608,
+   "se": 0.016203846585263044
+  },
+  "breathing_visible": {
+   "value": 0.21739936931923576,
+   "se": 0.016950035519284385
+  },
+  "rate_error_median_bpm": {
+   "value": 3.6088852492391545,
+   "se": 0.3076645873430367
+  },
+  "motion_recall": {
+   "value": 0.9505005561735261,
+   "se": 0.009547835775477026
+  },
+  "motion_false_alarm": {
+   "value": 0.02948539638386648,
+   "se": 0.0047348588928738475
+  }
+ },
+ {
+  "name": "5ghz_he20",
+  "factor": "combination",
+  "links": 1,
+  "extra_cost_usd": 5.0,
+  "still_vs_empty_auc": {
+   "value": 0.7060255676995492,
+   "se": 0.013835102425021957
+  },
+  "latch_distance_auc": {
+   "value": 0.7501557951305681,
+   "se": 0.01685260664231359
+  },
+  "breathing_visible": {
+   "value": 0.287409605043575,
+   "se": 0.01828101182489874
+  },
+  "rate_error_median_bpm": {
+   "value": 3.835352648442889,
+   "se": 0.20915240042477853
+  },
+  "motion_recall": {
+   "value": 0.9488035614913745,
+   "se": 0.010872389038408061
+  },
+  "motion_false_alarm": {
+   "value": 0.050333704115684094,
+   "se": 0.00640401273048165
+  }
+ },
+ {
+  "name": "5ghz_ht40_rate100",
+  "factor": "combination",
+  "links": 1,
+  "extra_cost_usd": 5.0,
+  "still_vs_empty_auc": {
+   "value": 0.8018655349794239,
+   "se": 0.010762027619789744
+  },
+  "latch_distance_auc": {
+   "value": 0.8829680876858901,
+   "se": 0.013833283361526642
+  },
+  "breathing_visible": {
+   "value": 0.46,
+   "se": 0.02065258833428744
+  },
+  "rate_error_median_bpm": {
+   "value": 3.439215420916188,
+   "se": 0.18908936845374547
+  },
+  "motion_recall": {
+   "value": 0.9233333333333333,
+   "se": 0.012369791989243983
+  },
+  "motion_false_alarm": {
+   "value": 0.03805555555555556,
+   "se": 0.006348777619456364
+  }
+ },
+ {
+  "name": "best_2g4",
+  "factor": "combination",
+  "links": 3,
+  "extra_cost_usd": 5.0,
+  "still_vs_empty_auc": {
+   "value": 0.9645349794238683,
+   "se": 0.0041239951302551965
+  },
+  "latch_distance_auc": {
+   "value": 0.9987328173591165,
+   "se": 0.0007875333715304295
+  },
+  "breathing_visible": {
+   "value": 0.8231481481481482,
+   "se": 0.01349045579989754
+  },
+  "rate_error_median_bpm": {
+   "value": 2.893247812001867,
+   "se": 0.11948014221821802
+  },
+  "motion_recall": {
+   "value": 0.9994444444444445,
+   "se": 0.0005789660621692149
+  },
+  "motion_false_alarm": {
+   "value": 0.0016666666666666668,
+   "se": 0.0009510063247502428
+  }
+ },
+ {
+  "name": "best_conservative",
+  "factor": "combination",
+  "links": 3,
+  "extra_cost_usd": 15.0,
+  "still_vs_empty_auc": {
+   "value": 0.9744672839506173,
+   "se": 0.0032359473430610872
+  },
+  "latch_distance_auc": {
+   "value": 0.9976893309480126,
+   "se": 0.0011762596533094296
+  },
+  "breathing_visible": {
+   "value": 0.8385185185185186,
+   "se": 0.013079463926344875
+  },
+  "rate_error_median_bpm": {
+   "value": 2.573388599385126,
+   "se": 0.11027311455126534
+  },
+  "motion_recall": {
+   "value": 0.9966666666666667,
+   "se": 0.0017724307595243058
+  },
+  "motion_false_alarm": {
+   "value": 0.0006944444444444445,
+   "se": 0.00042060951886067416
+  }
+ },
+ {
+  "name": "best_optimistic",
+  "factor": "combination",
+  "links": 3,
+  "extra_cost_usd": 15.0,
+  "still_vs_empty_auc": {
+   "value": 0.985366255144033,
+   "se": 0.002231141775339221
+  },
+  "latch_distance_auc": {
+   "value": 0.9987624333085602,
+   "se": 0.0007854165369970714
+  },
+  "breathing_visible": {
+   "value": 0.8972222222222223,
+   "se": 0.010140331005643264
+  },
+  "rate_error_median_bpm": {
+   "value": 2.542647025624712,
+   "se": 0.11165738529888278
+  },
+  "motion_recall": {
+   "value": 0.9955555555555555,
+   "se": 0.0023889342593325313
+  },
+  "motion_false_alarm": {
+   "value": 0.0001388888888888889,
+   "se": 0.00014047772009356333
+  }
+ }
+]

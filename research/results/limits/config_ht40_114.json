@@ -1,0 +1,109 @@
+{
+  "config": {
+    "name": "ht40_114",
+    "factor": "bandwidth",
+    "description": "2.4 GHz HT40 (ch 6+10), 114 subcarriers",
+    "band": {
+      "carriers_hz": [
+        2447000000.0
+      ],
+      "layout": "Ht40Ltf114",
+      "effects": {
+        "body_absorption_range": null,
+        "person_absorption_m2": 0.4,
+        "tx_power_offset_db": 0.0,
+        "evm_offset_db": 0.0
+      }
+    },
+    "packets_per_second": 50.0,
+    "boards": 1,
+    "mesh": false,
+    "smart_placement": false,
+    "dedicated_transmitter": false,
+    "extra_cost_usd": 0.0,
+    "cost_note": "router must run 40 MHz at 2.4 GHz"
+  },
+  "knobs": {
+    "rcs_scale": 0.1,
+    "breath_scale": 0.5,
+    "evm_shift_db": 6.0
+  },
+  "train_rooms": 300,
+  "test_rooms": 200,
+  "tune_days": 60,
+  "train_windows": 13487,
+  "feature_columns": 17,
+  "windows": {
+    "still_vs_empty_auc": {
+      "value": 0.7383640471935573,
+      "se": 0.011161360074971158
+    },
+    "breathing_visible": {
+      "value": 0.3492858467816732,
+      "se": 0.01853872648432953
+    },
+    "rate_error_median_bpm": {
+      "value": 3.7719606450429044,
+      "se": 0.23813450687913915
+    },
+    "motion_recall": {
+      "value": 0.9477487493051695,
+      "se": 0.01100256116999877
+    },
+    "motion_false_alarm": {
+      "value": 0.021421616358325218,
+      "se": 0.004354336512353871
+    },
+    "test_windows": 8988
+  },
+  "latch": {
+    "threshold": 0.4,
+    "tune_accuracy": [
+      [
+        0.4,
+        0.821411192214112
+      ],
+      [
+        0.6,
+        0.7553933495539334
+      ],
+      [
+        0.8,
+        0.7364152473641524
+      ],
+      [
+        1.0,
+        0.7369018653690187
+      ],
+      [
+        1.2,
+        0.7271695052716951
+      ],
+      [
+        1.5,
+        0.6862935928629359
+      ],
+      [
+        2.0,
+        0.6749391727493917
+      ],
+      [
+        3.0,
+        0.643146796431468
+      ]
+    ],
+    "distance_auc_still_vs_empty": {
+      "value": 0.8957477238751641,
+      "se": 0.013717192050883528
+    },
+    "test": {
+      "distance_auc_still_vs_empty": 0.8957477238751641,
+      "accuracy": 0.8289622040296093,
+      "still_detected": 0.739438202247191,
+      "false_present_when_empty": 0.10174797808505087,
+      "walking_flagged_as_motion": 0.5224203133441383
+    },
+    "windows_with_fresh_reference": 18604
+  },
+  "seconds": 80.876041951
+}

@@ -1,0 +1,22 @@
+[package]
+name = "hallsense-study"
+description = "Simulation studies: which physical change breaks the single-link limit of Wi-Fi presence sensing"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "limits_study"
+path = "src/main.rs"
+
+[dependencies]
+hallsense-sim.workspace = true
+hallsense-model.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+ndarray.workspace = true
+rand.workspace = true
+rand_chacha.workspace = true
+rayon.workspace = true
+serde.workspace = true
+serde_json.workspace = true

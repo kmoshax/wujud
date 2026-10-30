@@ -1,0 +1,109 @@
+{
+  "config": {
+    "name": "rate100",
+    "factor": "packet_rate",
+    "description": "100 pkt/s",
+    "band": {
+      "carriers_hz": [
+        2437000000.0
+      ],
+      "layout": "LegacyLtf52",
+      "effects": {
+        "body_absorption_range": null,
+        "person_absorption_m2": 0.4,
+        "tx_power_offset_db": 0.0,
+        "evm_offset_db": 0.0
+      }
+    },
+    "packets_per_second": 100.0,
+    "boards": 1,
+    "mesh": false,
+    "smart_placement": false,
+    "dedicated_transmitter": false,
+    "extra_cost_usd": 0.0,
+    "cost_note": "firmware only; more airtime"
+  },
+  "knobs": {
+    "rcs_scale": 0.1,
+    "breath_scale": 0.5,
+    "evm_shift_db": 6.0
+  },
+  "train_rooms": 300,
+  "test_rooms": 200,
+  "tune_days": 60,
+  "train_windows": 13500,
+  "feature_columns": 17,
+  "windows": {
+    "still_vs_empty_auc": {
+      "value": 0.691751646090535,
+      "se": 0.013026920068304809
+    },
+    "breathing_visible": {
+      "value": 0.2577777777777778,
+      "se": 0.01719467021164638
+    },
+    "rate_error_median_bpm": {
+      "value": 3.7255416960329972,
+      "se": 0.26608954069886576
+    },
+    "motion_recall": {
+      "value": 0.9333333333333333,
+      "se": 0.011339741626197608
+    },
+    "motion_false_alarm": {
+      "value": 0.022916666666666665,
+      "se": 0.004728157383652495
+    },
+    "test_windows": 9000
+  },
+  "latch": {
+    "threshold": 0.4,
+    "tune_accuracy": [
+      [
+        0.4,
+        0.7375932533246837
+      ],
+      [
+        0.6,
+        0.6989944858903665
+      ],
+      [
+        0.8,
+        0.6672072656503406
+      ],
+      [
+        1.0,
+        0.6428803113850146
+      ],
+      [
+        1.2,
+        0.6373662017515407
+      ],
+      [
+        1.5,
+        0.617093739863769
+      ],
+      [
+        2.0,
+        0.617093739863769
+      ],
+      [
+        3.0,
+        0.5759000973078171
+      ]
+    ],
+    "distance_auc_still_vs_empty": {
+      "value": 0.8251217312259091,
+      "se": 0.01659612904500639
+    },
+    "test": {
+      "distance_auc_still_vs_empty": 0.8251217312259091,
+      "accuracy": 0.7452066885696073,
+      "still_detected": 0.5583277140930546,
+      "false_present_when_empty": 0.1101348412353197,
+      "walking_flagged_as_motion": 0.5377697841726619
+    },
+    "windows_with_fresh_reference": 17846
+  },
+  "seconds": 68.152557181
+}

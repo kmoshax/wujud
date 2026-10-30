@@ -1,0 +1,112 @@
+{
+  "config": {
+    "name": "best_optimistic",
+    "factor": "combination",
+    "description": "5 GHz HT40 (optimistic), 100 pkt/s, smart, 2 ESP32 mesh",
+    "band": {
+      "carriers_hz": [
+        5190000000.0
+      ],
+      "layout": "Ht40Ltf114",
+      "effects": {
+        "body_absorption_range": [
+          0.9,
+          0.98
+        ],
+        "person_absorption_m2": 0.55,
+        "tx_power_offset_db": 0.0,
+        "evm_offset_db": 0.0
+      }
+    },
+    "packets_per_second": 100.0,
+    "boards": 2,
+    "mesh": true,
+    "smart_placement": true,
+    "dedicated_transmitter": false,
+    "extra_cost_usd": 15.0,
+    "cost_note": "two ESP32-C5"
+  },
+  "knobs": {
+    "rcs_scale": 0.1,
+    "breath_scale": 0.5,
+    "evm_shift_db": 6.0
+  },
+  "train_rooms": 300,
+  "test_rooms": 200,
+  "tune_days": 60,
+  "train_windows": 13500,
+  "feature_columns": 51,
+  "windows": {
+    "still_vs_empty_auc": {
+      "value": 0.985366255144033,
+      "se": 0.002231141775339221
+    },
+    "breathing_visible": {
+      "value": 0.8972222222222223,
+      "se": 0.010140331005643264
+    },
+    "rate_error_median_bpm": {
+      "value": 2.542647025624712,
+      "se": 0.11165738529888278
+    },
+    "motion_recall": {
+      "value": 0.9955555555555555,
+      "se": 0.0023889342593325313
+    },
+    "motion_false_alarm": {
+      "value": 0.0001388888888888889,
+      "se": 0.00014047772009356333
+    },
+    "test_windows": 9000
+  },
+  "latch": {
+    "threshold": 0.4,
+    "tune_accuracy": [
+      [
+        0.4,
+        0.9790788193318196
+      ],
+      [
+        0.6,
+        0.9656179046383393
+      ],
+      [
+        0.8,
+        0.9406422315926046
+      ],
+      [
+        1.0,
+        0.9377229970807655
+      ],
+      [
+        1.2,
+        0.9103146286084982
+      ],
+      [
+        1.5,
+        0.8722024002594875
+      ],
+      [
+        2.0,
+        0.8092766785598443
+      ],
+      [
+        3.0,
+        0.7800843334414531
+      ]
+    ],
+    "distance_auc_still_vs_empty": {
+      "value": 0.9987624333085602,
+      "se": 0.0007854165369970714
+    },
+    "test": {
+      "distance_auc_still_vs_empty": 0.9987624333085602,
+      "accuracy": 0.969303192271858,
+      "still_detected": 0.9894358282760171,
+      "false_present_when_empty": 0.04628099173553719,
+      "walking_flagged_as_motion": 0.5868705035971223
+    },
+    "windows_with_fresh_reference": 19015
+  },
+  "seconds": 423.185877236
+}

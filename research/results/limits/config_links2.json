@@ -1,0 +1,109 @@
+{
+  "config": {
+    "name": "links2",
+    "factor": "links",
+    "description": "router -> 2 ESP32",
+    "band": {
+      "carriers_hz": [
+        2437000000.0
+      ],
+      "layout": "LegacyLtf52",
+      "effects": {
+        "body_absorption_range": null,
+        "person_absorption_m2": 0.4,
+        "tx_power_offset_db": 0.0,
+        "evm_offset_db": 0.0
+      }
+    },
+    "packets_per_second": 50.0,
+    "boards": 2,
+    "mesh": false,
+    "smart_placement": false,
+    "dedicated_transmitter": false,
+    "extra_cost_usd": 5.0,
+    "cost_note": "+1 ESP32"
+  },
+  "knobs": {
+    "rcs_scale": 0.1,
+    "breath_scale": 0.5,
+    "evm_shift_db": 6.0
+  },
+  "train_rooms": 300,
+  "test_rooms": 200,
+  "tune_days": 60,
+  "train_windows": 13469,
+  "feature_columns": 51,
+  "windows": {
+    "still_vs_empty_auc": {
+      "value": 0.7483833971411611,
+      "se": 0.012566678206042351
+    },
+    "breathing_visible": {
+      "value": 0.3187384044526902,
+      "se": 0.01746901068685947
+    },
+    "rate_error_median_bpm": {
+      "value": 4.10464019376273,
+      "se": 0.21790355922760227
+    },
+    "motion_recall": {
+      "value": 0.9777654252362423,
+      "se": 0.007487180067301191
+    },
+    "motion_false_alarm": {
+      "value": 0.009743875278396437,
+      "se": 0.002380795844841043
+    },
+    "test_windows": 8983
+  },
+  "latch": {
+    "threshold": 0.4,
+    "tune_accuracy": [
+      [
+        0.4,
+        0.8116788321167884
+      ],
+      [
+        0.6,
+        0.7490673154906732
+      ],
+      [
+        0.8,
+        0.6918085969180859
+      ],
+      [
+        1.0,
+        0.6882400648824006
+      ],
+      [
+        1.2,
+        0.6689375506893755
+      ],
+      [
+        1.5,
+        0.651419302514193
+      ],
+      [
+        2.0,
+        0.6360097323600973
+      ],
+      [
+        3.0,
+        0.5857258718572588
+      ]
+    ],
+    "distance_auc_still_vs_empty": {
+      "value": 0.9258317838326078,
+      "se": 0.010886556705792135
+    },
+    "test": {
+      "distance_auc_still_vs_empty": 0.9258317838326078,
+      "accuracy": 0.8382763860973577,
+      "still_detected": 0.7919101123595506,
+      "false_present_when_empty": 0.12583702930689625,
+      "walking_flagged_as_motion": 0.6056185845488925
+    },
+    "windows_with_fresh_reference": 17811
+  },
+  "seconds": 169.601430423
+}

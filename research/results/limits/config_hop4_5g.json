@@ -1,0 +1,112 @@
+{
+  "config": {
+    "name": "hop4_5g",
+    "factor": "hopping",
+    "description": "ESP32-C5 pair hopping ch 36/64/100/149 (conservative), 50 pkt/s total",
+    "band": {
+      "carriers_hz": [
+        5180000000.0,
+        5320000000.0,
+        5500000000.0,
+        5745000000.0
+      ],
+      "layout": "LegacyLtf52",
+      "effects": {
+        "body_absorption_range": null,
+        "person_absorption_m2": 0.4,
+        "tx_power_offset_db": -3.0,
+        "evm_offset_db": 2.0
+      }
+    },
+    "packets_per_second": 50.0,
+    "boards": 1,
+    "mesh": false,
+    "smart_placement": false,
+    "dedicated_transmitter": true,
+    "extra_cost_usd": 15.0,
+    "cost_note": "two ESP32-C5 (transmitter + receiver)"
+  },
+  "knobs": {
+    "rcs_scale": 0.1,
+    "breath_scale": 0.5,
+    "evm_shift_db": 6.0
+  },
+  "train_rooms": 300,
+  "test_rooms": 200,
+  "tune_days": 60,
+  "train_windows": 12000,
+  "feature_columns": 17,
+  "windows": {
+    "still_vs_empty_auc": {
+      "value": 0.648722265625,
+      "se": 0.01291366907631414
+    },
+    "breathing_visible": {
+      "value": 0.215625,
+      "se": 0.018163742074050533
+    },
+    "rate_error_median_bpm": {
+      "value": 3.935542473931193,
+      "se": 0.2554268319491446
+    },
+    "motion_recall": {
+      "value": 0.938125,
+      "se": 0.012961292406894594
+    },
+    "motion_false_alarm": {
+      "value": 0.03171875,
+      "se": 0.0053277103717435615
+    },
+    "test_windows": 8000
+  },
+  "latch": {
+    "threshold": 0.6,
+    "tune_accuracy": [
+      [
+        0.4,
+        0.7431445724484829
+      ],
+      [
+        0.6,
+        0.7538536427064741
+      ],
+      [
+        0.8,
+        0.7309751744280383
+      ],
+      [
+        1.0,
+        0.7079344475093299
+      ],
+      [
+        1.2,
+        0.6602304072691871
+      ],
+      [
+        1.5,
+        0.6357293525880253
+      ],
+      [
+        2.0,
+        0.6040889177348694
+      ],
+      [
+        3.0,
+        0.5984098653253286
+      ]
+    ],
+    "distance_auc_still_vs_empty": {
+      "value": 0.7939033949532777,
+      "se": 0.01865504063583113
+    },
+    "test": {
+      "distance_auc_still_vs_empty": 0.7939033949532777,
+      "accuracy": 0.718817415179447,
+      "still_detected": 0.611123595505618,
+      "false_present_when_empty": 0.1978079331941545,
+      "walking_flagged_as_motion": 0.5017107869620026
+    },
+    "windows_with_fresh_reference": 16541
+  },
+  "seconds": 94.430260264
+}

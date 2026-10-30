@@ -1,0 +1,109 @@
+{
+  "config": {
+    "name": "5ghz_he20",
+    "factor": "combination",
+    "description": "5 GHz HE20 242 (conservative)",
+    "band": {
+      "carriers_hz": [
+        5180000000.0
+      ],
+      "layout": "He20Ltf242",
+      "effects": {
+        "body_absorption_range": null,
+        "person_absorption_m2": 0.4,
+        "tx_power_offset_db": -3.0,
+        "evm_offset_db": 2.0
+      }
+    },
+    "packets_per_second": 50.0,
+    "boards": 1,
+    "mesh": false,
+    "smart_placement": false,
+    "dedicated_transmitter": false,
+    "extra_cost_usd": 5.0,
+    "cost_note": "ESP32-C5; Wi-Fi 6 router"
+  },
+  "knobs": {
+    "rcs_scale": 0.1,
+    "breath_scale": 0.5,
+    "evm_shift_db": 6.0
+  },
+  "train_rooms": 300,
+  "test_rooms": 200,
+  "tune_days": 60,
+  "train_windows": 13485,
+  "feature_columns": 17,
+  "windows": {
+    "still_vs_empty_auc": {
+      "value": 0.7060255676995492,
+      "se": 0.013835102425021957
+    },
+    "breathing_visible": {
+      "value": 0.287409605043575,
+      "se": 0.01828101182489874
+    },
+    "rate_error_median_bpm": {
+      "value": 3.835352648442889,
+      "se": 0.20915240042477853
+    },
+    "motion_recall": {
+      "value": 0.9488035614913745,
+      "se": 0.010872389038408061
+    },
+    "motion_false_alarm": {
+      "value": 0.050333704115684094,
+      "se": 0.00640401273048165
+    },
+    "test_windows": 8989
+  },
+  "latch": {
+    "threshold": 0.4,
+    "tune_accuracy": [
+      [
+        0.4,
+        0.7502027575020276
+      ],
+      [
+        0.6,
+        0.7206812652068126
+      ],
+      [
+        0.8,
+        0.6840227088402271
+      ],
+      [
+        1.0,
+        0.664720194647202
+      ],
+      [
+        1.2,
+        0.6663422546634226
+      ],
+      [
+        1.5,
+        0.6512570965125709
+      ],
+      [
+        2.0,
+        0.6058394160583942
+      ],
+      [
+        3.0,
+        0.5902676399026764
+      ]
+    ],
+    "distance_auc_still_vs_empty": {
+      "value": 0.7501557951305681,
+      "se": 0.01685260664231359
+    },
+    "test": {
+      "distance_auc_still_vs_empty": 0.7501557951305681,
+      "accuracy": 0.6988725490196078,
+      "still_detected": 0.5010112359550561,
+      "false_present_when_empty": 0.148,
+      "walking_flagged_as_motion": 0.495407887628309
+    },
+    "windows_with_fresh_reference": 17532
+  },
+  "seconds": 207.970152274
+}

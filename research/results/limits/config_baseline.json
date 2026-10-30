@@ -1,0 +1,109 @@
+{
+  "config": {
+    "name": "baseline",
+    "factor": "baseline",
+    "description": "2.4 GHz ch 6, HT20 L-LTF 52, 50 pkt/s, router -> 1 ESP32, random placement",
+    "band": {
+      "carriers_hz": [
+        2437000000.0
+      ],
+      "layout": "LegacyLtf52",
+      "effects": {
+        "body_absorption_range": null,
+        "person_absorption_m2": 0.4,
+        "tx_power_offset_db": 0.0,
+        "evm_offset_db": 0.0
+      }
+    },
+    "packets_per_second": 50.0,
+    "boards": 1,
+    "mesh": false,
+    "smart_placement": false,
+    "dedicated_transmitter": false,
+    "extra_cost_usd": 0.0,
+    "cost_note": "1 ESP32 + existing router"
+  },
+  "knobs": {
+    "rcs_scale": 0.1,
+    "breath_scale": 0.5,
+    "evm_shift_db": 6.0
+  },
+  "train_rooms": 300,
+  "test_rooms": 200,
+  "tune_days": 60,
+  "train_windows": 13482,
+  "feature_columns": 17,
+  "windows": {
+    "still_vs_empty_auc": {
+      "value": 0.642797552836485,
+      "se": 0.013786310051301208
+    },
+    "breathing_visible": {
+      "value": 0.19662713120830244,
+      "se": 0.018854305564795677
+    },
+    "rate_error_median_bpm": {
+      "value": 4.281201714526061,
+      "se": 0.30698994979038025
+    },
+    "motion_recall": {
+      "value": 0.9410127991096272,
+      "se": 0.010865283133272358
+    },
+    "motion_false_alarm": {
+      "value": 0.03363914373088685,
+      "se": 0.005335614278922014
+    },
+    "test_windows": 8991
+  },
+  "latch": {
+    "threshold": 0.4,
+    "tune_accuracy": [
+      [
+        0.4,
+        0.7223033252230332
+      ],
+      [
+        0.6,
+        0.6480129764801298
+      ],
+      [
+        0.8,
+        0.632441200324412
+      ],
+      [
+        1.0,
+        0.6360097323600973
+      ],
+      [
+        1.2,
+        0.6102189781021898
+      ],
+      [
+        1.5,
+        0.5964314679643147
+      ],
+      [
+        2.0,
+        0.5746958637469587
+      ],
+      [
+        3.0,
+        0.5670721816707218
+      ]
+    ],
+    "distance_auc_still_vs_empty": {
+      "value": 0.8016696273577004,
+      "se": 0.017934990200907795
+    },
+    "test": {
+      "distance_auc_still_vs_empty": 0.8016696273577004,
+      "accuracy": 0.7356242953085935,
+      "still_detected": 0.5614606741573034,
+      "false_present_when_empty": 0.12957648491173146,
+      "walking_flagged_as_motion": 0.5357464433639474
+    },
+    "windows_with_fresh_reference": 17636
+  },
+  "seconds": 36.854259334
+}
