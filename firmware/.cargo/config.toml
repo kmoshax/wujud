@@ -1,0 +1,22 @@
+[target.riscv32imc-esp-espidf]
+linker = "ldproxy"
+runner = "espflash flash --monitor --baud 921600"
+rustflags = ["--cfg", "espidf_time64"]
+
+[target.riscv32imac-esp-espidf]
+linker = "ldproxy"
+runner = "espflash flash --monitor --baud 921600"
+rustflags = ["--cfg", "espidf_time64"]
+
+[target.xtensa-esp32-espidf]
+linker = "ldproxy"
+runner = "espflash flash --monitor --baud 921600"
+rustflags = ["--cfg", "espidf_time64"]
+
+[target.xtensa-esp32s3-espidf]
+linker = "ldproxy"
+runner = "espflash flash --monitor --baud 921600"
+rustflags = ["--cfg", "espidf_time64"]
+
+[env]
+ESP_IDF_VERSION = "v5.3.2"
