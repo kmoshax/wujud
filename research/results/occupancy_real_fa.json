@@ -1,0 +1,46 @@
+{
+ "empty_recordings": 20,
+ "false_present_rate": {
+  "0.4": 0.0,
+  "0.6": 0.0,
+  "0.8": 0.0,
+  "1.0": 0.0,
+  "1.5": 0.0,
+  "2.0": 0.0,
+  "3.0": 0.0
+ },
+ "per_recording_minutes": [
+  1.8,
+  9.8,
+  9.8,
+  9.8,
+  9.8,
+  1.8,
+  9.8,
+  1.8,
+  1.8,
+  9.8,
+  1.8,
+  1.8,
+  1.8,
+  1.8,
+  1.8,
+  1.8,
+  9.8,
+  9.8,
+  9.8,
+  1.8
+ ],
+ "vacation_home_pairs": [
+  {
+   "when": "2026-08-10T19:31:11.652556",
+   "still_person_distance_median": 24.703468208497277,
+   "empty_later_distance_median": 0.4396694304231858
+  },
+  {
+   "when": "2026-08-11T12:48:37.802585",
+   "still_person_distance_median": 0.7291072936366926,
+   "empty_later_distance_median": 0.10732140996619259
+  }
+ ]
+}

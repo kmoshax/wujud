@@ -1,0 +1,25 @@
+{
+ "n_windows": 2055,
+ "n_recordings": 51,
+ "HallSense (sim-only)": {
+  "motion_recall": 1.0,
+  "motion_false_alarm": 0.0,
+  "motion_auc": 1.0,
+  "still_vs_empty_auc": 0.5984267330842673,
+  "presence_call": {
+   "says_present_when_empty": 0.6611872146118721,
+   "says_present_when_still": 0.8045454545454546
+  }
+ },
+ "RuView edge": {
+  "motion_recall": 0.99,
+  "motion_false_alarm": 0.9971509971509972,
+  "motion_auc": 0.6376372269705601,
+  "still_vs_empty_auc": 0.5700553480005535,
+  "presence_flag_after_calibration": {
+   "windows": 1386,
+   "says_present_when_empty": 0.022916666666666665,
+   "says_present_when_still": 0.09389671361502347
+  }
+ }
+}

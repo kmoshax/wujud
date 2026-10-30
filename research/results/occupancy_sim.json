@@ -1,0 +1,34 @@
+{
+ "knobs": {
+  "rcs_scale": 0.1,
+  "breath_scale": 0.5,
+  "evm_shift": 6.0
+ },
+ "tune_grid": {
+  "0.4": 0.7756761241081799,
+  "0.6": 0.7265637962502074,
+  "0.8": 0.7174381947901112,
+  "1.0": 0.6528953044632487,
+  "1.2": 0.6560477849676456,
+  "1.5": 0.6543885847021735,
+  "2.0": 0.6236933797909407,
+  "3.0": 0.6129085780653725
+ },
+ "thr": 0.4,
+ "test": {
+  "distance_auc_still_vs_empty": 0.8280728238941455,
+  "windows_with_fresh_reference": 9442,
+  "per_window_classifier": {
+   "accuracy": 0.6433716176756862,
+   "still_detected": 0.4283502874834144,
+   "false_present_when_empty": 0.18758692628650905
+  },
+  "occupancy_latch": {
+   "accuracy": 0.7402180260852638,
+   "still_detected": 0.5296329057938965,
+   "false_present_when_empty": 0.09422809457579973
+  },
+  "walking_flagged_as_motion": 0.4818410643653362,
+  "quiet_windows": 10274
+ }
+}

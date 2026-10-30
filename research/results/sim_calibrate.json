@@ -1,0 +1,160 @@
+{
+ "target_visibility_train": 0.1853932584269663,
+ "grid": [
+  {
+   "knobs": {
+    "rcs_scale": 1.0,
+    "breath_scale": 1.0,
+    "evm_shift": 0.0
+   },
+   "sim_visibility": 0.4477750309023486
+  },
+  {
+   "knobs": {
+    "rcs_scale": 1.0,
+    "breath_scale": 1.0,
+    "evm_shift": 6.0
+   },
+   "sim_visibility": 0.3535228677379481
+  },
+  {
+   "knobs": {
+    "rcs_scale": 1.0,
+    "breath_scale": 0.5,
+    "evm_shift": 0.0
+   },
+   "sim_visibility": 0.37608158220024723
+  },
+  {
+   "knobs": {
+    "rcs_scale": 1.0,
+    "breath_scale": 0.5,
+    "evm_shift": 6.0
+   },
+   "sim_visibility": 0.28491965389369595
+  },
+  {
+   "knobs": {
+    "rcs_scale": 0.3,
+    "breath_scale": 1.0,
+    "evm_shift": 0.0
+   },
+   "sim_visibility": 0.3834981458590853
+  },
+  {
+   "knobs": {
+    "rcs_scale": 0.3,
+    "breath_scale": 1.0,
+    "evm_shift": 6.0
+   },
+   "sim_visibility": 0.2994437577255871
+  },
+  {
+   "knobs": {
+    "rcs_scale": 0.3,
+    "breath_scale": 0.5,
+    "evm_shift": 0.0
+   },
+   "sim_visibility": 0.32663782447466005
+  },
+  {
+   "knobs": {
+    "rcs_scale": 0.3,
+    "breath_scale": 0.5,
+    "evm_shift": 6.0
+   },
+   "sim_visibility": 0.2466007416563659
+  },
+  {
+   "knobs": {
+    "rcs_scale": 0.1,
+    "breath_scale": 1.0,
+    "evm_shift": 0.0
+   },
+   "sim_visibility": 0.3532138442521632
+  },
+  {
+   "knobs": {
+    "rcs_scale": 0.1,
+    "breath_scale": 1.0,
+    "evm_shift": 6.0
+   },
+   "sim_visibility": 0.26761433868974044
+  },
+  {
+   "knobs": {
+    "rcs_scale": 0.1,
+    "breath_scale": 0.5,
+    "evm_shift": 0.0
+   },
+   "sim_visibility": 0.3053152039555006
+  },
+  {
+   "knobs": {
+    "rcs_scale": 0.1,
+    "breath_scale": 0.5,
+    "evm_shift": 6.0
+   },
+   "sim_visibility": 0.23053152039555005
+  }
+ ],
+ "chosen_knobs": {
+  "rcs_scale": 0.1,
+  "breath_scale": 0.5,
+  "evm_shift": 6.0
+ },
+ "baseline": {
+  "selection": {
+   "motion_recall": 1.0,
+   "motion_false_alarm": 0.0,
+   "still_vs_empty_auc": 0.545768691701706,
+   "still_vs_empty_auc_recording": 0.6607142857142857,
+   "n_windows": 1011,
+   "n_recordings": 23
+  },
+  "holdout": {
+   "motion_recall": 1.0,
+   "motion_false_alarm": 0.0,
+   "still_vs_empty_auc": 0.6507597340930673,
+   "still_vs_empty_auc_recording": 0.6875,
+   "n_windows": 1044,
+   "n_recordings": 28
+  }
+ },
+ "calibrated sim, amplitude": {
+  "selection": {
+   "motion_recall": 0.9666666666666667,
+   "motion_false_alarm": 0.0,
+   "still_vs_empty_auc": 0.5391655792373496,
+   "still_vs_empty_auc_recording": 0.6607142857142857,
+   "n_windows": 1011,
+   "n_recordings": 23
+  },
+  "holdout": {
+   "motion_recall": 0.9888888888888889,
+   "motion_false_alarm": 0.003472222222222222,
+   "still_vs_empty_auc": 0.6531824656824656,
+   "still_vs_empty_auc_recording": 0.6875,
+   "n_windows": 1044,
+   "n_recordings": 28
+  }
+ },
+ "calibrated sim, amplitude no RSSI": {
+  "selection": {
+   "motion_recall": 0.9833333333333333,
+   "motion_false_alarm": 0.09764309764309764,
+   "still_vs_empty_auc": 0.5365557488763231,
+   "still_vs_empty_auc_recording": 0.6964285714285714,
+   "n_windows": 1011,
+   "n_recordings": 23
+  },
+  "holdout": {
+   "motion_recall": 0.9111111111111111,
+   "motion_false_alarm": 0.18287037037037038,
+   "still_vs_empty_auc": 0.6883849175515842,
+   "still_vs_empty_auc_recording": 0.75,
+   "n_windows": 1044,
+   "n_recordings": 28
+  }
+ }
+}

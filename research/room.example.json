@@ -1,0 +1,10 @@
+{
+  "_comment": "Metres. Origin = a corner of the room, x along one wall, y along the other, z = height. ports must match --ports.",
+  "W": 4.0, "D": 3.5, "H": 2.8,
+  "router": [0.1, 2.6, 0.9],
+  "boards": {"COM5": [3.9, 2.4, 0.8], "COM6": [2.0, 0.1, 1.0], "COM7": [0.1, 0.5, 1.2]},
+  "furniture": [
+    {"kind": "bed", "x": 2.0, "y": 2.6, "z": 0, "w": 2.0, "d": 1.2, "h": 0.5},
+    {"kind": "desk", "x": 3.5, "y": 0.6, "z": 0, "w": 0.6, "d": 1.2, "h": 0.75}
+  ]
+}

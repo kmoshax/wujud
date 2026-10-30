@@ -1,0 +1,16 @@
+{
+ "false_alarm_on_empty": 0.05,
+ "sim": {
+  "empty_windows": 4497,
+  "still_windows": 13491,
+  "glrt": 0.5147135127121785,
+  "br_top": 0.4362167370839819
+ },
+ "real": {
+  "empty_windows": 1242,
+  "still_windows": 1550,
+  "recordings": 65,
+  "glrt": 0.1135483870967742,
+  "br_top": 0.11096774193548387
+ }
+}

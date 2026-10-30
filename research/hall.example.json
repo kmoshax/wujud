@@ -1,0 +1,14 @@
+{
+  "_comment": "Measure with a tape. Origin = front-left corner (board side), x to the right, y towards the back, metres. Node ids = NODE_ID flashed on each board.",
+  "W": 8.0,
+  "D": 7.0,
+  "front": 2.0,
+  "nodes": {
+    "0": [0.1, 2.6], "1": [7.9, 2.6],
+    "2": [0.1, 4.4], "3": [7.9, 4.4],
+    "4": [0.1, 6.2], "5": [7.9, 6.2],
+    "6": [2.7, 6.9], "7": [5.3, 6.9]
+  },
+  "grid": {"x0": 1.2, "y0": 2.6, "rows": 5, "cols": 8, "row_pitch": 0.9, "seat_pitch": 0.65,
+           "aisles_after_col": [3], "aisle_w": 1.0}
+}

@@ -1,0 +1,93 @@
+{
+ "amplitude (current)": {
+  "selection": {
+   "motion_recall": 1.0,
+   "motion_false_alarm": 0.0,
+   "still_vs_empty_auc": 0.545768691701706,
+   "still_vs_empty_auc_recording": 0.6607142857142857,
+   "n_windows": 1011,
+   "n_recordings": 23
+  },
+  "holdout": {
+   "motion_recall": 1.0,
+   "motion_false_alarm": 0.0,
+   "still_vs_empty_auc": 0.6507597340930673,
+   "still_vs_empty_auc_recording": 0.6875,
+   "n_windows": 1044,
+   "n_recordings": 28
+  }
+ },
+ "amplitude, no RSSI": {
+  "selection": {
+   "motion_recall": 1.0,
+   "motion_false_alarm": 0.122334455667789,
+   "still_vs_empty_auc": 0.5728094340534532,
+   "still_vs_empty_auc_recording": 0.7321428571428572,
+   "n_windows": 1011,
+   "n_recordings": 23
+  },
+  "holdout": {
+   "motion_recall": 1.0,
+   "motion_false_alarm": 0.24537037037037038,
+   "still_vs_empty_auc": 0.6789260122593457,
+   "still_vs_empty_auc_recording": 0.75,
+   "n_windows": 1044,
+   "n_recordings": 28
+  }
+ },
+ "amplitude + phase": {
+  "selection": {
+   "motion_recall": 1.0,
+   "motion_false_alarm": 0.0,
+   "still_vs_empty_auc": 0.5358005896283409,
+   "still_vs_empty_auc_recording": 0.625,
+   "n_windows": 1011,
+   "n_recordings": 23
+  },
+  "holdout": {
+   "motion_recall": 1.0,
+   "motion_false_alarm": 0.0,
+   "still_vs_empty_auc": 0.675332383665717,
+   "still_vs_empty_auc_recording": 0.6875,
+   "n_windows": 1044,
+   "n_recordings": 28
+  }
+ },
+ "amplitude no RSSI + phase": {
+  "selection": {
+   "motion_recall": 0.975,
+   "motion_false_alarm": 0.04264870931537598,
+   "still_vs_empty_auc": 0.5566188197767145,
+   "still_vs_empty_auc_recording": 0.6607142857142857,
+   "n_windows": 1011,
+   "n_recordings": 23
+  },
+  "holdout": {
+   "motion_recall": 1.0,
+   "motion_false_alarm": 0.1099537037037037,
+   "still_vs_empty_auc": 0.6926422343089009,
+   "still_vs_empty_auc_recording": 0.6875,
+   "n_windows": 1044,
+   "n_recordings": 28
+  }
+ },
+ "phase only": {
+  "selection": {
+   "motion_recall": 1.0,
+   "motion_false_alarm": 0.33108866442199775,
+   "still_vs_empty_auc": 0.5456539074960127,
+   "still_vs_empty_auc_recording": 0.6071428571428572,
+   "n_windows": 1011,
+   "n_recordings": 23
+  },
+  "holdout": {
+   "motion_recall": 0.9833333333333333,
+   "motion_false_alarm": 0.4525462962962963,
+   "still_vs_empty_auc": 0.7092236467236468,
+   "still_vs_empty_auc_recording": 0.5833333333333333,
+   "n_windows": 1044,
+   "n_recordings": 28
+  }
+ },
+ "chosen_on_selection": "amplitude (current)"
+}

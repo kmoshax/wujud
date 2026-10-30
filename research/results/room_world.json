@@ -1,0 +1,142 @@
+{
+ "what_moved": {
+  "acc3": 0.6426282051282052,
+  "human_recall": 0.699759807846277,
+  "human_false_alarm_from_objects": 0.2567703109327984,
+  "human_false_alarm_empty": 0.076,
+  "per_case": {
+   "nothing": {
+    "nothing": 0.332,
+    "human": 0.076,
+    "other": 0.592
+   },
+   "fan": {
+    "nothing": 0.12,
+    "human": 0.124,
+    "other": 0.756
+   },
+   "pet": {
+    "nothing": 0.08433734939759036,
+    "human": 0.27710843373493976,
+    "other": 0.6385542168674698
+   },
+   "door": {
+    "nothing": 0.14457831325301204,
+    "human": 0.17670682730923695,
+    "other": 0.678714859437751
+   },
+   "vacuum": {
+    "nothing": 0.028112449799196786,
+    "human": 0.4497991967871486,
+    "other": 0.5220883534136547
+   },
+   "human still": {
+    "nothing": 0.048,
+    "human": 0.584,
+    "other": 0.368
+   },
+   "human moving": {
+    "nothing": 0.0,
+    "human": 0.9799196787148594,
+    "other": 0.020080321285140562
+   },
+   "human still + fan": {
+    "nothing": 0.06,
+    "human": 0.476,
+    "other": 0.464
+   },
+   "human still + pet": {
+    "nothing": 0.052,
+    "human": 0.46,
+    "other": 0.488
+   },
+   "human moving + pet": {
+    "nothing": 0.0,
+    "human": 1.0,
+    "other": 0.0
+   }
+  },
+  "cm": [
+   [
+    83,
+    19,
+    148
+   ],
+   [
+    40,
+    874,
+    335
+   ],
+   [
+    94,
+    256,
+    647
+   ]
+  ]
+ },
+ "through_wall": [
+  {
+   "wall_db": 0,
+   "still_auc": 0.913125,
+   "motion_auc": 0.994375,
+   "breath_err_lying_median": 0.9791241838387048,
+   "breath_within2": 0.575
+  },
+  {
+   "wall_db": 3,
+   "still_auc": 0.9212499999999999,
+   "motion_auc": 1.0,
+   "breath_err_lying_median": 0.9184374723248601,
+   "breath_within2": 0.6
+  },
+  {
+   "wall_db": 6,
+   "still_auc": 0.93875,
+   "motion_auc": 1.0,
+   "breath_err_lying_median": 0.6738766445540048,
+   "breath_within2": 0.725
+  },
+  {
+   "wall_db": 9,
+   "still_auc": 0.9509375,
+   "motion_auc": 1.0,
+   "breath_err_lying_median": 0.6226272554841827,
+   "breath_within2": 0.75
+  },
+  {
+   "wall_db": 12,
+   "still_auc": 0.9437500000000001,
+   "motion_auc": 1.0,
+   "breath_err_lying_median": 0.8147156699564997,
+   "breath_within2": 0.75
+  },
+  {
+   "wall_db": 18,
+   "still_auc": 0.9109375,
+   "motion_auc": 1.0,
+   "breath_err_lying_median": 1.5927378178259897,
+   "breath_within2": 0.625
+  },
+  {
+   "wall_db": 25,
+   "still_auc": 0.7599999999999999,
+   "motion_auc": 1.0,
+   "breath_err_lying_median": 3.4671852963089327,
+   "breath_within2": 0.325
+  },
+  {
+   "wall_db": 30,
+   "still_auc": 0.5909374999999999,
+   "motion_auc": 0.92,
+   "breath_err_lying_median": 4.500900175899734,
+   "breath_within2": 0.2
+  },
+  {
+   "wall_db": 40,
+   "still_auc": 0.5228125,
+   "motion_auc": 0.7325,
+   "breath_err_lying_median": 5.800159198276583,
+   "breath_within2": 0.025
+  }
+ ]
+}

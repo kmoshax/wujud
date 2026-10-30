@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HallSense Calibration</title>
+<style>
+:root{--bg:#0d1117;--panel:#151b26;--line:#263042;--ink:#e9eef6;--ink2:#9aa7ba;--acc:#4fb3ff;--warn:#ffb84c;--ok:#4fd18b;--node:#ff8a4c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,"Noto Sans Arabic",sans-serif}
+main{max-width:1100px;margin:0 auto;padding:16px;display:grid;gap:16px;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}
+@media (max-width:820px){main{grid-template-columns:1fr}}
+section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+h1{font-size:20px;margin:0 0 4px}h2{font-size:15px;margin:0 0 10px;color:var(--ink2);font-weight:600}
+canvas{width:100%;aspect-ratio:4/3.5;display:block;background:#0a0e15;border-radius:8px;cursor:crosshair;touch-action:none}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}
+input[type=number],input[type=text]{background:#0a0e15;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:80px;font:inherit}
+input[type=text]{width:140px}
+button{background:#1d2738;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 12px;font:inherit;cursor:pointer}
+button.pri{background:var(--acc);color:#04121f;border-color:var(--acc);font-weight:600}
+button.warn{background:var(--warn);color:#1d1200;border-color:var(--warn);font-weight:600}
+label.chip{border:1px solid var(--line);border-radius:999px;padding:4px 10px;cursor:pointer}
+label.chip:has(input:checked){border-color:var(--acc);color:var(--acc)}
+label.chip input{display:none}
+.state{font-size:28px;font-weight:700}
+.bar{height:8px;background:#0a0e15;border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--acc)}
+.muted{color:var(--ink2);font-size:13px}
+#pending{color:var(--warn);font-weight:600;min-height:1.5em}
+table{width:100%;border-collapse:collapse;font-size:14px}td{padding:4px 2px;border-bottom:1px solid var(--line)}
+a{color:var(--acc)}
+</style>
+</head>
+<body>
+<main>
+<section>
+  <h1>معايرة الأوضة</h1>
+  <div class="muted">اضغط على الرسمة عشان تحط الأجهزة، أو عشان تحدد إنت واقف فين. المربع البرتقالي هو اللابتوب، والرمادي الراوترات، والنقطة الزرقا مكانك اللي الموديل شايفه دلوقتي.</div>
+  <div class="row">
+    <span>اللي هتحطه بالضغط:</span>
+    <label class="chip"><input type="radio" name="mode" value="spot" checked>مكاني</label>
+    <label class="chip"><input type="radio" name="mode" value="laptop">اللابتوب</label>
+    <label class="chip"><input type="radio" name="mode" value="ap0">Router</label>
+    <label class="chip"><input type="radio" name="mode" value="ap1">D-Link</label>
+  </div>
+  <canvas id="map" width="800" height="700"></canvas>
+  <div class="row">
+    <span>عرض</span><input id="W" type="number" step="0.1"> <span>طول</span><input id="D" type="number" step="0.1"> <span>متر</span>
+    <button id="saveRoom">احفظ الأبعاد</button>
+    <a href="/" target="_blank">افتح الـ 3D ←</a>
+  </div>
+</section>
+<section>
+  <h2>الحالة دلوقتي</h2>
+  <div class="state" id="state">…</div>
+  <div class="muted" id="where"></div>
+  <div class="row" style="display:block">
+    <div class="muted">الحركة <span id="motv"></span></div>
+    <div class="bar"><i id="motbar" style="width:0"></i></div>
+  </div>
+  <div id="probs"></div>
+  <div id="pending"></div>
+
+  <h2 style="margin-top:16px">١. الأوضة فاضية (مرة واحدة)</h2>
+  <div class="muted">دوس، وقدامك 20 ثانية تطلع فيهم وتقفل الباب. بعدها هيسجّل 60 ثانية، ولما يخلص ارجع.</div>
+  <div class="row"><button class="warn" id="calEmpty">سجّل الأوضة فاضية</button></div>
+
+  <h2 style="margin-top:16px">٢. أماكنك (4 لـ 6 أماكن)</h2>
+  <div class="muted">حدد مكانك على الرسمة واكتب اسمه، واقعد فيه ثابت 30 ثانية. كل ما الأماكن تبعد عن بعض أكتر، كل ما الفرق يبان أكتر. <b>سجّل كل الأماكن مرتين في لفتين</b> (أ ب ج د، وبعدين أ ب ج د تاني) بنفس الاسم. ده عشان الموديل يتعلّم المكان مش الوقت، وعشان الاختبار يبقى صادق.</div>
+  <div class="row"><input id="spotName" type="text" placeholder="مثلًا: المكتب"><button class="pri" id="calSpot">سجّل هنا</button></div>
+  <table id="spots"></table>
+  <div class="muted" id="cv" style="margin-top:8px"></div>
+</section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cv = $("map"), ctx = cv.getContext("2d");
+let info = null, picked = null;
+const post = (u, b) => fetch(u, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) });
+const mode = () => document.querySelector("input[name=mode]:checked").value;
+
+function toPx(x, y) { const c = info.cfg, s = Math.min((cv.width - 40) / c.W, (cv.height - 40) / c.D); return [20 + x * s, 20 + y * s, s]; }
+function fromPx(px, py) { const c = info.cfg, s = Math.min((cv.width - 40) / c.W, (cv.height - 40) / c.D); return [(px - 20) / s, (py - 20) / s]; }
+
+cv.addEventListener("click", e => {
+  if (!info) return;
+  const r = cv.getBoundingClientRect(); const px = (e.clientX - r.left) * cv.width / r.width, py = (e.clientY - r.top) * cv.height / r.height;
+  let [x, y] = fromPx(px, py); x = Math.max(0, Math.min(info.cfg.W, x)); y = Math.max(0, Math.min(info.cfg.D, y));
+  x = +x.toFixed(2); y = +y.toFixed(2);
+  const m = mode();
+  if (m === "spot") picked = [x, y];
+  else if (m === "laptop") { info.cfg.laptop = [x, y, info.cfg.laptop[2]]; post("/api/room", { laptop: info.cfg.laptop }); }
+  else { const i = +m.slice(2); const aps = info.cfg.aps; aps[i].xyz = [x, y, aps[i].xyz[2]]; post("/api/room", { aps }); }
+  draw();
+});
+$("saveRoom").onclick = () => { info.cfg.W = +$("W").value; info.cfg.D = +$("D").value; post("/api/room", { W: info.cfg.W, D: info.cfg.D }); draw(); };
+$("calEmpty").onclick = () => post("/api/cal", { label: "empty", xy: null, secs: 60, delay: 20 });
+$("calSpot").onclick = () => {
+  const n = $("spotName").value.trim();
+  if (!picked) return alert("اضغط على الرسمة الأول عشان تحدد إنت فين");
+  if (!n) return alert("اكتب اسم للمكان");
+  post("/api/cal", { label: n, xy: picked, secs: 30, delay: 5 });
+};
+
+function draw() {
+  if (!info) return;
+  const c = info.cfg; ctx.clearRect(0, 0, cv.width, cv.height);
+  const [x0, y0, s] = toPx(0, 0);
+  ctx.strokeStyle = "#3a4760"; ctx.lineWidth = 2; ctx.strokeRect(x0, y0, c.W * s, c.D * s);
+  ctx.strokeStyle = "#1c2433"; ctx.lineWidth = 1;
+  for (let x = 1; x < c.W; x++) { const [a] = toPx(x, 0); ctx.beginPath(); ctx.moveTo(a, y0); ctx.lineTo(a, y0 + c.D * s); ctx.stroke(); }
+  for (let y = 1; y < c.D; y++) { const [, b] = toPx(0, y); ctx.beginPath(); ctx.moveTo(x0, b); ctx.lineTo(x0 + c.W * s, b); ctx.stroke(); }
+  const [lx, ly] = toPx(c.laptop[0], c.laptop[1]);
+  c.aps.forEach((ap, i) => {
+    const [ax, ay] = toPx(ap.xyz[0], ap.xyz[1]);
+    const a = info.room && info.room.motion != null ? Math.min(1, (info.mot || [])[i * 2] / (2 * (info.room.thr || 1))) : 0;
+    ctx.strokeStyle = `rgba(79,179,255,${0.25 + 0.7 * (a || 0)})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(ax, ay); ctx.stroke();
+    ctx.fillStyle = "#c9d2e0"; ctx.fillRect(ax - 9, ay - 9, 18, 18);
+    ctx.fillStyle = "#9aa7ba"; ctx.font = "14px system-ui"; ctx.textAlign = "center"; ctx.fillText(ap.name, ax, ay - 14);
+  });
+  ctx.fillStyle = "#ff8a4c"; ctx.fillRect(lx - 10, ly - 10, 20, 20);
+  ctx.fillStyle = "#9aa7ba"; ctx.fillText("Laptop", lx, ly + 26);
+  (info.spots || []).filter(p => p.xy).forEach(p => {
+    const [px, py] = toPx(p.xy[0], p.xy[1]);
+    ctx.strokeStyle = "#4fd18b"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(px, py, 10, 0, 7); ctx.stroke();
+    ctx.fillStyle = "#4fd18b"; ctx.fillText(p.label, px, py - 14);
+  });
+  if (picked) { const [px, py] = toPx(picked[0], picked[1]); ctx.strokeStyle = "#ffb84c"; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.arc(px, py, 14, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
+  const r = info.room || {};
+  if (r.xy && r.state !== "empty") {
+    const [px, py] = toPx(r.xy[0], r.xy[1]);
+    ctx.fillStyle = "rgba(79,179,255,.25)"; ctx.beginPath(); ctx.arc(px, py, 34, 0, 7); ctx.fill();
+    ctx.fillStyle = "#4fb3ff"; ctx.beginPath(); ctx.arc(px, py, 12, 0, 7); ctx.fill();
+  }
+}
+
+const NAMES = { empty: "الأوضة فاضية", still: "فيه حد، ثابت", moving: "فيه حركة", quiet: "مفيش حركة (محتاج معايرة عشان أفرّق فاضي من ثابت)" };
+async function poll() {
+  try {
+    info = await (await fetch("/api/info")).json();
+    if (document.activeElement !== $("W")) $("W").value = info.cfg.W;
+    if (document.activeElement !== $("D")) $("D").value = info.cfg.D;
+    const r = info.room || {};
+    $("state").textContent = NAMES[r.state] || "…";
+    $("where").textContent = r.spot && r.state !== "empty" ? `أقرب مكان: ${r.spot}` : "";
+    $("motv").textContent = r.motion != null ? `${r.motion} (العتبة ${r.thr})` : "";
+    $("motbar").style.width = r.motion != null ? `${Math.min(100, 50 * r.motion / r.thr)}%` : "0";
+    $("probs").innerHTML = r.probs ? Object.entries(r.probs).map(([k, v]) =>
+      `<div class="row" style="margin:4px 0"><span style="width:90px">${k === "empty" ? "فاضية" : k}</span><div class="bar" style="flex:1"><i style="width:${100 * v}%"></i></div></div>`).join("") : "";
+    const p = info.pending;
+    $("pending").textContent = p ? (p.wait > 0 ? `${p.label === "empty" ? "اطلع برا الأوضة" : "روح مكانك واثبت"}… التسجيل هيبدأ بعد ${p.wait} ث` : `بيسجّل "${p.label === "empty" ? "فاضية" : p.label}"… فاضل ${p.left} ث، (${p.n} عينة)`) : "";
+    $("spots").innerHTML = (info.spots || []).map(s => `<tr><td>${s.label === "empty" ? "فاضية" : s.label}</td><td class="muted">${s.n} عينة</td><td><button data-l="${s.label}">امسح</button></td></tr>`).join("");
+    $("spots").querySelectorAll("button").forEach(b => b.onclick = () => post("/api/cal/delete", { label: b.dataset.l }));
+    const c = info.cv;
+    $("cv").textContent = c ? (c.rounds ? `اختبار أمين (اتدرب على اللفات الأولى واتقاس على آخر لفة): ` : `⚠ اختبار متفائل، لأن كل مكان متسجّل مرة واحدة بس. سجّل كل الأماكن لفة تانية عشان الرقم يبقى حقيقي: `) + `الدقة ${(100 * c.acc).toFixed(0)}% على ${c.n} عينة` + (c.loc_err_m != null ? `، ومتوسط خطأ المكان ${c.loc_err_m.toFixed(2)} م` : "") : "سجّل الأوضة فاضية ومكانين على الأقل عشان يظهر الاختبار.";
+    draw();
+  } catch (e) { }
+  setTimeout(poll, 700);
+}
+poll();
+</script>
+</body>
+</html>
