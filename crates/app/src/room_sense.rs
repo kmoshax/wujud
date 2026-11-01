@@ -59,7 +59,7 @@ const EMPTY_FOLLOWS: f64 = 0.01;
 const FOLLOW_BELOW_THRESHOLD: f64 = 0.6;
 /// Whoever moved is taken to be still here this long after their last movement: a person sitting
 /// completely still reads like an empty room, and nobody leaves without moving.
-const STILL_AFTER_MOTION_SECONDS: f64 = 300.0;
+const STILL_AFTER_MOTION_SECONDS: f64 = 600.0;
 /// Someone arrives or leaves only after the links agree for this many seconds in a row.
 const PRESENCE_HOLD_SECONDS: u32 = 2;
 
@@ -282,6 +282,11 @@ impl RoomSense {
         self.empty = previous.empty.clone();
         self.postures = previous.postures.clone();
         self.history = previous.history.clone();
+        self.last_motion = previous.last_motion;
+        self.moving = previous.moving;
+        self.stirring = previous.stirring;
+        self.present = previous.present;
+        self.reading = previous.reading.clone();
         if !self.empty.is_empty() {
             self.learning = None;
         }

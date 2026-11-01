@@ -11,6 +11,7 @@ use wujud_model::room::{Pose, RoomEngine, RoomState, RoomState3};
 
 use crate::learned_tracker::LearnedTracker;
 use crate::link_history::LinkHistory;
+use crate::link_net::{LinkNetTracker, LinkSecond};
 use crate::phone_range::PhoneRange;
 use crate::room_sense::RoomSense;
 use crate::room_setup::{self, LiveRoom};
@@ -24,6 +25,8 @@ const HEATMAP_HEIGHT: f32 = 150.0;
 const RSSI_HEIGHT: f32 = 60.0;
 const ENGINE_TICK: Duration = Duration::from_secs(1);
 const TRACKER_TICK: Duration = Duration::from_millis(100);
+/// Share of the way the shown position moves towards each new answer of the network (once a second).
+const FOLLOW_ANSWER: f64 = 0.5;
 const SIDE_PANEL_WIDTH: f32 = 300.0;
 const SIGNAL_PANEL_HEIGHT: f32 = 290.0;
 /// A board's links show up one by one; the room is rebuilt once none has come for this long.
@@ -59,8 +62,10 @@ pub struct LiveWindow {
     room_state: Option<RoomState>,
     tracker: MotionTracker,
     /// The network trained on simulated rooms; it places a walking person when the boards are placed.
-    learned: Option<LearnedTracker>,
+    learned: Option<Locator>,
     learned_xy: Option<[f64; 2]>,
+    /// The network's newest answer (where, and the activity it thinks), refreshed once a second.
+    learned_answer: Option<([f64; 2], String)>,
     relaid: bool,
     last_learned: Instant,
     track: Option<Track>,
@@ -91,6 +96,7 @@ impl LiveWindow {
             tracker,
             learned: None,
             learned_xy: None,
+            learned_answer: None,
             relaid: false,
             last_learned: Instant::now(),
             track: None,
@@ -126,24 +132,27 @@ impl LiveWindow {
         let ends = self.engine.link_ends();
         let scene = self.engine.scene();
         self.tracker = MotionTracker::new(ends.clone(), scene.width, scene.depth);
-        let model = room_setup::models_dir().join("learned_tracker.json");
-        self.learned = match LearnedTracker::load(&model, &ends, scene.width, scene.depth) {
-            Ok(learned) => Some(learned),
-            Err(error) => {
-                eprintln!("{}: {error}", model.display());
-                None
+        let previous = self.learned.take();
+        self.learned = Locator::load(&ends, &link_names, scene.width, scene.depth).map(|mut learned| {
+            if let Some(previous) = &previous {
+                learned.carry_over(previous);
             }
-        };
-        self.learned_xy = None;
+            learned
+        });
         self.one_line = on_one_line(&ends);
         self.node_names = node_names;
-        self.links = link_names.iter().cloned().map(LinkHistory::new).collect();
+        // A room laid out again keeps what it saw on the links it still has: nothing disappears.
+        let mut old: Vec<LinkHistory> = std::mem::take(&mut self.links);
+        self.links = link_names
+            .iter()
+            .map(|name| match old.iter().position(|l| &l.name == name) {
+                Some(i) => old.swap_remove(i),
+                None => LinkHistory::new(name.clone()),
+            })
+            .collect();
         self.banners = vec![None; link_names.len()];
         self.heatmaps = vec![None; link_names.len()];
         self.link_names = link_names;
-        self.room_state = None;
-        self.track = None;
-        self.still_since = None;
     }
 
     /// A board switched on later: once its links stop arriving, the room is laid out again with them.
@@ -254,7 +263,7 @@ impl LiveWindow {
         let activity: Vec<String> = state.link_activity.iter().map(|a| format!("{a:.2}")).collect();
         let sensed = self.sense.as_ref().map(|s| s.reading.clone()).unwrap_or_default();
         println!(
-            "t {:.0} {:?} drift {:?} above {:.3} presence {:?} learning {:?} glrt {:?} probs {:?} activity [{}] packets/s [{}] breath {:?}",
+            "t {:.0} {:?} drift {:?} above {:.3} presence {:?} learning {:?} glrt {:?} probs {:?} activity [{}] packets/s [{}] breath {:?} net {:?}",
             state.t,
             decision.state,
             sensed.drift_db.map(|d| (d * 1000.0).round() / 1000.0),
@@ -266,7 +275,17 @@ impl LiveWindow {
             activity.join(" "),
             rates.join(" "),
             decision.breath_bpm,
+            self.learned_answer.as_ref().map(|([x, y], what)| format!("{x:.2},{y:.2} {what}")),
         );
+    }
+
+    /// Live boards: moving as the drift detector reads it, not every flicker of a single link, so a
+    /// person sitting still is neither walked around nor hidden and shown again.
+    fn sensed_moving(&self) -> bool {
+        match &self.sense {
+            Some(sense) => sense.reading.state == Some(RoomState3::Moving),
+            None => self.track.as_ref().is_some_and(|t| t.moving),
+        }
     }
 
     fn room_empty(&self) -> bool {
@@ -296,19 +315,22 @@ impl LiveWindow {
         if self.last_learned.elapsed() >= Duration::from_secs(1) {
             self.last_learned = Instant::now();
             if let Some(learned) = &mut self.learned {
-                let second: Vec<(Option<f64>, Option<f64>)> =
-                    self.links.iter().map(|l| (l.disturbance_db(), l.rssi_spread_db())).collect();
-                learned.add_second(&second);
+                learned.add_second(&self.links);
+                self.learned_answer = learned.answer();
+            }
+            if let (true, Some((xy, _))) = (self.sensed_moving(), &self.learned_answer) {
+                self.learned_xy = Some(match self.learned_xy {
+                    Some(old) => [old[0] + (xy[0] - old[0]) * FOLLOW_ANSWER, old[1] + (xy[1] - old[1]) * FOLLOW_ANSWER],
+                    None => *xy,
+                });
             }
         }
         if motion.iter().any(|m| !m.is_nan()) {
             let mut track = self
                 .tracker
                 .update(&motion, &shadowing, elapsed.as_secs_f64());
-            if track.moving {
-                if let Some(xy) = self.learned.as_ref().and_then(LearnedTracker::position) {
-                    self.learned_xy = Some(xy);
-                }
+            if self.sense.is_some() {
+                track.moving = self.sensed_moving();
             }
             if self.learned_xy.is_some() {
                 track.xy = self.learned_xy;
@@ -614,4 +636,62 @@ fn draw_rssi(ui: &mut egui::Ui, link: &LinkHistory, width: f32) {
         egui::FontId::proportional(11.0),
         theme::MUTED,
     );
+}
+
+/// The network that places a walking person: every link at once (link_net), or with
+/// `WUJUD_TRACKER=points` the earlier one that scores each link on its own (learned_tracker).
+enum Locator {
+    Links(LinkNetTracker),
+    Points(LearnedTracker),
+}
+
+impl Locator {
+    fn load(ends: &[([f64; 2], [f64; 2])], names: &[String], width: f64, depth: f64) -> Option<Self> {
+        let models = room_setup::models_dir();
+        if std::env::var("WUJUD_TRACKER").as_deref() != Ok("points") {
+            match LinkNetTracker::load(&models.join("link_net.json"), ends, names, width, depth) {
+                Ok(tracker) => return Some(Locator::Links(tracker)),
+                Err(error) => eprintln!("link_net.json: {error}"),
+            }
+        }
+        LearnedTracker::load(&models.join("learned_tracker.json"), ends, names, width, depth)
+            .map(Locator::Points)
+            .map_err(|error| eprintln!("learned_tracker.json: {error}"))
+            .ok()
+    }
+
+    fn carry_over(&mut self, previous: &Locator) {
+        match (self, previous) {
+            (Locator::Links(now), Locator::Links(before)) => now.carry_over(before),
+            (Locator::Points(now), Locator::Points(before)) => now.carry_over(before),
+            _ => {}
+        }
+    }
+
+    fn add_second(&mut self, links: &[LinkHistory]) {
+        match self {
+            Locator::Links(tracker) => {
+                let second: Vec<Option<LinkSecond>> = links
+                    .iter()
+                    .map(|l| {
+                        let (spread, shape) = l.subcarrier_db()?;
+                        Some(LinkSecond { motion: l.disturbance_db()?, shadow: l.rssi_spread_db()?, spread, shape })
+                    })
+                    .collect();
+                tracker.add_second(&second);
+            }
+            Locator::Points(tracker) => {
+                let second: Vec<(Option<f64>, Option<f64>)> =
+                    links.iter().map(|l| (l.disturbance_db(), l.rssi_spread_db())).collect();
+                tracker.add_second(&second);
+            }
+        }
+    }
+
+    fn answer(&self) -> Option<([f64; 2], String)> {
+        match self {
+            Locator::Links(tracker) => tracker.position().map(|(xy, what)| (xy, what.to_owned())),
+            Locator::Points(tracker) => tracker.position().map(|xy| (xy, String::from("?"))),
+        }
+    }
 }

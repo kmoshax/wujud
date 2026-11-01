@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
@@ -317,7 +317,30 @@ fn auto_layout(links: &[String], rssi: &BTreeMap<String, f64>) -> Option<RoomFil
     // Hub at the origin, node a along x, node b by the law of cosines (above x).
     let bx = (ha * ha + hb * hb - ab * ab) / (2.0 * ha);
     let by = (hb * hb - bx * bx).max(0.0).sqrt();
-    let points = [[0.0, 0.0], [ha, 0.0], [bx, by]];
+    let mut points = vec![[0.0, 0.0], [ha, 0.0], [bx, by]];
+    let mut ids = vec![HUB.to_owned(), a.clone(), b.clone()];
+    // Anything else every board hears (a phone left on a shelf) is placed where its distances to the
+    // three boards fit best: three more links across the room.
+    let extra: Vec<String> = devices_heard_by_boards(links, &ids)
+        .into_iter()
+        .filter(|device| ids.iter().all(|board| distance(device, board).is_some()))
+        .collect();
+    if let [device] = extra.as_slice() {
+        // Four corners: RSSI is trusted for order, not distance (a phone sends at its own power), so the
+        // pairing that hears itself worst is taken for the two diagonals of a rectangle.
+        ids.push(device.clone());
+        points = rectangle(&ids, &|x: &str, y: &str| rssi_between(links, rssi, x, y), &distance);
+    } else {
+        for device in extra {
+            let reach: Vec<([f64; 2], f64)> = ids
+                .iter()
+                .zip(&points)
+                .filter_map(|(board, &at)| Some((at, distance(&device, board)? * scale)))
+                .collect();
+            points.push(trilaterate(&reach));
+            ids.push(device);
+        }
+    }
     let min_x = points.iter().map(|p| p[0]).fold(f64::MAX, f64::min) - WALL_MARGIN_M;
     let min_y = points.iter().map(|p| p[1]).fold(f64::MAX, f64::min) - WALL_MARGIN_M;
     let place = |p: [f64; 2]| [p[0] - min_x, p[1] - min_y, BOARD_HEIGHT_M];
@@ -326,20 +349,124 @@ fn auto_layout(links: &[String], rssi: &BTreeMap<String, f64>) -> Option<RoomFil
     let mut names: BTreeMap<String, String> =
         nodes.iter().map(|mac| (mac.clone(), format!("ESP32 · {}", mac_tail(mac)))).collect();
     names.insert(HUB.to_owned(), "ESP32 hub".to_owned());
+    for device in &ids[3..] {
+        names.insert(device.clone(), format!("phone · {}", mac_tail(device)));
+    }
     println!(
-        "boards placed from their signal strength: hub-{} {ha:.1} m, hub-{} {hb:.1} m, between them {ab:.1} m",
+        "boards placed from their signal strength: hub-{} {ha:.1} m, hub-{} {hb:.1} m, between them {ab:.1} m{}",
         mac_tail(&a),
-        mac_tail(&b)
+        mac_tail(&b),
+        if ids.len() > 3 { format!(", and {} more device(s)", ids.len() - 3) } else { String::new() }
     );
     Some(RoomFile {
         width: width.max(2.5),
         depth: depth.max(2.5),
         height: 2.8,
         router: place(points[0]),
-        boards: BTreeMap::from([(a, place(points[1])), (b, place(points[2]))]),
+        boards: ids.iter().zip(&points).skip(1).map(|(id, &p)| (id.clone(), place(p))).collect(),
         furniture: vec![],
         names,
     })
+}
+
+fn rssi_between(links: &[String], rssi: &BTreeMap<String, f64>, x: &str, y: &str) -> Option<f64> {
+    let heard: Vec<f64> = links
+        .iter()
+        .filter(|link| {
+            let (s, r) = link_ends(link);
+            (s == x && r == y) || (s == y && r == x)
+        })
+        .filter_map(|link| rssi.get(link).copied())
+        .collect();
+    (!heard.is_empty()).then(|| heard.iter().sum::<f64>() / heard.len() as f64)
+}
+
+/// The longest side of four corners, and the most one side may be longer than the other.
+const RECTANGLE_LONGEST_M: f64 = 4.0;
+const RECTANGLE_SHORTEST_M: f64 = 2.0;
+const RECTANGLE_MOST_ASPECT: f64 = 1.5;
+
+/// Four devices as the corners of a rectangle, in `ids` order of the returned points; `ids[3]` is the
+/// one that is not a board. Of the three ways
+/// to split four corners into two pairs, the one whose pairs hear each other worst is the diagonals;
+/// going round the rectangle then alternates between them. Side lengths come from the RSSI distances of
+/// opposite sides, averaged, kept within a bedroom.
+fn rectangle(
+    ids: &[String],
+    rssi: &dyn Fn(&str, &str) -> Option<f64>,
+    distance: &dyn Fn(&str, &str) -> Option<f64>,
+) -> Vec<[f64; 2]> {
+    let pairings = [((0, 1), (2, 3)), ((0, 2), (1, 3)), ((0, 3), (1, 2))];
+    let heard = |(i, j): (usize, usize)| rssi(&ids[i], &ids[j]).unwrap_or(-100.0);
+    let ((p, q), (r, t)) = *pairings
+        .iter()
+        .min_by(|a, b| (heard(a.0) + heard(a.1)).total_cmp(&(heard(b.0) + heard(b.1))))
+        .expect("three pairings");
+    // Round the rectangle: p, r, q, t (each diagonal's ends opposite each other).
+    let corners = [p, r, q, t];
+    let side = |i: usize, j: usize| distance(&ids[corners[i]], &ids[corners[j]]).unwrap_or(3.0);
+    // Opposite sides of a rectangle are equal: take the one between two boards when there is one, since
+    // the fourth device (a phone) sends at its own power and reads nearer than it is.
+    let between_boards = |i: usize, j: usize| corners[i] < 3 && corners[j] < 3;
+    let pick = |(i, j): (usize, usize), (k, l): (usize, usize)| match (between_boards(i, j), between_boards(k, l)) {
+        (true, false) => side(i, j),
+        (false, true) => side(k, l),
+        _ => (side(i, j) + side(k, l)) / 2.0,
+    };
+    let mut along = pick((0, 1), (2, 3));
+    let mut across = pick((1, 2), (3, 0));
+    let longest = along.max(across);
+    let scale = if longest > RECTANGLE_LONGEST_M { RECTANGLE_LONGEST_M / longest } else { 1.0 };
+    along = (along * scale).max(RECTANGLE_SHORTEST_M);
+    across = (across * scale).max(RECTANGLE_SHORTEST_M);
+    if along > across * RECTANGLE_MOST_ASPECT {
+        along = across * RECTANGLE_MOST_ASPECT;
+    } else if across > along * RECTANGLE_MOST_ASPECT {
+        across = along * RECTANGLE_MOST_ASPECT;
+    }
+    let at = [[0.0, 0.0], [along, 0.0], [along, across], [0.0, across]];
+    let mut points = vec![[0.0, 0.0]; 4];
+    for (corner, &id) in corners.iter().enumerate() {
+        points[id] = at[corner];
+    }
+    points
+}
+
+/// Senders that are not boards but are heard by every board.
+fn devices_heard_by_boards(links: &[String], boards: &[String]) -> Vec<String> {
+    let mut heard: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    for link in links {
+        let (sender, receiver) = link_ends(link);
+        if !boards.contains(&sender) && boards.contains(&receiver) {
+            heard.entry(sender).or_default().insert(receiver);
+        }
+    }
+    heard.into_iter().filter(|(_, by)| by.len() == boards.len()).map(|(device, _)| device).collect()
+}
+
+/// The point whose distances to the anchors fit the measured ones best (a grid search, then a finer one).
+fn trilaterate(reach: &[([f64; 2], f64)]) -> [f64; 2] {
+    let misfit = |p: [f64; 2]| -> f64 {
+        reach
+            .iter()
+            .map(|(at, d)| ((p[0] - at[0]).hypot(p[1] - at[1]) - d).powi(2))
+            .sum()
+    };
+    let mut best = reach[0].0;
+    for step in [0.1, 0.02] {
+        let centre = best;
+        let span = if step > 0.05 { LONGEST_SPAN_M * 1.5 } else { 0.2 };
+        let n = (span / step) as i32;
+        for i in -n..=n {
+            for j in -n..=n {
+                let p = [centre[0] + f64::from(i) * step, centre[1] + f64::from(j) * step];
+                if misfit(p) < misfit(best) {
+                    best = p;
+                }
+            }
+        }
+    }
+    best
 }
 
 fn print_placement(boards: &BTreeMap<String, [f64; 3]>, names: &BTreeMap<String, String>) {
@@ -442,5 +569,31 @@ mod tests {
         let room = room_engine(&links, None, &BTreeMap::new()).unwrap();
         assert_eq!(room.links, links);
         assert_eq!(room.link_names[0], "Device 1 · aa:01");
+    }
+
+    #[test]
+    fn four_devices_become_a_rectangle_with_the_weakest_pairs_as_diagonals() {
+        // Measured on 2026-11-02: hub, 30:c0, d9:bc and a phone near the corners of a bedroom.
+        let ids: Vec<String> = ["router", "a", "b", "phone"].map(String::from).to_vec();
+        let measured = |x: &str, y: &str| -> Option<f64> {
+            let mut pair = [x, y];
+            pair.sort();
+            Some(match pair {
+                ["a", "router"] | ["b", "router"] => -57.5,
+                ["a", "b"] => -63.5,
+                ["phone", "router"] => -55.0,
+                ["a", "phone"] => -51.0,
+                ["b", "phone"] => -40.0,
+                _ => return None,
+            })
+        };
+        let distance = |x: &str, y: &str| measured(x, y).map(metres_from_rssi);
+        let points = rectangle(&ids, &measured, &distance);
+        let apart = |i: usize, j: usize| (points[i][0] - points[j][0]).hypot(points[i][1] - points[j][1]);
+        let diagonal = apart(0, 3);
+        assert!((apart(1, 2) - diagonal).abs() < 1e-9, "a and b are the other diagonal");
+        for (i, j) in [(0, 1), (0, 2), (3, 1), (3, 2)] {
+            assert!(apart(i, j) < diagonal, "{i}-{j} is a side");
+        }
     }
 }

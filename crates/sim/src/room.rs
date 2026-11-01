@@ -367,6 +367,7 @@ pub fn room_person(
         }
         start += n;
     }
+    move_between_activities(&mut body, &plan, fs, frames);
     body.absorption = uniform(rng, BODY_ABSORPTION_RANGE.0, BODY_ABSORPTION_RANGE.1);
     body.chest_rcs = uniform(rng, 0.3, 0.8) * knobs.rcs_scale;
     let labels = PersonLabels {
@@ -376,6 +377,68 @@ pub fn room_person(
         plan,
     };
     (body, labels)
+}
+
+/// Seconds a body takes to go from one posture into another (sitting down, lying down, getting up).
+const POSTURE_CHANGE_S: f64 = 1.8;
+/// Walking speed to the next spot, and the longest a change may take.
+const WALK_TO_SPOT_M_S: f64 = 0.8;
+const LONGEST_CHANGE_S: f64 = 6.0;
+
+/// Without this the body jumps from one activity's pose and place to the next in one frame. Each change
+/// between two activities of someone in the room becomes movement over the start of the new one: the
+/// body walks to the new spot and goes down onto the chair or bed (or gets up), eased in and out, so the
+/// links see sitting down and lying down as they happen.
+fn move_between_activities(body: &mut Body, plan: &[PlanStep], fs: f64, frames: usize) {
+    let mut start = 0usize;
+    let mut previous: Option<Activity> = None;
+    for step in plan {
+        let n = (frames - start).min((step.seconds * fs) as usize);
+        if n == 0 {
+            break;
+        }
+        if previous.is_some_and(|p| p != Activity::Away) && step.activity != Activity::Away && start > 0 {
+            let from = start - 1;
+            let walk_m = {
+                let target = body.centre[(start + n / 2).min(start + n - 1)];
+                (target[0] - body.centre[from][0]).hypot(target[1] - body.centre[from][1])
+            };
+            let posture = previous != Some(step.activity);
+            let seconds = (walk_m / WALK_TO_SPOT_M_S + if posture { POSTURE_CHANGE_S } else { 0.0 })
+                .min(LONGEST_CHANGE_S)
+                .min(step.seconds / 2.0);
+            let length = ((seconds * fs) as usize).min(n.saturating_sub(1));
+            if length > 1 {
+                ease(body, from, start + length, length);
+            }
+        }
+        previous = Some(step.activity);
+        start += n;
+    }
+}
+
+/// Frames `to - length .. to` move from the pose at `from` to the pose at `to`.
+fn ease(body: &mut Body, from: usize, to: usize, length: usize) {
+    let lerp = |a: f64, b: f64, w: f64| a + (b - a) * w;
+    let (c0, c1) = (body.centre[from], body.centre[to]);
+    let (zb0, zb1, zt0, zt1) = (body.z_bottom[from], body.z_bottom[to], body.z_top[from], body.z_top[to]);
+    let (hw0, hw1, hd0, hd1) = (body.half_width[from], body.half_width[to], body.half_depth[from], body.half_depth[to]);
+    let (ch0, ch1, li0, li1) = (body.chest[from], body.chest[to], body.limb[from], body.limb[to]);
+    let yaw0 = body.yaw[from];
+    let turn = (body.yaw[to] - yaw0 + std::f64::consts::PI).rem_euclid(2.0 * std::f64::consts::PI) - std::f64::consts::PI;
+    for k in 0..length {
+        let t = to - length + k;
+        let x = (k + 1) as f64 / length as f64;
+        let w = x * x * (3.0 - 2.0 * x);
+        body.centre[t] = [lerp(c0[0], c1[0], w), lerp(c0[1], c1[1], w)];
+        body.z_bottom[t] = lerp(zb0, zb1, w);
+        body.z_top[t] = lerp(zt0, zt1, w);
+        body.half_width[t] = lerp(hw0, hw1, w);
+        body.half_depth[t] = lerp(hd0, hd1, w);
+        body.yaw[t] = yaw0 + turn * w;
+        body.chest[t] = [lerp(ch0[0], ch1[0], w), lerp(ch0[1], ch1[1], w), lerp(ch0[2], ch1[2], w)];
+        body.limb[t] = [lerp(li0[0], li1[0], w), lerp(li0[1], li1[1], w), lerp(li0[2], li1[2], w)];
+    }
 }
 
 struct PlanSegment<'a> {

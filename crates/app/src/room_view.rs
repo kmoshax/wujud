@@ -286,7 +286,7 @@ pub fn room_sense(ui: &mut egui::Ui, sense: &mut crate::room_sense::RoomSense) {
         };
         ui.label(egui::RichText::new(text).size(18.0).strong());
         ui.label(
-            egui::RichText::new("someone is taken to be here for 5 minutes after they last moved: still bodies do not move the signal")
+            egui::RichText::new("someone is taken to be here for 10 minutes after they last moved: still bodies do not move the signal")
                 .small()
                 .color(theme::MUTED),
         );

@@ -8,6 +8,8 @@ const KEPT_PACKETS: usize = 1500;
 const RATE_WINDOW_SECONDS: f64 = 2.0;
 const ESP32_BINS: usize = 64;
 const MIN_POWER: f32 = 0.5;
+/// A subcarrier whose mean power stays below this is guard band or DC, not signal.
+const SIGNAL_POWER: f32 = 2.0;
 const DISTURBANCE_PACKETS: usize = 50;
 /// Below this a link counts as silent (a phone asleep, a board unplugged), not as quiet.
 const ALIVE_PACKETS_PER_SECOND: f64 = 10.0;
@@ -111,6 +113,41 @@ impl LinkHistory {
             .map(|&r| f64::from(r))
             .collect();
         Some(motion_tracker::rssi_spread_db(&newest))
+    }
+
+    /// Over the newest packets, per signal subcarrier (guard band and DC left out, centred order): the
+    /// spread of its dB level, and its mean level with the spectrum's mean removed, as the simulator's
+    /// training rows (crates/app/examples/export_tracking.rs).
+    pub fn subcarrier_db(&self) -> Option<(Vec<f32>, Vec<f32>)> {
+        if !self.alive() || self.newest_iq.len() < DISTURBANCE_PACKETS / 2 {
+            return None;
+        }
+        let bins = self.newest_iq.front()?.len() / 2;
+        let n = self.newest_iq.len() as f32;
+        let mut power = vec![0.0f32; bins];
+        for packet in &self.newest_iq {
+            for (p, [i, q]) in power.iter_mut().zip(packet.as_chunks::<2>().0) {
+                *p += (f32::from(*i).powi(2) + f32::from(*q).powi(2)) / n;
+            }
+        }
+        let mut order: Vec<usize> = (0..bins).collect();
+        if bins == ESP32_BINS && is_fft_order(&power) {
+            order.rotate_left(ESP32_BINS / 2);
+        }
+        let signal: Vec<usize> = order.into_iter().filter(|&k| power[k] > SIGNAL_POWER).collect();
+        if signal.len() < 2 {
+            return None;
+        }
+        let db = |packet: &[i8], k: usize| 20.0 * (f32::from(packet[2 * k]).hypot(f32::from(packet[2 * k + 1])) + 1.0).log10();
+        let (mut spread, mut level) = (Vec::with_capacity(signal.len()), Vec::with_capacity(signal.len()));
+        for &k in &signal {
+            let values: Vec<f32> = self.newest_iq.iter().map(|packet| db(packet, k)).collect();
+            let mean = values.iter().sum::<f32>() / n;
+            spread.push((values.iter().map(|v| (v - mean).powi(2)).sum::<f32>() / n).sqrt());
+            level.push(mean);
+        }
+        let overall = level.iter().sum::<f32>() / level.len() as f32;
+        Some((spread, level.into_iter().map(|v| v - overall).collect()))
     }
 
     /// Each subcarrier as dB above or below its own average over the kept packets, oldest first.

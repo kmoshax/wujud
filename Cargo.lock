@@ -3626,6 +3626,7 @@ dependencies = [
  "clap",
  "eframe",
  "ndarray",
+ "rayon",
  "serde",
  "serde_json",
  "serialport",

@@ -3,6 +3,7 @@ mod hall_feed;
 mod hall_view;
 mod hall_window;
 mod learned_tracker;
+mod link_net;
 mod link_history;
 mod live_window;
 mod phone_range;

@@ -16,3 +16,4 @@ serde_json.workspace = true
 eframe.workspace = true
 serialport.workspace = true
 ndarray.workspace = true
+rayon.workspace = true

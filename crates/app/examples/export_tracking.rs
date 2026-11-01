@@ -3,7 +3,7 @@
 //! per second: the links' disturbance and RSSI spread (as the live view computes them), each link's
 //! per-subcarrier spread and spectrum shape (dB, mean removed), the boards' places, the room size, and
 //! the simulator's truth. Odd seeds walk a lot; even seeds follow a random plan of every activity.
-//! cargo run --release -p wujud --example export_tracking -- <out.jsonl> <first_seed> <rooms>
+//! cargo run --release -p wujud --example export_tracking -- <out.jsonl> <first_seed> <rooms> [boards besides the hub, 2]
 
 use std::fs::File;
 use std::io::{BufWriter, Write};
@@ -36,12 +36,13 @@ fn main() {
     let out = args.first().expect("out.jsonl");
     let first: u64 = args.get(1).map_or(1, |a| a.parse().unwrap());
     let rooms: u64 = args.get(2).map_or(10, |a| a.parse().unwrap());
+    let boards: usize = args.get(3).map_or(2, |a| a.parse().unwrap());
     let mut file = BufWriter::new(File::create(out).unwrap());
     for seed in first..first + rooms {
         let room = random_room(
             &mut seeded(seed, 0),
             &RoomOptions {
-                boards: 2,
+                boards,
                 mesh: true,
                 smart_placement: false,
             },

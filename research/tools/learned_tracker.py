@@ -6,7 +6,10 @@ is disturbed right now (relative to its own quiet level). A small network scores
 link descriptions, averaged over the links, so it never sees a room id or absolute coordinates: it
 learns the physics (which disturbed links point where), not a room.
 
-    .venv/bin/python -I tools/learned_tracker.py cache/tracking/pilot.jsonl
+    .venv/bin/python -I tools/learned_tracker.py <out.pt> cache/tracking/pilot.jsonl [more.jsonl ...]
+
+Rooms from every file are split the same way (the last fifth of each never seen), so rooms with three
+and with four devices are both learnt and both tested.
 """
 import json
 import sys
@@ -14,6 +17,8 @@ import sys
 import numpy as np
 import torch
 from torch import nn
+
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 GRID_M = 0.25
 SMOOTH_S = 3
@@ -35,7 +40,8 @@ def link_inputs(rows):
     shadow = np.array([r["shadowing"] for r in rows])
     quiet_m = np.maximum(np.percentile(motion, QUIET_PERCENTILE, axis=0), 1e-6)
     quiet_s = np.maximum(np.percentile(shadow, QUIET_PERCENTILE, axis=0), 1e-6)
-    excess = np.stack([np.log(motion / quiet_m), np.log(shadow / quiet_s)], axis=-1)
+    excess = np.stack([np.log(np.maximum(motion, 1e-6) / quiet_m), np.log(np.maximum(shadow, 1e-6) / quiet_s)], axis=-1)
+    excess = np.nan_to_num(excess, nan=0.0, posinf=0.0, neginf=0.0)
     kernel = np.ones(SMOOTH_S) / SMOOTH_S
     return np.stack([np.apply_along_axis(lambda c: np.convolve(c, kernel, "same"), 0, excess[..., k])
                      for k in range(2)], axis=-1)
@@ -69,9 +75,13 @@ class PointScorer(nn.Module):
         self.point = nn.Sequential(nn.Linear(64, 64), nn.ReLU(), nn.Linear(64, 1))
 
     def forward(self, geo, signal):
-        """geo: points x links x 4; signal: links x 2 -> one score per point."""
-        signal = signal.unsqueeze(0).expand(geo.shape[0], -1, -1)
-        return self.point(self.link(torch.cat([geo, signal], dim=-1)).mean(dim=1)).squeeze(-1)
+        """geo: points x links x 4; signal: [seconds x] links x 2 -> one score per point [per second]."""
+        if signal.dim() == 2:
+            signal = signal.unsqueeze(0).expand(geo.shape[0], -1, -1)
+            return self.point(self.link(torch.cat([geo, signal], dim=-1)).mean(dim=1)).squeeze(-1)
+        t, p = signal.shape[0], geo.shape[0]
+        pairs = torch.cat([geo.unsqueeze(0).expand(t, -1, -1, -1), signal.unsqueeze(1).expand(-1, p, -1, -1)], -1)
+        return self.point(self.link(pairs).mean(dim=2)).squeeze(-1)
 
 
 def samples(rooms, ids):
@@ -100,31 +110,68 @@ def evaluate(model, data):
     return np.median(errors), np.median(centre), np.mean(np.array(errors) < 1.0)
 
 
+def room_batches(rooms, ids):
+    """Per room: geometry, every walking second's signal, the truth, the grid and the centre."""
+    out = []
+    for room in ids:
+        rows = rooms[room]
+        signals = link_inputs(rows)
+        first = rows[0]
+        points = grid(first["width"], first["depth"])
+        walking = [i for i, r in enumerate(rows) if r["activity"] == "Walk" and r["xy"] is not None]
+        if not walking:
+            continue
+        out.append((torch.tensor(geometry(points, first["nodes"], first["links"]), dtype=torch.float32),
+                    torch.tensor(signals[walking], dtype=torch.float32), points,
+                    np.array([rows[i]["xy"] for i in walking]), np.array([first["width"] / 2, first["depth"] / 2]),
+                    len(first["nodes"])))
+    return out
+
+
+def scores(model, batch):
+    geo, signal = batch[0].to(DEVICE), batch[1].to(DEVICE)
+    return model(geo, signal)
+
+
+def report(model, batches, label):
+    with torch.no_grad():
+        for nodes in sorted({b[5] for b in batches}):
+            errors, centre = [], []
+            for b in (b for b in batches if b[5] == nodes):
+                guess = torch.softmax(scores(model, b), 1).cpu().numpy() @ b[2]
+                errors += list(np.linalg.norm(guess - b[3], axis=1))
+                centre += list(np.linalg.norm(b[3] - b[4], axis=1))
+            print(f"  {label} {nodes} devices: median {np.median(errors):.2f} m (centre {np.median(centre):.2f} m), "
+                  f"within 1 m {np.mean(np.array(errors) < 1) * 100:.0f}%", flush=True)
+
+
 def main():
-    rooms = load(sys.argv[1])
-    ids = sorted(rooms)
-    cut = int(len(ids) * TRAIN_SHARE)
-    train, test = samples(rooms, ids[:cut]), samples(rooms, ids[cut:])
-    print(f"rooms: {cut} to learn from, {len(ids) - cut} never seen; walking seconds {len(train)} / {len(test)}")
+    out_path, paths = sys.argv[1], sys.argv[2:]
+    train, test = [], []
+    for path in paths:
+        rooms = load(path)
+        ids = sorted(rooms)
+        cut = int(len(ids) * TRAIN_SHARE)
+        train += room_batches(rooms, ids[:cut])
+        test += room_batches(rooms, ids[cut:])
+    print(f"{len(train)} rooms to learn from, {len(test)} never seen; {DEVICE}", flush=True)
     torch.manual_seed(0)
-    model = PointScorer()
+    model = PointScorer().to(DEVICE)
     optimiser = torch.optim.Adam(model.parameters(), lr=1e-3)
-    for epoch in range(8):
-        order = np.random.default_rng(epoch).permutation(len(train))
-        total = 0.0
-        for i in order:
-            geo, signal, points, truth, _ = train[i]
-            target = torch.tensor(np.exp(-np.sum((points - truth) ** 2, axis=1) / (2 * 0.3 ** 2)), dtype=torch.float32)
-            target = target / target.sum()
-            loss = -(target * torch.log_softmax(model(geo, signal), 0)).sum()
+    for epoch in range(40):
+        for i in np.random.default_rng(epoch).permutation(len(train)):
+            b = train[i]
+            squared = ((b[2][None] - b[3][:, None]) ** 2).sum(-1)
+            target = np.exp(-(squared - squared.min(1, keepdims=True)) / (2 * 0.3 ** 2))
+            target = torch.tensor(target / target.sum(1, keepdims=True), dtype=torch.float32, device=DEVICE)
+            loss = -(target * torch.log_softmax(scores(model, b), 1)).sum(1).mean()
             optimiser.zero_grad()
             loss.backward()
             optimiser.step()
-            total += loss.item()
-        err, centre, within = evaluate(model, test)
-        print(f"epoch {epoch}: loss {total / len(train):.3f}  unseen rooms: median error {err:.2f} m "
-              f"(room centre {centre:.2f} m), within 1 m {within * 100:.0f}%")
-    torch.save(model.state_dict(), sys.argv[1].replace(".jsonl", "_tracker.pt"))
+        if epoch % 8 == 7:
+            print(f"epoch {epoch}:", flush=True)
+            report(model, test, "never seen,")
+    torch.save(model.cpu().state_dict(), out_path)
 
 
 if __name__ == "__main__":
