@@ -36,7 +36,8 @@ flash() {
     local target
     for target in $(node_ips) "${BOARD:-192.168.4.1}"; do
       # The update page refuses uploads whose Origin is not the board itself (CSRF guard).
-      call -H "Origin: http://$target" -F "firmware=@$build/wujud_room.ino.bin" "http://$target/update" >/dev/null
+      # A megabyte to a board that is also busy measuring: give it longer than a status request.
+      call --max-time 180 -H "Origin: http://$target" -F "firmware=@$build/wujud_room.ino.bin" "http://$target/update" >/dev/null
       echo "sent to $target over Wi-Fi; it reboots into it"
     done
   fi

@@ -1,6 +1,6 @@
 use eframe::egui;
 use wujud_model::motion_tracker::Track;
-use wujud_model::room::{RoomState, RoomState3};
+use wujud_model::room::{Pose, RoomState, RoomState3};
 
 use crate::phone_range::PhoneDistance;
 use crate::sensor_feed::SimulatedTruth;
@@ -9,28 +9,33 @@ use crate::theme;
 /// The model reads breathing after 25 calm seconds; a few more for its 30 s window to settle.
 const BREATHING_AFTER_STILL_SECONDS: f64 = 30.0;
 
-/// Only what a few links can tell reliably: empty, someone still, someone moving. The model also
-/// guesses lying / sitting / standing, but on real rooms with one or two links that guess is often
-/// wrong (a person lying on the bed came out as "sitting"), so it is not shown.
-pub fn state_banner(ui: &mut egui::Ui, state: Option<&RoomState>, still_seconds: f64) {
+/// Empty, someone still, someone moving; for someone still, the model's lying / sitting / standing
+/// guess, marked as a guess: with one or two links it is often wrong (lying came out as "sitting").
+pub fn state_banner(
+    ui: &mut egui::Ui,
+    state: Option<&RoomState>,
+    still_seconds: f64,
+    sensed: Option<&crate::room_sense::Reading>,
+) {
     let Some(decision) = state.and_then(|s| s.room.decision.as_ref()) else {
+        let (title, detail) = match sensed {
+            Some(_) => ("Waiting for movement", "the first answer comes when someone moves"),
+            None => ("Learning the room…", "The first answer comes after 20 seconds"),
+        };
         theme::card(ui, |ui| {
             theme::caption(ui, "Room");
             ui.horizontal(|ui| {
                 ui.spinner();
-                ui.label(
-                    egui::RichText::new("Learning the room…")
-                        .size(22.0)
-                        .strong(),
-                );
+                ui.label(egui::RichText::new(title).size(22.0).strong());
             });
-            ui.label(
-                egui::RichText::new("The first answer comes after 20 seconds").color(theme::MUTED),
-            );
+            ui.label(egui::RichText::new(detail).color(theme::MUTED));
         });
         return;
     };
+    let quiet_for = sensed.and_then(|r| r.since_motion).filter(|_| decision.state3 == RoomState3::Empty);
+    let quiet_headline = quiet_for.map(|s| format!("No movement for {:.0} min", s / 60.0));
     let (headline, color) = match decision.state3 {
+        RoomState3::Empty if quiet_headline.is_some() => (quiet_headline.as_deref().unwrap_or(""), theme::EMPTY),
         RoomState3::Empty => ("Room empty", theme::EMPTY),
         RoomState3::Still => ("Someone here, still", theme::STILL),
         RoomState3::Moving => ("Someone moving", theme::MOVING),
@@ -47,6 +52,15 @@ pub fn state_banner(ui: &mut egui::Ui, state: Option<&RoomState>, still_seconds:
                     .color(color),
             );
         });
+        let posture = match decision.state {
+            Pose::Lie => Some("lying down"),
+            Pose::Sit => Some("sitting or crouching"),
+            Pose::Stand => Some("standing"),
+            _ => None,
+        };
+        if let Some(posture) = posture {
+            ui.label(egui::RichText::new(format!("probably {posture}")).size(15.0));
+        }
         match decision.breath_bpm {
             Some(bpm) => {
                 ui.label(egui::RichText::new(format!("Breathing {bpm:.0} / min")).size(15.0));
@@ -63,6 +77,9 @@ pub fn state_banner(ui: &mut egui::Ui, state: Option<&RoomState>, still_seconds:
             None => {}
         }
     });
+    if let Some(reading) = sensed {
+        return sensed_evidence(ui, reading);
+    }
     theme::card(ui, |ui| {
         theme::caption(ui, "How sure");
         ui.add_space(4.0);
@@ -101,6 +118,7 @@ pub struct Boards<'a> {
     pub at: &'a [[f64; 3]],
     /// Every board on one line (two boards): the links tell how near someone is to it, not where.
     pub one_line: bool,
+    pub placed: bool,
     pub state: Option<&'a RoomState>,
 }
 
@@ -139,6 +157,18 @@ pub fn tracking(ui: &mut egui::Ui, track: Option<&Track>, link_names: &[String],
             ui.label(
                 egui::RichText::new(
                     "two boards measure one line: how near to it, not where along it",
+                )
+                .small()
+                .color(theme::MUTED),
+            );
+            return;
+        }
+        if !boards.placed {
+            ui.label(egui::RichText::new("where in the room: not shown").size(16.0).strong());
+            ui.label(
+                egui::RichText::new(
+                    "the boards' places in this room are not known, so a spot on the map would be made up; \
+                     give them with --room to see one",
                 )
                 .small()
                 .color(theme::MUTED),
@@ -204,6 +234,65 @@ pub fn tracking(ui: &mut egui::Ui, track: Option<&Track>, link_names: &[String],
         );
     });
 }
+
+/// The two measurements behind the room's state: how fast the links change (movement) and how many
+/// of them sit away from the empty room (someone here).
+fn sensed_evidence(ui: &mut egui::Ui, reading: &crate::room_sense::Reading) {
+    theme::card(ui, |ui| {
+        theme::caption(ui, "What the links see");
+        ui.add_space(4.0);
+        let drift = reading.drift_db.unwrap_or(0.0);
+        let movement = (drift / reading.moving_above).min(1.5) / 1.5;
+        if reading.stirring {
+            ui.label(egui::RichText::new("moving a little: someone is here").color(theme::STILL));
+        }
+        theme::meter(
+            ui,
+            "movement",
+            movement as f32,
+            &format!("{drift:.2} / {:.2}", reading.moving_above),
+            if drift > reading.moving_above { theme::MOVING } else { theme::EMPTY },
+        );
+        match reading.presence {
+            Some(presence) => theme::meter(
+                ui,
+                "someone here",
+                presence as f32,
+                &format!("{:.0}% of links", presence * 100.0),
+                if presence >= 0.5 { theme::STILL } else { theme::EMPTY },
+            ),
+            None => {
+                ui.label(egui::RichText::new("someone here: after the empty room is learnt").small().color(theme::MUTED));
+            }
+        }
+        ui.label(
+            egui::RichText::new("movement: change of the signal per second (dB), against this room's own quiet level")
+                .small()
+                .color(theme::MUTED),
+        );
+    });
+}
+
+/// When anyone last moved: what "someone here" and "no movement" rest on, with nothing learnt.
+pub fn room_sense(ui: &mut egui::Ui, sense: &mut crate::room_sense::RoomSense) {
+    let reading = sense.reading.clone();
+    theme::card(ui, |ui| {
+        theme::caption(ui, "Last movement");
+        let text = match reading.since_motion {
+            None => "waiting for the first movement".to_owned(),
+            Some(s) if s < 2.0 => "now".to_owned(),
+            Some(s) if s < 120.0 => format!("{s:.0} s ago"),
+            Some(s) => format!("{:.0} min ago", s / 60.0),
+        };
+        ui.label(egui::RichText::new(text).size(18.0).strong());
+        ui.label(
+            egui::RichText::new("someone is taken to be here for 5 minutes after they last moved: still bodies do not move the signal")
+                .small()
+                .color(theme::MUTED),
+        );
+    });
+}
+
 
 /// How far the phone the person carries is from each board, from each board's signal strength.
 pub fn phone_distances(ui: &mut egui::Ui, phones: &[PhoneDistance], node_names: &[String]) {

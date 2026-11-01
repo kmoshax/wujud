@@ -16,6 +16,9 @@ use crate::Result;
 const BUFFER_SECONDS: f64 = 32.0;
 const MIN_PACKETS: usize = 50;
 const MIN_SPAN_SECONDS: f64 = 18.0;
+/// Below this a link's windows are mostly gaps, and gaps read as motion: one starved link kept a
+/// real, empty room on "moving". Such a link sits out until its packets come back.
+const MIN_PACKETS_PER_SECOND: f64 = 20.0;
 const PROFILE_SPAN_SECONDS: f64 = 20.5;
 const BREATHING_SPAN_SECONDS: f64 = 29.0;
 const LATCH_THRESHOLD: f64 = 0.4;
@@ -24,6 +27,12 @@ const HISTORY_LEN: usize = 900;
 /// GLRT > 1.8 fires on ~8 % of real empty 20-s windows (ESPectre), hence 10 s in a row and 25 s calm.
 const BREATHING_OVERRIDE_GLRT: f64 = 1.8;
 const BREATHING_OVERRIDE_RUN: u32 = 10;
+impl RoomEngine {
+    /// Breathing strong for ten seconds running: someone is here, however still.
+    pub fn breathing_seen(&self) -> bool {
+        self.breathing_run >= BREATHING_OVERRIDE_RUN
+    }
+}
 const CALM_SECONDS_FOR_BREATHING: u32 = 25;
 const BREATHING_REPORT_GLRT: f64 = 1.4;
 const POSE_CONFIDENCE: f64 = 0.55;
@@ -151,6 +160,11 @@ pub struct RoomEngine {
     ticks: u64,
     breathing_run: u32,
     calm_for: u32,
+    /// The room as a detector calibrated on this room reads it (empty / still / moving). When set it
+    /// decides the state, and the model adds only the posture guess and the breathing rate.
+    pub sensed: Option<RoomState3>,
+    /// Strongest breathing GLRT over the links this second, when the windows are long enough.
+    pub breathing_strength: Option<f64>,
 }
 
 impl RoomEngine {
@@ -180,6 +194,8 @@ impl RoomEngine {
             ticks: 0,
             breathing_run: 0,
             calm_for: 0,
+            sensed: None,
+            breathing_strength: None,
         }
     }
 
@@ -266,13 +282,16 @@ impl RoomEngine {
             smoothed[1] + smoothed[2] + smoothed[3],
             smoothed[4],
         ];
-        let mut state3 = [RoomState3::Empty, RoomState3::Still, RoomState3::Moving][argmax(&p3)];
+        let mut state3 = self
+            .sensed
+            .unwrap_or([RoomState3::Empty, RoomState3::Still, RoomState3::Moving][argmax(&p3)]);
 
         let breathing: Vec<(f64, f64)> = per_link.iter().filter_map(|w| w.breathing).collect();
         let strongest_glrt = breathing
             .iter()
             .map(|b| b.0)
             .fold(f64::NEG_INFINITY, f64::max);
+        self.breathing_strength = strongest_glrt.is_finite().then_some(strongest_glrt);
         self.breathing_run = if strongest_glrt > BREATHING_OVERRIDE_GLRT {
             self.breathing_run + 1
         } else {
@@ -283,7 +302,8 @@ impl RoomEngine {
         } else {
             0
         };
-        if state3 == RoomState3::Empty
+        if self.sensed.is_none()
+            && state3 == RoomState3::Empty
             && self.breathing_run >= BREATHING_OVERRIDE_RUN
             && self.calm_for >= CALM_SECONDS_FOR_BREATHING
         {
@@ -295,7 +315,7 @@ impl RoomEngine {
         if !profiles.is_empty() && profiles.len() == features.len() {
             self.step_latch(&profiles, &p3);
         }
-        if state3 != RoomState3::Moving && self.latch_distance.is_some() {
+        if self.sensed.is_none() && state3 != RoomState3::Moving && self.latch_distance.is_some() {
             state3 = match self.latch_state {
                 Some(Occupancy::Still) => RoomState3::Still,
                 Some(Occupancy::Empty) => RoomState3::Empty,
@@ -396,7 +416,8 @@ fn aggregate_over_links(rows: &[Vec<f64>]) -> Vec<f64> {
 fn link_windows(buffer: &VecDeque<Packet>) -> Option<LinkWindows> {
     let (first, last) = (buffer.front()?, buffer.back()?);
     let span = last.time - first.time;
-    if buffer.len() < MIN_PACKETS || span < MIN_SPAN_SECONDS {
+    let starved = (buffer.len() as f64) < MIN_PACKETS_PER_SECOND * span;
+    if buffer.len() < MIN_PACKETS || span < MIN_SPAN_SECONDS || starved {
         return None;
     }
     let times: Vec<f64> = buffer.iter().map(|p| p.time - first.time).collect();

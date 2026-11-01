@@ -79,6 +79,16 @@
 
 enum Role { HUB, NODE };
 
+/// Without a ping_len setting, each link keeps the length most of its first short frames had: the
+/// pings, 100 a second. A node's relayed lines are long (and all land in the last bucket), so only
+/// lengths under LEARN_BELOW count. Mixed in, frames of another length get another gain and look like motion.
+#define LEARN_FROM_FRAMES 300
+#define LEARN_BELOW 256
+struct LearnedLength {
+  uint16_t seen;
+  int length;
+};
+
 struct Device {
   bool connected;
   bool node;
@@ -90,6 +100,7 @@ struct Device {
   uint32_t csi_per_second;
   uint32_t rejected_per_second;
   uint16_t lengths[512];
+  LearnedLength ping_len;
 };
 
 struct Settings {
@@ -124,9 +135,11 @@ static const char HEX_[] = "0123456789abcdef";
 static volatile uint32_t others, others_ht;
 static uint8_t last_other[6];
 static uint32_t others_per_second, others_ht_per_second;
-static uint8_t own_mac[6], hub_mac[6];
+static uint8_t own_mac[6], hub_mac[6], router_mac[6];
 static volatile uint32_t node_csi_lines, node_rejected;
 static uint32_t node_csi_per_second, node_rejected_per_second;
+static uint16_t node_lengths[512];
+static LearnedLength node_ping_len;
 static uint32_t node_lost_since_ms;
 
 static int device_with_mac(const uint8_t *mac) {
@@ -170,9 +183,35 @@ static void queue_csi_line(const char *tag, const wifi_csi_info_t *info) {
 /// One kind of frame per link: 802.11n without STBC, and the ping length when ping_len is set.
 /// Legacy frames give a different CSI shape, and STBC from a two-antenna sender changes shape packet
 /// by packet; mixed in, either looks like motion.
-static bool usable_frame(const wifi_csi_info_t *info) {
+static bool usable_frame(const wifi_csi_info_t *info, const LearnedLength &learned) {
   if (info->rx_ctrl.sig_mode != 1 || info->rx_ctrl.stbc) return false;
-  return !settings.ping_len || info->rx_ctrl.sig_len == settings.ping_len;
+  int length = settings.ping_len ? settings.ping_len : learned.length;
+  return !length || info->rx_ctrl.sig_len == length;
+}
+
+static int most_common_short(const uint16_t *lengths) {
+  int most = 0;
+  for (int len = 1; len < LEARN_BELOW; len++)
+    if (lengths[len] > lengths[most]) most = len;
+  return most;
+}
+
+static void learn_length(LearnedLength &learned, uint16_t *lengths, const wifi_csi_info_t *info) {
+  if (learned.length || info->rx_ctrl.sig_mode != 1 || info->rx_ctrl.stbc) return;
+  if (info->rx_ctrl.sig_len >= LEARN_BELOW || ++learned.seen < LEARN_FROM_FRAMES) return;
+  learned.length = most_common_short(lengths);
+  report("I,wujud-room,keeping frames of %d bytes", learned.length);
+}
+
+/// Learnt too early (a board that joined before its pings flowed kept a length nothing was sent
+/// at), a link would stay empty for good: once a second, a length that has clearly taken over wins.
+static void relearn_length(LearnedLength &learned, const uint16_t *lengths) {
+  if (!learned.length) return;
+  int most = most_common_short(lengths);
+  if (most != learned.length && lengths[most] > 2 * lengths[learned.length] + LEARN_FROM_FRAMES) {
+    learned.length = most;
+    report("I,wujud-room,now keeping frames of %d bytes", most);
+  }
 }
 
 static void hub_csi_cb(void *ctx, wifi_csi_info_t *info) {
@@ -184,11 +223,13 @@ static void hub_csi_cb(void *ctx, wifi_csi_info_t *info) {
     memcpy(last_other, info->mac, 6);
     return;
   }
+  Device &d = devices[device];
   if (info->rx_ctrl.sig_mode == 1) {
-    uint16_t &seen = devices[device].lengths[min((int)info->rx_ctrl.sig_len, 511)];
+    uint16_t &seen = d.lengths[min((int)info->rx_ctrl.sig_len, 511)];
     if (seen < 65535) seen++;
   }
-  if (!usable_frame(info)) {
+  learn_length(d.ping_len, d.lengths, info);
+  if (!usable_frame(info, d.ping_len)) {
     devices[device].rejected++;
     return;
   }
@@ -205,7 +246,11 @@ static void node_csi_cb(void *ctx, wifi_csi_info_t *info) {
   bool hub_to_me = from_hub && memcmp(info->dmac, own_mac, 6) == 0;
   bool other_to_hub = !from_hub && memcmp(info->dmac, hub_mac, 6) == 0 && memcmp(info->mac, own_mac, 6) != 0;
   if (!hub_to_me && !other_to_hub) return;
-  if (!usable_frame(info)) {
+  if (hub_to_me && info->rx_ctrl.sig_mode == 1 && node_lengths[min((int)info->rx_ctrl.sig_len, 511)] < 65535) {
+    node_lengths[min((int)info->rx_ctrl.sig_len, 511)]++;
+    learn_length(node_ping_len, node_lengths, info);
+  }
+  if (!usable_frame(info, node_ping_len)) {
     node_rejected++;
     return;
   }
@@ -255,9 +300,23 @@ static void send_to_listeners(const char *text, int len) {
       sendto(udp_socket, text, len, 0, (const sockaddr *)&l.address, sizeof(l.address));
 }
 
+/// USB serial carries at most ~90 KB/s; three boards make about twice that. A line that does not fit
+/// is left out of the serial copy instead of stalling the network copy behind it.
+static void write_serial(const char *text, int len) {
+  if (Serial.availableForWrite() >= len) Serial.write((const uint8_t *)text, len);
+}
+
+/// Once boards are measuring each other, the router is no longer pinged: it answers in 802.11b
+/// (no CSI), and 100 pings a second on its channel take airtime the boards' links need.
 static void mark_node(in_addr_t ip) {
   for (Device &d : devices)
     if (d.connected && d.ip.addr == ip) d.node = true;
+  int router = device_with_mac(router_mac);
+  if (router >= 0 && devices[router].ping) {
+    esp_ping_stop(devices[router].ping);
+    esp_ping_delete_session(devices[router].ping);
+    devices[router].ping = nullptr;
+  }
 }
 
 /// Node lines arrive as datagrams of whole lines; they go out unchanged, like the hub's own.
@@ -268,22 +327,42 @@ static void pass_on_relayed_lines(int relay_socket) {
   int len;
   while ((len = recvfrom(relay_socket, batch, sizeof(batch), 0, (sockaddr *)&sender, &sender_len)) > 0) {
     mark_node(sender.sin_addr.s_addr);
-    Serial.write((const uint8_t *)batch, len);
+    write_serial(batch, len);
     send_to_listeners(batch, len);
     sender_len = sizeof(sender);
   }
 }
 
+/// The hub's own lines go out batched like a node's: one datagram per line, 200 a second, is more
+/// than the network stack keeps up with, and most were dropped.
 static void hub_send_lines(void *) {
   udp_socket = open_socket(CSI_PORT);
   int relay_socket = open_socket(RELAY_PORT);
+  static char batch[1400];
+  int used = 0;
+  uint32_t first_line_ms = 0;
   CsiLine line;
   for (;;) {
     take_listener_requests();
     pass_on_relayed_lines(relay_socket);
-    if (xQueueReceive(outgoing, &line, pdMS_TO_TICKS(5)) != pdTRUE) continue;
-    Serial.write((const uint8_t *)line.text, line.len);
-    send_to_listeners(line.text, line.len);
+    // Every waiting line, not one per round: with two nodes relaying, one a round let the queue
+    // overflow and the hub's own links lost most of their lines.
+    TickType_t wait = pdMS_TO_TICKS(2);
+    while (xQueueReceive(outgoing, &line, wait) == pdTRUE) {
+      wait = 0;
+      write_serial(line.text, line.len);
+      if (used + line.len > (int)sizeof(batch)) {
+        send_to_listeners(batch, used);
+        used = 0;
+      }
+      if (!used) first_line_ms = millis();
+      memcpy(batch + used, line.text, line.len);
+      used += line.len;
+    }
+    if (used && millis() - first_line_ms >= RELAY_FLUSH_MS) {
+      send_to_listeners(batch, used);
+      used = 0;
+    }
   }
 }
 
@@ -300,7 +379,7 @@ static void node_send_lines(void *) {
   CsiLine line;
   for (;;) {
     bool got = xQueueReceive(outgoing, &line, pdMS_TO_TICKS(5)) == pdTRUE;
-    if (got) Serial.write((const uint8_t *)line.text, line.len);
+    if (got) write_serial(line.text, line.len);
     bool full = got && used + line.len > (int)sizeof(batch);
     bool stale = used && millis() - first_line_ms >= RELAY_FLUSH_MS;
     if (full || stale) {
@@ -320,7 +399,8 @@ static esp_ping_handle_t start_ping(esp_ip4_addr_t ip) {
   cfg.target_addr.u_addr.ip4.addr = ip.addr;
   cfg.count = ESP_PING_COUNT_INFINITE;
   cfg.interval_ms = 1000 / settings.ping_hz;
-  cfg.timeout_ms = 1000;
+  // The next ping waits for this ping's reply: a lost reply must not cost a whole second.
+  cfg.timeout_ms = cfg.interval_ms;
   cfg.data_size = 1;
   esp_ping_callbacks_t cbs = {};
   esp_ping_handle_t ping = nullptr;
@@ -335,6 +415,8 @@ static void device_joined(const uint8_t *mac, esp_ip4_addr_t ip) {
     memcpy(d.mac, mac, 6);
     d.ip = ip;
     d.node = false;
+    memset(d.lengths, 0, sizeof(d.lengths));
+    d.ping_len = {};
     d.ping = start_ping(ip);
     d.connected = true;
     digitalWrite(LED_PIN, HIGH);
@@ -357,7 +439,6 @@ static void device_left(const uint8_t *mac) {
   report("I,wujud-room,left=" MACSTR ",devices=%d", MAC2STR(mac), connected_devices());
 }
 
-static uint8_t router_mac[6];
 
 static void on_hub_wifi_event(arduino_event_t *event) {
   if (event->event_id == ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED)
@@ -607,7 +688,7 @@ void setup() {
   load_settings();
   Serial.setTxBufferSize(16384);
   Serial.begin(921600);
-  outgoing = xQueueCreate(48, sizeof(CsiLine));
+  outgoing = xQueueCreate(96, sizeof(CsiLine));
   // Boards switched on together wait different times, so usually the first one's network is up
   // before the others look for it.
   delay(esp_random() % 2500);
@@ -628,6 +709,7 @@ void setup() {
 
 static void count_last_second() {
   for (Device &d : devices) {
+    if (d.connected) relearn_length(d.ping_len, d.lengths);
     d.csi_per_second = d.csi_lines;
     d.rejected_per_second = d.rejected;
     d.csi_lines = 0;
@@ -636,6 +718,7 @@ static void count_last_second() {
   others_per_second = others;
   others_ht_per_second = others_ht;
   others = others_ht = 0;
+  relearn_length(node_ping_len, node_lengths);
   node_csi_per_second = node_csi_lines;
   node_rejected_per_second = node_rejected;
   node_csi_lines = node_rejected = 0;

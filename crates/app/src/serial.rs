@@ -65,34 +65,50 @@ pub fn read_ports(ports: &[String], record: Option<&str>) -> anyhow::Result<Rece
 
 /// Turns each board without a device into one link per device it currently measures.
 pub fn one_link_per_device(ports: &[String]) -> Vec<String> {
-    ports
-        .iter()
-        .flat_map(|name| {
-            if split_link_name(name).1.is_some() {
-                return vec![name.clone()];
-            }
-            let devices = devices_seen(name);
-            if devices.is_empty() {
-                vec![name.clone()]
-            } else {
-                devices.iter().map(|d| link_name(name, Some(d))).collect()
-            }
-        })
-        .collect()
+    discover(ports).0
 }
 
-fn devices_seen(board: &str) -> Vec<String> {
+/// The links, and each link's median signal strength over the discovery seconds (dBm): how far apart
+/// the boards are, for laying them out without being told.
+pub fn discover(ports: &[String]) -> (Vec<String>, BTreeMap<String, f64>) {
+    let mut links = Vec::new();
+    let mut rssi = BTreeMap::new();
+    for name in ports {
+        if split_link_name(name).1.is_some() {
+            links.push(name.clone());
+            continue;
+        }
+        let devices = devices_seen(name);
+        if devices.is_empty() {
+            links.push(name.clone());
+        }
+        for (device, mut heard) in devices {
+            let link = link_name(name, Some(&device));
+            heard.sort_by(f64::total_cmp);
+            if let Some(&middle) = heard.get(heard.len() / 2) {
+                rssi.insert(link.clone(), middle);
+            }
+            links.push(link);
+        }
+    }
+    (links, rssi)
+}
+
+fn devices_seen(board: &str) -> BTreeMap<String, Vec<f64>> {
     let started = Instant::now();
-    let mut devices = std::collections::BTreeSet::new();
+    let mut devices: BTreeMap<String, Vec<f64>> = BTreeMap::new();
     for text in open_board(board) {
-        if let (Some(device), _) = split_device_tag(&text) {
-            devices.insert(device.to_owned());
+        if let (Some(device), rest) = split_device_tag(&text) {
+            let heard = devices.entry(device.to_owned()).or_default();
+            if let Some(rssi) = rest.strip_prefix("P,").and_then(|r| r.split(',').next()?.parse().ok()) {
+                heard.push(rssi);
+            }
         }
         if started.elapsed() > DISCOVERY_TIME {
             break;
         }
     }
-    devices.into_iter().collect()
+    devices
 }
 
 fn open_board(board: &str) -> Box<dyn Iterator<Item = String>> {
@@ -116,10 +132,25 @@ fn link_name(board: &str, device: Option<&str>) -> String {
     }
 }
 
+/// A line whose tag is not `<mac>`, `<mac>>hub` or `<mac>><mac>` was garbled on the way (a USB
+/// hiccup glues two lines together): it comes back empty, so nobody reads it as a new device.
 fn split_device_tag(text: &str) -> (Option<&str>, &str) {
     match text.split_once('|') {
-        Some((device, rest)) => (Some(device), rest),
+        Some((device, rest)) if is_device_tag(device) => (Some(device), rest),
+        Some(_) => (None, ""),
         None => (None, text),
+    }
+}
+
+fn is_device_tag(tag: &str) -> bool {
+    let is_mac = |part: &str| {
+        part.len() == 17
+            && part.split(':').count() == 6
+            && part.split(':').all(|b| b.len() == 2 && b.chars().all(|c| c.is_ascii_hexdigit()))
+    };
+    match tag.split_once('>') {
+        Some((node, from)) => is_mac(node) && (from == "hub" || is_mac(from)),
+        None => is_mac(tag),
     }
 }
 
@@ -204,4 +235,20 @@ fn now_seconds() -> f64 {
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs_f64())
         .unwrap_or_default()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn garbled_tags_are_dropped() {
+        assert_eq!(split_device_tag("ec:e3:34:22:74:ec|P,1"), (Some("ec:e3:34:22:74:ec"), "P,1"));
+        assert_eq!(split_device_tag("ec:e3:34:22:74:ec>hub|P,1").0, Some("ec:e3:34:22:74:ec>hub"));
+        assert_eq!(
+            split_device_tag("9f009f00af10afec:e3:34:22:74:ec>hub|P,1"),
+            (None, "")
+        );
+        assert_eq!(split_device_tag("I,wujud-room,hub"), (None, "I,wujud-room,hub"));
+    }
 }

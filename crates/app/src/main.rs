@@ -2,15 +2,18 @@ mod camera;
 mod hall_feed;
 mod hall_view;
 mod hall_window;
+mod learned_tracker;
 mod link_history;
 mod live_window;
 mod phone_range;
+mod room_sense;
 mod room_setup;
 mod room_view;
 mod scene_3d;
 mod screenshot;
 mod sensor_feed;
 mod serial;
+mod skeleton;
 mod theme;
 mod udp;
 
@@ -18,6 +21,9 @@ use clap::{Parser, Subcommand};
 use wujud_proto::{Line, LineError};
 
 use live_window::LiveWindow;
+
+/// About 30 frames a second: smooth enough for the 3D view, light on the laptop.
+pub const FRAME_INTERVAL: std::time::Duration = std::time::Duration::from_millis(33);
 
 #[derive(Parser)]
 #[command(name = "wujud", about = "Wi-Fi sensing with ESP32 boards")]
@@ -79,8 +85,8 @@ fn live(
     room: Option<&std::path::Path>,
     record: Option<&str>,
 ) -> anyhow::Result<()> {
-    let ports = serial::one_link_per_device(&ports);
-    let live = room_setup::room_engine(&ports, room)?;
+    let (ports, rssi) = serial::discover(&ports);
+    let live = room_setup::room_engine(&ports, room, &rssi)?;
     println!("links: {}", live.links.join(", "));
     let reading = std::sync::Arc::new(std::sync::Mutex::new(live.links.clone()));
     let feed = sensor_feed::from_serial_ports(&ports, reading.clone(), record)?;
@@ -88,6 +94,7 @@ fn live(
         seen: ports,
         reading,
         room_file: room.map(std::path::Path::to_path_buf),
+        rssi,
     });
     open_window(window)
 }
@@ -116,6 +123,9 @@ fn open_window(window: impl eframe::App + 'static) -> anyhow::Result<()> {
         viewport: eframe::egui::ViewportBuilder::default()
             .with_title("wujud")
             .with_inner_size([1200.0, 820.0]),
+        // With vsync a hidden or covered window waits for the compositor without end, and Hyprland
+        // calls it "not responding"; frames are paced by the window instead (FRAME_INTERVAL).
+        vsync: false,
         ..Default::default()
     };
     eframe::run_native(

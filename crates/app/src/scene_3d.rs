@@ -8,6 +8,7 @@ use wujud_model::scene::Scene;
 use crate::camera::{add, lerp, Camera, Point3, Projection};
 use crate::phone_range::PhoneDistance;
 use crate::room_view;
+use crate::skeleton::{self, Gait};
 use crate::sensor_feed::SimulatedTruth;
 
 const SKY_TOP: Color32 = Color32::from_rgb(22, 26, 36);
@@ -35,9 +36,13 @@ pub(crate) const TRUE_PERSON: Color32 = Color32::from_rgba_premultiplied(70, 70,
 
 const FLOOR_TILE_M: f32 = 0.5;
 pub(crate) const HEAD_RADIUS: f32 = 0.11;
-const BREATH_SWELL: f32 = 0.06;
+const JOINT: Color32 = Color32::from_rgb(200, 235, 255);
+const SEAT: Color32 = Color32::from_rgb(70, 78, 96);
 /// Share of the screen distance the drawn person closes each frame towards the tracked position.
 const FOLLOW: f32 = 0.12;
+/// The body turns to face where it walks, once a frame's step is longer than this.
+const TURN_ABOVE_M: f32 = 0.002;
+const TURN_RATE: f32 = 0.1;
 const HEAT_SHOWN_ABOVE: f32 = 0.04;
 /// Beyond the boards' line by this much the body still disturbs the link clearly (first Fresnel zone, roughly).
 const NEAR_LINE_M: f32 = 0.45;
@@ -80,6 +85,7 @@ pub struct SceneInputs<'a> {
 pub struct Scene3d {
     camera: Option<Camera>,
     drawn_at: Option<[f32; 2]>,
+    heading: Option<f32>,
 }
 
 impl Scene3d {
@@ -191,16 +197,26 @@ impl Scene3d {
             .map(|[x, y]| [x as f32, y as f32]);
         let target = tracked.unwrap_or([scene.width as f32 / 2.0, scene.depth as f32 / 2.0]);
         let drawn = self.drawn_at.get_or_insert(target);
-        drawn[0] += (target[0] - drawn[0]) * FOLLOW;
-        drawn[1] += (target[1] - drawn[1]) * FOLLOW;
+        let step = [(target[0] - drawn[0]) * FOLLOW, (target[1] - drawn[1]) * FOLLOW];
+        drawn[0] += step[0];
+        drawn[1] += step[1];
+        let heading = self.heading.get_or_insert(-std::f32::consts::FRAC_PI_2);
+        if step[0].hypot(step[1]) > TURN_ABOVE_M {
+            let towards = step[1].atan2(step[0]);
+            let turn = (towards - *heading + std::f32::consts::PI).rem_euclid(TAU) - std::f32::consts::PI;
+            *heading += turn * TURN_RATE;
+        }
+        let heading = *heading;
         let confidence = inputs.track.map_or(0.0, |t| t.confidence) as f32;
-        // Posture is not shown: with one or two links the lie / sit / stand guess is unreliable.
-        let pose = match decision.map(|d| d.state3) {
-            Some(RoomState3::Moving) => Pose::Moving,
+        let pose = match decision.map(|d| d.state) {
+            Some(pose @ (Pose::Moving | Pose::Lie | Pose::Sit)) => pose,
             _ => Pose::Stand,
         };
+        let under = bed_top(scene, *drawn);
         Some(Figure {
             at: *drawn,
+            heading,
+            under,
             pose,
             breath_bpm: decision.and_then(|d| d.breath_bpm),
             opacity: if tracked.is_some() {
@@ -261,6 +277,10 @@ fn link_activity(inputs: &SceneInputs, link: usize) -> f32 {
 
 struct Figure {
     at: [f32; 2],
+    /// Where the body faces, radians from +x: the way it last walked.
+    heading: f32,
+    /// Top of the bed under the person, 0 on the floor.
+    under: f32,
     pose: Pose,
     breath_bpm: Option<f64>,
     opacity: f32,
@@ -627,51 +647,50 @@ pub(crate) fn radio_link(
     }
 }
 
+/// The skeleton: a soft glow under every bone, a solid core over it, and bright joints.
 fn person(view: &Projection, figure: &Figure, seconds: f32, out: &mut Vec<Drawable>) {
-    let [x, y] = figure.at;
-    let color = PERSON.gamma_multiply(figure.opacity);
-    let breathing = figure
+    let breath = figure
         .breath_bpm
         .map_or(0.0, |bpm| (TAU * bpm as f32 / 60.0 * seconds).sin());
-    let chest = 1.0 + BREATH_SWELL * breathing;
+    let gait = match figure.pose {
+        Pose::Moving => Gait::Walk,
+        Pose::Lie => Gait::Lie,
+        Pose::Sit => Gait::Sit,
+        _ => Gait::Stand,
+    };
+    let body = skeleton::pose(gait, figure.at, figure.heading, seconds, breath, figure.under);
     floor_disc(view, figure.at, 0.32, SHADOW, out);
-    match figure.pose {
-        Pose::Lie => {
-            solid_box(view, [x, y, 0.62], [1.5, 0.4 * chest, 0.2], color, out);
-            sphere(view, [x - 0.88, y, 0.68], HEAD_RADIUS, color, out);
-        }
-        Pose::Sit | Pose::Still => {
-            solid_box(view, [x, y, 0.62], [0.36, 0.26 * chest, 0.55], color, out);
-            solid_box(view, [x + 0.18, y, 0.45], [0.4, 0.24, 0.14], color, out);
-            sphere(view, [x, y, 1.03], HEAD_RADIUS, color, out);
-        }
-        _ => {
-            let stride = if figure.pose == Pose::Moving {
-                (seconds * 6.0).sin()
-            } else {
-                0.0
-            };
-            let bob = 0.03 * stride.abs();
-            for side in [-1.0f32, 1.0] {
-                let swing = 0.12 * stride * side;
-                solid_box(
-                    view,
-                    [x + swing, y + 0.09 * side, 0.42 + bob],
-                    [0.13, 0.13, 0.84],
-                    color,
-                    out,
-                );
-            }
-            solid_box(
-                view,
-                [x, y, 1.15 + bob],
-                [0.38, 0.24 * chest, 0.62],
-                color,
-                out,
-            );
-            sphere(view, [x, y, 1.6 + bob], HEAD_RADIUS, color, out);
-        }
+    if gait == Gait::Sit {
+        let [x, y] = figure.at;
+        let back = [x - 0.06 * figure.heading.cos(), y - 0.06 * figure.heading.sin()];
+        solid_box(view, [back[0], back[1], 0.22], [0.38, 0.38, 0.44], SEAT, out);
     }
+    let core = PERSON.gamma_multiply(figure.opacity);
+    let glow = PERSON.gamma_multiply(0.14 * figure.opacity);
+    for (from, to, thickness) in body.bones() {
+        bone(view, from, to, thickness * 2.6, glow, out);
+        bone(view, from, to, thickness, core, out);
+    }
+    for joint in body.all() {
+        sphere(view, joint, 0.028, JOINT.gamma_multiply(figure.opacity), out);
+    }
+    sphere(view, body.head, skeleton::HEAD_RADIUS * 1.5, glow, out);
+    sphere(view, body.head, skeleton::HEAD_RADIUS, core, out);
+}
+
+/// A limb as a line as thick as `thickness` metres at its distance from the camera.
+fn bone(view: &Projection, from: Point3, to: Point3, thickness: f32, color: Color32, out: &mut Vec<Drawable>) {
+    let (Some(a), Some(b)) = (view.project(from), view.project(to)) else { return };
+    let depth = (a.depth + b.depth) / 2.0;
+    let width = view.world_to_pixels(thickness, depth).max(1.0);
+    out.push(Drawable {
+        depth,
+        shape: Shape::Vec(vec![
+            Shape::line_segment([a.at, b.at], Stroke::new(width, color)),
+            Shape::circle_filled(a.at, width / 2.0, color),
+            Shape::circle_filled(b.at, width / 2.0, color),
+        ]),
+    });
 }
 
 /// In simulation the real position is known: a grey ghost shows where the person actually is.
@@ -886,4 +905,17 @@ fn phone_labels(painter: &egui::Painter, view: &Projection, inputs: &SceneInputs
 fn floor_distance(metres: f64, board_height: f64) -> f32 {
     let rise = (board_height - PHONE_HEIGHT_M).max(0.0);
     (metres * metres - rise * rise).max(0.04).sqrt() as f32
+}
+
+fn bed_top(scene: &Scene, [x, y]: [f32; 2]) -> f32 {
+    scene
+        .furniture
+        .iter()
+        .filter(|item| item.get("kind").and_then(|k| k.as_str()) == Some("bed"))
+        .filter_map(|item| {
+            let number = |key: &str| item.get(key).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
+            let (cx, cy, w, d) = (number("x"), number("y"), number("w"), number("d"));
+            ((x - cx).abs() <= w / 2.0 && (y - cy).abs() <= d / 2.0).then(|| number("z") + number("h"))
+        })
+        .fold(0.0, f32::max)
 }

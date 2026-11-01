@@ -58,7 +58,7 @@ impl eframe::App for HallWindow {
                 });
             }
         });
-        ctx.request_repaint();
+        ctx.request_repaint_after(crate::FRAME_INTERVAL);
     }
 }
 

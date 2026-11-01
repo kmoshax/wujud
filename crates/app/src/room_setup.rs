@@ -49,6 +49,8 @@ pub struct LiveRoom {
     pub links: Vec<String>,
     /// The same links as the window shows them.
     pub link_names: Vec<String>,
+    /// The boards' places are known (a room file) or worked out from their signal strength.
+    pub placed: bool,
 }
 
 const HUB: &str = "router";
@@ -82,10 +84,18 @@ fn nodes_among(links: &[String]) -> Vec<String> {
 }
 
 /// Links whose ends are not in the room are left out. Without a room file see `default_room`.
-pub fn room_engine(links: &[String], room_file: Option<&Path>) -> anyhow::Result<LiveRoom> {
-    let room = match room_file {
-        Some(path) => serde_json::from_str::<RoomFile>(&std::fs::read_to_string(path)?)?,
-        None => default_room(links),
+/// `rssi`: each link's median signal strength, to lay the boards out by themselves (`auto_layout`).
+pub fn room_engine(
+    links: &[String],
+    room_file: Option<&Path>,
+    rssi: &BTreeMap<String, f64>,
+) -> anyhow::Result<LiveRoom> {
+    let (room, placed) = match room_file {
+        Some(path) => (serde_json::from_str::<RoomFile>(&std::fs::read_to_string(path)?)?, true),
+        None => match auto_layout(links, rssi) {
+            Some(room) => (room, true),
+            None => (default_room(links), false),
+        },
     };
     let position = |end: &str, link: &str| -> Option<[f64; 3]> {
         if end == HUB {
@@ -153,6 +163,7 @@ pub fn room_engine(links: &[String], room_file: Option<&Path>) -> anyhow::Result
         node_ids,
         links: kept,
         link_names,
+        placed,
     })
 }
 
@@ -196,6 +207,7 @@ pub fn simulated_room_engine(room: &Room) -> anyhow::Result<LiveRoom> {
         node_names,
         links: room.links.iter().map(|(a, b)| format!("{a}-{b}")).collect(),
         link_names,
+        placed: true,
     })
 }
 
@@ -254,6 +266,80 @@ fn default_room(links: &[String]) -> RoomFile {
         furniture: vec![],
         names,
     }
+}
+
+/// Signal strength one metre from an ESP32 PCB antenna and how fast it falls indoors (log-distance).
+/// Good to perhaps a third of the distance; the shape of the boards' triangle matters more than its size.
+const RSSI_AT_1M: f64 = -45.0;
+const PATH_LOSS_EXPONENT: f64 = 2.5;
+/// A bedroom: the longest distance between two boards is taken as at most this.
+const LONGEST_SPAN_M: f64 = 4.5;
+const WALL_MARGIN_M: f64 = 0.4;
+const BOARD_HEIGHT_M: f64 = 1.0;
+
+fn metres_from_rssi(rssi: f64) -> f64 {
+    10f64.powf((RSSI_AT_1M - rssi) / (10.0 * PATH_LOSS_EXPONENT)).clamp(0.5, 10.0)
+}
+
+/// RSSI distances are rough, and three of them often cannot close a triangle (two short sides and a
+/// long one put the boards on one line, which then reads as a two-board room). The longest side is
+/// shortened until the triangle keeps a real height.
+fn triangle(ha: f64, hb: f64, ab: f64) -> (f64, f64, f64) {
+    let mut sides = [ha, hb, ab];
+    let longest = (0..3).max_by(|&i, &j| sides[i].total_cmp(&sides[j])).unwrap_or(0);
+    let others: f64 = sides.iter().enumerate().filter(|&(i, _)| i != longest).map(|(_, s)| s).sum();
+    sides[longest] = sides[longest].min(others * MOST_OF_THE_OTHER_SIDES);
+    (sides[0], sides[1], sides[2])
+}
+
+/// The longest side is at most this share of the other two together: an angle of about 100 degrees.
+const MOST_OF_THE_OTHER_SIDES: f64 = 0.8;
+
+/// Hub and two nodes placed from how strongly they hear each other: a triangle with those three
+/// distances, scaled into a bedroom, with the room drawn around it. Needs every pair heard.
+fn auto_layout(links: &[String], rssi: &BTreeMap<String, f64>) -> Option<RoomFile> {
+    let nodes = nodes_among(links);
+    let [a, b] = <[String; 2]>::try_from(nodes.clone()).ok()?;
+    let distance = |x: &str, y: &str| -> Option<f64> {
+        let heard: Vec<f64> = links
+            .iter()
+            .filter(|link| {
+                let (s, r) = link_ends(link);
+                (s == x && r == y) || (s == y && r == x)
+            })
+            .filter_map(|link| rssi.get(link).copied())
+            .collect();
+        (!heard.is_empty()).then(|| metres_from_rssi(heard.iter().sum::<f64>() / heard.len() as f64))
+    };
+    let (ha, hb, ab) = triangle(distance(HUB, &a)?, distance(HUB, &b)?, distance(&a, &b)?);
+    let scale = (LONGEST_SPAN_M / ha.max(hb).max(ab)).min(1.0);
+    let (ha, hb, ab) = (ha * scale, hb * scale, ab * scale);
+    // Hub at the origin, node a along x, node b by the law of cosines (above x).
+    let bx = (ha * ha + hb * hb - ab * ab) / (2.0 * ha);
+    let by = (hb * hb - bx * bx).max(0.0).sqrt();
+    let points = [[0.0, 0.0], [ha, 0.0], [bx, by]];
+    let min_x = points.iter().map(|p| p[0]).fold(f64::MAX, f64::min) - WALL_MARGIN_M;
+    let min_y = points.iter().map(|p| p[1]).fold(f64::MAX, f64::min) - WALL_MARGIN_M;
+    let place = |p: [f64; 2]| [p[0] - min_x, p[1] - min_y, BOARD_HEIGHT_M];
+    let width = points.iter().map(|p| p[0]).fold(f64::MIN, f64::max) - min_x + WALL_MARGIN_M;
+    let depth = points.iter().map(|p| p[1]).fold(f64::MIN, f64::max) - min_y + WALL_MARGIN_M;
+    let mut names: BTreeMap<String, String> =
+        nodes.iter().map(|mac| (mac.clone(), format!("ESP32 · {}", mac_tail(mac)))).collect();
+    names.insert(HUB.to_owned(), "ESP32 hub".to_owned());
+    println!(
+        "boards placed from their signal strength: hub-{} {ha:.1} m, hub-{} {hb:.1} m, between them {ab:.1} m",
+        mac_tail(&a),
+        mac_tail(&b)
+    );
+    Some(RoomFile {
+        width: width.max(2.5),
+        depth: depth.max(2.5),
+        height: 2.8,
+        router: place(points[0]),
+        boards: BTreeMap::from([(a, place(points[1])), (b, place(points[2]))]),
+        furniture: vec![],
+        names,
+    })
 }
 
 fn print_placement(boards: &BTreeMap<String, [f64; 3]>, names: &BTreeMap<String, String>) {
@@ -336,7 +422,7 @@ mod tests {
 
     #[test]
     fn with_nodes_only_links_between_boards_are_kept() {
-        let room = room_engine(&mesh_links(), None).unwrap();
+        let room = room_engine(&mesh_links(), None, &BTreeMap::new()).unwrap();
         // aa..03 is a phone: heard by the hub and by a node, but never a node itself.
         assert!(room.links.iter().all(|l| !l.ends_with(":03")));
         assert_eq!(room.links.len(), 6);
@@ -353,7 +439,7 @@ mod tests {
     #[test]
     fn without_nodes_every_device_is_a_link_from_the_hub() {
         let links = mesh_links()[..3].to_vec();
-        let room = room_engine(&links, None).unwrap();
+        let room = room_engine(&links, None, &BTreeMap::new()).unwrap();
         assert_eq!(room.links, links);
         assert_eq!(room.link_names[0], "Device 1 · aa:01");
     }

@@ -51,13 +51,18 @@ To run with a real board:
    ```
    Or keep the laptop on its own network and plug the hub in over USB: its serial carries every link (`--ports /dev/ttyACM0`).
 
-What the live view shows:
+When the hub can reach the home router it is also on the home network: read it there with `--ports udp:<its address>` and the laptop keeps its own Wi-Fi.
 
-- Empty, someone still, someone moving; breathing rate after about 30 still seconds.
-- With two boards: how near the person moves to the line between them. Two boards measure the same path both ways, so they cannot tell which board the person is near.
-- Distance from each board: join a phone to `wujud` and keep it on you. The hub pings it, every board hears its answers, and each board's signal strength gives a distance (about ±1 m). Rings around the boards in 3D meet where the person is.
-- With three or more boards: a position and the nearest board.
+Nothing is trained on, measured in, or calibrated for the room it runs in:
+
+- Where the boards stand: from how strongly they hear each other (RSSI, log-distance), as a triangle scaled into a bedroom, placed again after 30 s of signal.
+- Moving or not: how much each link's spectrum shape changes from one second to the next (`research/tools/drift_detector.py`), the links' median over five seconds against three times the room's own typical level. Tuned on a guided recording (`research/tools/guided_room.py`, every second labelled): walking 89-96%, sitting 93%, lying 94%, standing 100%. On ESPectre's public ESP32 recordings, rooms never seen in training: moving caught 98-100%.
+- Where someone walks: a small network trained on simulated rooms only (`research/tools/learned_tracker.py`, `crates/app/src/learned_tracker.rs`). From each link's disturbance over its quiet level and how each grid point sits relative to each link, it scores the room's points: 0.69 m median error on simulated rooms it never saw (0.86 m for the room's centre). On real boards in a room it never saw, it follows the person.
+- Someone still: a body that does not move leaves the signal as an empty room does, so after someone moves they are taken to be there for five minutes ("last moved 40 s ago"), then "no movement for N min". Measured on four rooms, no model told a still person from an empty room without first seeing the room empty (`research/tools/presence_model.py`: empty read right 0-49%).
+- Breathing rate after about 30 still seconds (on the simulator: 0.2 /min median error when read, 84% within 2 /min, read in 40% of still seconds).
+- Distance from each board: join a phone to `wujud` and keep it on you; each board's signal strength gives a distance (about ±1 m).
 - A board switched on while the view is open joins it; nothing needs restarting.
+- Against RuView in the same guided test: still-vs-moving 93% against 71%.
 
 Run the tests, which include golden comparisons against the Python reference:
 

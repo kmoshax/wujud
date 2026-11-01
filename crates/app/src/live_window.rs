@@ -7,10 +7,12 @@ use eframe::egui::{
     self, Color32, ColorImage, Pos2, Sense, Stroke, TextureHandle, TextureOptions, Vec2,
 };
 use wujud_model::motion_tracker::{MotionTracker, Track};
-use wujud_model::room::{RoomEngine, RoomState, RoomState3};
+use wujud_model::room::{Pose, RoomEngine, RoomState, RoomState3};
 
+use crate::learned_tracker::LearnedTracker;
 use crate::link_history::LinkHistory;
 use crate::phone_range::PhoneRange;
+use crate::room_sense::RoomSense;
 use crate::room_setup::{self, LiveRoom};
 use crate::room_view;
 use crate::scene_3d::{Belief, Scene3d, SceneInputs};
@@ -26,6 +28,7 @@ const SIDE_PANEL_WIDTH: f32 = 300.0;
 const SIGNAL_PANEL_HEIGHT: f32 = 290.0;
 /// A board's links show up one by one; the room is rebuilt once none has come for this long.
 const SETTLE_NEW_LINKS: Duration = Duration::from_secs(3);
+const RELAYOUT_AFTER: Duration = Duration::from_secs(30);
 
 /// Live boards only: a board switched on while the window is open joins the room.
 pub struct Growth {
@@ -34,6 +37,8 @@ pub struct Growth {
     /// The links the feed hands over, in the engine's order.
     pub reading: Arc<Mutex<Vec<String>>>,
     pub room_file: Option<PathBuf>,
+    /// Each link's signal strength, for placing the boards (refreshed from the live links on a rebuild).
+    pub rssi: std::collections::BTreeMap<String, f64>,
 }
 
 pub struct LiveWindow {
@@ -48,9 +53,16 @@ pub struct LiveWindow {
     phones: PhoneRange,
     link_names: Vec<String>,
     one_line: bool,
+    /// The boards' real places are known (a room file, or the simulator): only then a position.
+    placed: bool,
     still_since: Option<Instant>,
     room_state: Option<RoomState>,
     tracker: MotionTracker,
+    /// The network trained on simulated rooms; it places a walking person when the boards are placed.
+    learned: Option<LearnedTracker>,
+    learned_xy: Option<[f64; 2]>,
+    relaid: bool,
+    last_learned: Instant,
     track: Option<Track>,
     last_track: Instant,
     truth: Option<SimulatedTruth>,
@@ -59,6 +71,9 @@ pub struct LiveWindow {
     started: Instant,
     growth: Option<Growth>,
     new_link_at: Option<Instant>,
+    /// Live boards: the room read from its own links (drift, and the empty room it learns by itself).
+    sense: Option<RoomSense>,
+    last_frame: Instant,
 }
 
 impl LiveWindow {
@@ -67,12 +82,17 @@ impl LiveWindow {
         let tracker = MotionTracker::new(room.engine.link_ends(), scene.width, scene.depth);
         let mut window = LiveWindow {
             one_line: false,
+            placed: room.placed,
             still_since: None,
             node_names: Vec::new(),
             node_ids: room.node_ids,
             phones: PhoneRange::default(),
             link_names: Vec::new(),
             tracker,
+            learned: None,
+            learned_xy: None,
+            relaid: false,
+            last_learned: Instant::now(),
             track: None,
             last_track: Instant::now(),
             feed,
@@ -88,12 +108,16 @@ impl LiveWindow {
             started: Instant::now(),
             growth: None,
             new_link_at: None,
+            sense: None,
+            last_frame: Instant::now(),
         };
         window.read_links(room.node_names, room.link_names);
         window
     }
 
     pub fn growing(mut self, growth: Growth) -> Self {
+        let reading = growth.reading.lock().unwrap().clone();
+        self.sense = Some(RoomSense::new(&reading));
         self.growth = Some(growth);
         self
     }
@@ -102,6 +126,15 @@ impl LiveWindow {
         let ends = self.engine.link_ends();
         let scene = self.engine.scene();
         self.tracker = MotionTracker::new(ends.clone(), scene.width, scene.depth);
+        let model = room_setup::models_dir().join("learned_tracker.json");
+        self.learned = match LearnedTracker::load(&model, &ends, scene.width, scene.depth) {
+            Ok(learned) => Some(learned),
+            Err(error) => {
+                eprintln!("{}: {error}", model.display());
+                None
+            }
+        };
+        self.learned_xy = None;
         self.one_line = on_one_line(&ends);
         self.node_names = node_names;
         self.links = link_names.iter().cloned().map(LinkHistory::new).collect();
@@ -116,18 +149,46 @@ impl LiveWindow {
     /// A board switched on later: once its links stop arriving, the room is laid out again with them.
     fn join_new_links(&mut self) {
         let settled = self.new_link_at.is_some_and(|t| t.elapsed() >= SETTLE_NEW_LINKS);
-        let Some(growth) = self.growth.as_ref().filter(|_| settled) else { return };
+        // A few seconds of RSSI at the start place the boards roughly; half a minute places them better.
+        let relayout = self.growth.is_some() && !self.relaid && self.started.elapsed() >= RELAYOUT_AFTER;
+        if !(settled || relayout) || self.growth.is_none() {
+            return;
+        }
         self.new_link_at = None;
+        self.relaid |= relayout;
+        let heard: Vec<(String, f64)> = {
+            let reading = self.growth.as_ref().expect("growth").reading.lock().unwrap().clone();
+            reading
+                .into_iter()
+                .zip(&self.links)
+                .filter_map(|(name, link)| {
+                    let mut rssi: Vec<f64> = link.rssi_history().map(f64::from).collect();
+                    rssi.sort_by(f64::total_cmp);
+                    Some((name, *rssi.get(rssi.len() / 2)?))
+                })
+                .collect()
+        };
+        let growth = self.growth.as_mut().expect("growth");
+        growth.rssi.extend(heard);
+        let growth = self.growth.as_ref().expect("growth");
         let reading = growth.reading.lock().unwrap().clone();
-        let room = match room_setup::room_engine(&growth.seen, growth.room_file.as_deref()) {
-            Ok(room) if room.links != reading => room,
+        let room = match room_setup::room_engine(&growth.seen, growth.room_file.as_deref(), &growth.rssi) {
+            Ok(room) if relayout || room.links != reading => room,
             Ok(_) => return,
             Err(error) => return eprintln!("new links: {error}"),
         };
         println!("links: {}", room.links.join(", "));
         *growth.reading.lock().unwrap() = room.links.clone();
+        let sensed = self.engine.sensed;
         self.engine = room.engine;
+        self.engine.sensed = sensed;
         self.node_ids = room.node_ids;
+        self.placed = room.placed;
+        let sense = RoomSense::new(&room.links);
+        self.sense = Some(match &self.sense {
+            Some(previous) => sense.carry_over(previous),
+            None => sense,
+        });
         self.read_links(room.node_names, room.link_names);
     }
 
@@ -138,7 +199,28 @@ impl LiveWindow {
         }
         self.last_tick = Instant::now();
         if self.newest_board_seconds.is_finite() {
+            if let Some(sense) = &mut self.sense {
+                // RoomSense holds its last state through short gaps itself; None is "learning".
+                self.engine.sensed = sense.tick(self.newest_board_seconds);
+            }
+            let started = Instant::now();
             self.room_state = self.engine.tick(self.newest_board_seconds).ok();
+            if std::env::var_os("WUJUD_LOG").is_some() {
+                println!("engine tick {} ms", started.elapsed().as_millis());
+            }
+            if self.sense.is_some() && self.engine.sensed.is_none() {
+                // Nothing read from the room yet: "learning", not the model's guess.
+                self.room_state = None;
+            }
+            // The posture is the one taught in this room, or none: the model's own guess comes from a
+            // model that read a real empty room as moving all the time.
+            let taught = self.sense.as_ref().map(|s| s.reading.posture);
+            let decision = self.room_state.as_mut().and_then(|s| s.room.decision.as_mut());
+            if let (Some(taught), Some(decision)) = (taught, decision) {
+                if decision.state3 == RoomState3::Still {
+                    decision.state = taught.unwrap_or(Pose::Still);
+                }
+            }
         }
         let still = self
             .room_state
@@ -146,6 +228,52 @@ impl LiveWindow {
             .and_then(|s| s.room.decision.as_ref())
             .is_some_and(|d| d.state3 == RoomState3::Still);
         self.still_since = still.then(|| self.still_since.unwrap_or_else(Instant::now));
+        if std::env::var_os("WUJUD_LOG").is_some() {
+            self.log_second();
+        }
+    }
+
+    /// `WUJUD_LOG=1`: one line a second on stdout, to see why the room reads the way it does.
+    fn log_second(&self) {
+        let Some(state) = &self.room_state else {
+            if let Some(r) = self.sense.as_ref().map(|s| &s.reading) {
+                println!(
+                    "t learning {:?}/{} drift {:?} above {:.3} stirring {} glrt {:?}",
+                    r.learning,
+                    crate::room_sense::LEARN_EMPTY_SECONDS,
+                    r.drift_db.map(|d| (d * 1000.0).round() / 1000.0),
+                    r.moving_above,
+                    r.stirring,
+                    self.engine.breathing_strength.map(|g| (g * 100.0).round() / 100.0),
+                );
+            }
+            return;
+        };
+        let Some(decision) = &state.room.decision else { return };
+        let rates: Vec<String> = self.links.iter().map(|l| format!("{:.0}", l.packets_per_second())).collect();
+        let activity: Vec<String> = state.link_activity.iter().map(|a| format!("{a:.2}")).collect();
+        let sensed = self.sense.as_ref().map(|s| s.reading.clone()).unwrap_or_default();
+        println!(
+            "t {:.0} {:?} drift {:?} above {:.3} presence {:?} learning {:?} glrt {:?} probs {:?} activity [{}] packets/s [{}] breath {:?}",
+            state.t,
+            decision.state,
+            sensed.drift_db.map(|d| (d * 1000.0).round() / 1000.0),
+            sensed.moving_above,
+            sensed.presence,
+            sensed.learning,
+            self.engine.breathing_strength.map(|g| (g * 100.0).round() / 100.0),
+            decision.probs,
+            activity.join(" "),
+            rates.join(" "),
+            decision.breath_bpm,
+        );
+    }
+
+    fn room_empty(&self) -> bool {
+        self.room_state
+            .as_ref()
+            .and_then(|s| s.room.decision.as_ref())
+            .is_some_and(|d| d.state3 == RoomState3::Empty)
     }
 
     fn tick_tracker(&mut self) {
@@ -165,11 +293,27 @@ impl LiveWindow {
             .iter()
             .map(|l| fresh(l.rssi_spread_db()))
             .collect();
+        if self.last_learned.elapsed() >= Duration::from_secs(1) {
+            self.last_learned = Instant::now();
+            if let Some(learned) = &mut self.learned {
+                let second: Vec<(Option<f64>, Option<f64>)> =
+                    self.links.iter().map(|l| (l.disturbance_db(), l.rssi_spread_db())).collect();
+                learned.add_second(&second);
+            }
+        }
         if motion.iter().any(|m| !m.is_nan()) {
             let mut track = self
                 .tracker
                 .update(&motion, &shadowing, elapsed.as_secs_f64());
-            if self.one_line {
+            if track.moving {
+                if let Some(xy) = self.learned.as_ref().and_then(LearnedTracker::position) {
+                    self.learned_xy = Some(xy);
+                }
+            }
+            if self.learned_xy.is_some() {
+                track.xy = self.learned_xy;
+            }
+            if self.one_line || !self.placed {
                 track.xy = None;
             }
             self.track = Some(track);
@@ -188,6 +332,9 @@ impl LiveWindow {
                         &frame.iq,
                         f64::from(frame.rssi),
                     );
+                    if let Some(sense) = &mut self.sense {
+                        sense.add(frame.link, frame.board_seconds, &frame.iq);
+                    }
                     self.newest_board_seconds = self.newest_board_seconds.max(frame.board_seconds);
                     self.links[frame.link].push(&frame, now);
                 }
@@ -261,10 +408,23 @@ impl LiveWindow {
 
 impl eframe::App for LiveWindow {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let logging = std::env::var_os("WUJUD_LOG").is_some();
+        let gap = self.last_frame.elapsed();
+        let step = Instant::now();
         self.take_new_events();
+        let events = step.elapsed();
         self.join_new_links();
         self.tick_engine();
         self.tick_tracker();
+        if logging && (gap.as_millis() > 500 || step.elapsed().as_millis() > 200) {
+            println!(
+                "slow frame: {} ms since the last one, events {} ms, all work {} ms",
+                gap.as_millis(),
+                events.as_millis(),
+                step.elapsed().as_millis()
+            );
+        }
+        self.last_frame = Instant::now();
         egui::SidePanel::left("state")
             .exact_width(SIDE_PANEL_WIDTH)
             .frame(panel_frame())
@@ -278,18 +438,28 @@ impl eframe::App for LiveWindow {
                 );
                 ui.add_space(8.0);
                 let still_seconds = self.still_since.map_or(0.0, |t| t.elapsed().as_secs_f64());
-                room_view::state_banner(ui, self.room_state.as_ref(), still_seconds);
+                room_view::state_banner(
+                    ui,
+                    self.room_state.as_ref(),
+                    still_seconds,
+                    self.sense.as_ref().map(|s| &s.reading),
+                );
+                if let Some(sense) = &mut self.sense {
+                    room_view::room_sense(ui, sense);
+                }
                 let boards = room_view::Boards {
                     names: &self.node_names,
                     at: &self.engine.scene().nodes,
                     one_line: self.one_line,
+                    placed: self.placed,
                     state: self.room_state.as_ref(),
                 };
                 let phones = self.phones.distances(&self.node_ids);
                 if self.growth.is_some() {
                     room_view::phone_distances(ui, &phones, &self.node_names);
                 }
-                room_view::tracking(ui, self.track.as_ref(), &self.link_names, &boards);
+                let track = self.track.as_ref().filter(|_| !self.room_empty());
+                room_view::tracking(ui, track, &self.link_names, &boards);
                 if let Some(truth) = &self.truth {
                     room_view::simulator_truth(ui, truth);
                 }
@@ -316,8 +486,8 @@ impl eframe::App for LiveWindow {
                     scene: self.engine.scene(),
                     node_names: &self.node_names,
                     state: self.room_state.as_ref(),
-                    track: self.track.as_ref(),
-                    belief: self.track.as_ref().and_then(|t| t.xy).map(|_| Belief {
+                    track: self.track.as_ref().filter(|_| !self.room_empty()),
+                    belief: self.track.as_ref().and_then(|t| t.xy).filter(|_| !self.room_empty() && self.learned.is_none()).map(|_| Belief {
                         xs,
                         ys,
                         values: self.tracker.belief(),
@@ -330,7 +500,7 @@ impl eframe::App for LiveWindow {
                 };
                 self.scene.show(ui, &inputs);
             });
-        ctx.request_repaint();
+        ctx.request_repaint_after(crate::FRAME_INTERVAL);
     }
 }
 
