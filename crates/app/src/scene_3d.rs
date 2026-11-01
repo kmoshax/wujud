@@ -6,6 +6,8 @@ use wujud_model::room::{Pose, RoomState, RoomState3};
 use wujud_model::scene::Scene;
 
 use crate::camera::{add, lerp, Camera, Point3, Projection};
+use crate::phone_range::PhoneDistance;
+use crate::room_view;
 use crate::sensor_feed::SimulatedTruth;
 
 const SKY_TOP: Color32 = Color32::from_rgb(22, 26, 36);
@@ -37,6 +39,16 @@ const BREATH_SWELL: f32 = 0.06;
 /// Share of the screen distance the drawn person closes each frame towards the tracked position.
 const FOLLOW: f32 = 0.12;
 const HEAT_SHOWN_ABOVE: f32 = 0.04;
+/// Beyond the boards' line by this much the body still disturbs the link clearly (first Fresnel zone, roughly).
+const NEAR_LINE_M: f32 = 0.45;
+const FAR_LINE_M: f32 = 1.4;
+const NEAR: Color32 = Color32::from_rgb(255, 170, 80);
+const FAR: Color32 = Color32::from_rgb(90, 200, 255);
+const PHONE: Color32 = Color32::from_rgb(200, 140, 255);
+const PHONE_HEIGHT_M: f64 = 0.9;
+const BREATH: Color32 = Color32::from_rgb(120, 230, 170);
+/// room_view::BREATHING_AFTER_STILL_SECONDS, as the ring that fills while the breathing is read.
+const BREATHING_AFTER_STILL_SECONDS: f32 = 30.0;
 
 pub(crate) struct Drawable {
     pub depth: f32,
@@ -58,6 +70,10 @@ pub struct SceneInputs<'a> {
     pub belief: Option<Belief<'a>>,
     pub truth: Option<&'a SimulatedTruth>,
     pub seconds: f32,
+    /// Two boards: draw how near the person is to their line instead of a position.
+    pub one_line: bool,
+    pub phones: &'a [PhoneDistance],
+    pub still_seconds: f32,
 }
 
 #[derive(Default)]
@@ -85,6 +101,10 @@ impl Scene3d {
         if let Some(belief) = &inputs.belief {
             floor_heat(&view, belief, &mut drawables);
         }
+        if inputs.one_line {
+            closeness_zone(&view, inputs, &mut drawables);
+        }
+        phone_rings(&view, inputs, &mut drawables);
         for item in &scene.furniture {
             let number = |key: &str| item.get(key).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
             let size = [number("w"), number("d"), number("h")];
@@ -120,8 +140,13 @@ impl Scene3d {
             let is_hub = scene.links.iter().all(|link| link.contains(&index));
             node_model(&view, point(*node), is_hub, &mut drawables);
         }
-        if let Some(figure) = self.figure(inputs) {
-            person(&view, &figure, inputs.seconds, &mut drawables);
+        let figure = self.figure(inputs);
+        if let Some(figure) = &figure {
+            person(&view, figure, inputs.seconds, &mut drawables);
+            breathing_ring(&view, figure, inputs, &mut drawables);
+            if !inputs.one_line && inputs.track.is_some_and(|t| t.xy.is_some()) {
+                nearest_board_line(&view, figure, scene, &mut drawables);
+            }
         }
         if let Some(truth) = inputs.truth {
             true_person(&view, truth, &mut drawables);
@@ -130,10 +155,21 @@ impl Scene3d {
         drawables.sort_by(|a, b| b.depth.total_cmp(&a.depth));
         painter.extend(drawables.into_iter().map(|d| d.shape));
         node_labels(&painter, &view, &scene.nodes, inputs.node_names);
+        if let Some(figure) = &figure {
+            figure_labels(&painter, &view, figure, inputs);
+        }
+        if inputs.one_line {
+            closeness_label(&painter, &view, inputs);
+        }
+        phone_labels(&painter, &view, inputs);
         painter.text(
             viewport.left_bottom() + Vec2::new(10.0, -10.0),
             egui::Align2::LEFT_BOTTOM,
-            "drag to rotate · scroll to zoom · blue floor = where the person may be",
+            if inputs.one_line {
+                "drag to rotate · scroll to zoom · lit floor = how near the person is to the boards' line"
+            } else {
+                "drag to rotate · scroll to zoom · blue floor = where the person may be"
+            },
             egui::FontId::proportional(11.0),
             Color32::from_gray(110),
         );
@@ -649,4 +685,205 @@ fn true_person(view: &Projection, truth: &SimulatedTruth, out: &mut Vec<Drawable
     };
     solid_box(view, centre, size, TRUE_PERSON, out);
     sphere(view, head, HEAD_RADIUS, TRUE_PERSON, out);
+}
+
+fn closeness(inputs: &SceneInputs) -> Option<f32> {
+    room_view::closeness(inputs.state, inputs.track).map(|c| c as f32)
+}
+
+fn line_ends(scene: &Scene) -> Option<([f32; 2], [f32; 2])> {
+    let [a, b] = *scene.links.first()?;
+    let at = |i: usize| [scene.nodes[i][0] as f32, scene.nodes[i][1] as f32];
+    Some((at(a), at(b)))
+}
+
+/// Points around the boards' line at `margin` metres from it: a stadium, so it stays convex.
+fn around_line(a: [f32; 2], b: [f32; 2], margin: f32, z: f32) -> Vec<Point3> {
+    let heading = (b[1] - a[1]).atan2(b[0] - a[0]);
+    let cap = |end: [f32; 2], from: f32| {
+        (0..=12).map(move |i| {
+            let angle = from + std::f32::consts::PI * i as f32 / 12.0;
+            [end[0] + margin * angle.cos(), end[1] + margin * angle.sin(), z]
+        })
+    };
+    let quarter = std::f32::consts::FRAC_PI_2;
+    cap(b, heading - quarter).chain(cap(a, heading + quarter)).collect()
+}
+
+/// Two floor bands around the boards' line: the inner one lights when the person moves close to
+/// the line, the outer one when they move further away.
+fn closeness_zone(view: &Projection, inputs: &SceneInputs, out: &mut Vec<Drawable>) {
+    let Some((a, b)) = line_ends(inputs.scene) else { return };
+    let near = closeness(inputs);
+    let (outer, inner) = match near {
+        None => (FAR.gamma_multiply(0.05), NEAR.gamma_multiply(0.06)),
+        Some(c) if c >= room_view::CLOSE as f32 => {
+            (FAR.gamma_multiply(0.06), NEAR.gamma_multiply(0.2 + 0.4 * c))
+        }
+        Some(c) => (FAR.gamma_multiply(0.3 - 0.3 * c), FLOOR),
+    };
+    let scene = inputs.scene;
+    let inside = |p: Point3| -> Point3 {
+        [p[0].clamp(0.0, scene.width as f32), p[1].clamp(0.0, scene.depth as f32), p[2]]
+    };
+    let band = |margin: f32, z: f32| -> Vec<Point3> { around_line(a, b, margin, z).into_iter().map(inside).collect() };
+    on_floor(view, &band(FAR_LINE_M, 0.003), outer, 0.5, out);
+    on_floor(view, &band(NEAR_LINE_M, 0.004), inner, 0.8, out);
+}
+
+fn closeness_label(painter: &egui::Painter, view: &Projection, inputs: &SceneInputs) {
+    let Some((a, b)) = line_ends(inputs.scene) else { return };
+    let text = match closeness(inputs) {
+        None => return,
+        Some(c) if c >= room_view::VERY_CLOSE as f32 => "very close to the line",
+        Some(c) if c >= room_view::CLOSE as f32 => "close to the line",
+        Some(_) => "far from the line",
+    };
+    let middle = [(a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0, 0.05];
+    if let Some(p) = view.project(middle) {
+        pill(painter, p.at + Vec2::new(0.0, 22.0), text, NEAR);
+    }
+}
+
+/// A ring on the floor around the person that swells and shrinks with each breath; while the
+/// breathing is still being read, a ring that fills up.
+fn breathing_ring(view: &Projection, figure: &Figure, inputs: &SceneInputs, out: &mut Vec<Drawable>) {
+    match figure.breath_bpm {
+        Some(bpm) => {
+            let breath = (TAU * bpm as f32 / 60.0 * inputs.seconds).sin();
+            let radius = 0.5 + 0.12 * breath;
+            ring(view, figure.at, radius, 360.0, Stroke::new(3.0_f32, BREATH.gamma_multiply(0.85)), out);
+            ring(view, figure.at, radius + 0.06, 360.0, Stroke::new(8.0_f32, BREATH.gamma_multiply(0.15)), out);
+        }
+        None if inputs.still_seconds > 0.0 => {
+            let filled = (inputs.still_seconds / BREATHING_AFTER_STILL_SECONDS).min(1.0);
+            ring(view, figure.at, 0.5, 360.0, Stroke::new(2.0_f32, BREATH.gamma_multiply(0.15)), out);
+            ring(view, figure.at, 0.5, 360.0 * filled, Stroke::new(3.0_f32, BREATH.gamma_multiply(0.7)), out);
+        }
+        None => {}
+    }
+}
+
+fn ring(view: &Projection, centre: [f32; 2], radius: f32, degrees: f32, stroke: Stroke, out: &mut Vec<Drawable>) {
+    let steps = ((degrees / 10.0).ceil() as usize).max(1);
+    let points: Option<Vec<Pos2>> = (0..=steps)
+        .map(|i| {
+            let angle = (degrees.to_radians() * i as f32 / steps as f32) - std::f32::consts::FRAC_PI_2;
+            view.project([centre[0] + radius * angle.cos(), centre[1] + radius * angle.sin(), 0.01])
+                .map(|p| p.at)
+        })
+        .collect();
+    if let Some(points) = points {
+        out.push(Drawable {
+            depth: f32::MAX / 2.0 - 3.0,
+            shape: Shape::line(points, stroke),
+        });
+    }
+}
+
+fn nearest_board_line(view: &Projection, figure: &Figure, scene: &Scene, out: &mut Vec<Drawable>) {
+    let Some(board) = nearest_board(figure.at, scene) else { return };
+    let to = scene.nodes[board];
+    segment(
+        view,
+        [figure.at[0], figure.at[1], 0.02],
+        [to[0] as f32, to[1] as f32, 0.02],
+        Stroke::new(2.0_f32, NEAR.gamma_multiply(0.8)),
+        out,
+    );
+    if let Some(last) = out.last_mut() {
+        last.depth = f32::MAX / 2.0 - 3.0;
+    }
+    ring(view, [to[0] as f32, to[1] as f32], 0.2, 360.0, Stroke::new(2.5_f32, NEAR), out);
+}
+
+fn nearest_board(at: [f32; 2], scene: &Scene) -> Option<usize> {
+    let distance = |n: &[f64; 3]| (n[0] as f32 - at[0]).hypot(n[1] as f32 - at[1]);
+    (0..scene.nodes.len()).min_by(|&i, &j| distance(&scene.nodes[i]).total_cmp(&distance(&scene.nodes[j])))
+}
+
+/// Breathing above the head, and the distance halfway along the line to the nearest board.
+fn figure_labels(painter: &egui::Painter, view: &Projection, figure: &Figure, inputs: &SceneInputs) {
+    let [x, y] = figure.at;
+    let above_head = |text: &str, color: Color32| {
+        if let Some(p) = view.project([x, y, 1.95]) {
+            pill(painter, p.at, text, color);
+        }
+    };
+    match figure.breath_bpm {
+        Some(bpm) => above_head(&format!("breathing {bpm:.0} / min"), BREATH),
+        None if inputs.still_seconds > 0.0 => {
+            let left = BREATHING_AFTER_STILL_SECONDS - inputs.still_seconds;
+            if left > 0.0 {
+                above_head(&format!("reading breath… {left:.0} s"), BREATH.gamma_multiply(0.8));
+            } else {
+                above_head("breath too faint here", LABEL);
+            }
+        }
+        None => {}
+    }
+    if inputs.one_line || !inputs.track.is_some_and(|t| t.xy.is_some()) {
+        return;
+    }
+    let Some(board) = nearest_board(figure.at, inputs.scene) else { return };
+    let to = inputs.scene.nodes[board];
+    let metres = (to[0] as f32 - x).hypot(to[1] as f32 - y);
+    let middle = [(x + to[0] as f32) / 2.0, (y + to[1] as f32) / 2.0, 0.05];
+    if let Some(p) = view.project(middle) {
+        pill(painter, p.at, &format!("{metres:.1} m"), NEAR);
+    }
+}
+
+fn pill(painter: &egui::Painter, at: Pos2, text: &str, color: Color32) {
+    let galley = painter.layout_no_wrap(text.to_string(), egui::FontId::proportional(13.0), color);
+    let rect = Rect::from_center_size(at, galley.size() + Vec2::new(16.0, 8.0));
+    painter.rect(
+        rect,
+        egui::CornerRadius::same(255),
+        Color32::from_rgba_premultiplied(14, 18, 26, 220),
+        Stroke::new(1.0_f32, color.gamma_multiply(0.6)),
+        egui::StrokeKind::Inside,
+    );
+    painter.galley(rect.center() - galley.size() / 2.0, galley, color);
+}
+
+/// Around each board, a ring on the floor at the phone's distance from it: the person is where the rings meet.
+fn phone_rings(view: &Projection, inputs: &SceneInputs, out: &mut Vec<Drawable>) {
+    for phone in inputs.phones {
+        for &(board, metres) in &phone.boards {
+            let at = inputs.scene.nodes[board];
+            let centre = [at[0] as f32, at[1] as f32];
+            let radius = floor_distance(metres, at[2]);
+            ring(view, centre, radius, 360.0, Stroke::new(2.5_f32, PHONE), out);
+            ring(view, centre, radius, 360.0, Stroke::new(9.0_f32, PHONE.gamma_multiply(0.15)), out);
+        }
+    }
+}
+
+fn phone_labels(painter: &egui::Painter, view: &Projection, inputs: &SceneInputs) {
+    for phone in inputs.phones {
+        for &(board, metres) in &phone.boards {
+            let at = inputs.scene.nodes[board];
+            let radius = floor_distance(metres, at[2]);
+            let towards_room = [
+                inputs.scene.width as f32 / 2.0 - at[0] as f32,
+                inputs.scene.depth as f32 / 2.0 - at[1] as f32,
+            ];
+            let length = towards_room[0].hypot(towards_room[1]).max(1e-3);
+            let label_at = [
+                at[0] as f32 + radius * towards_room[0] / length,
+                at[1] as f32 + radius * towards_room[1] / length,
+                0.05,
+            ];
+            if let Some(p) = view.project(label_at) {
+                pill(painter, p.at, &format!("{metres:.1} m"), PHONE);
+            }
+        }
+    }
+}
+
+/// The phone is carried around waist height, the boards hang higher: the straight-line distance on the floor.
+fn floor_distance(metres: f64, board_height: f64) -> f32 {
+    let rise = (board_height - PHONE_HEIGHT_M).max(0.0);
+    (metres * metres - rise * rise).max(0.04).sqrt() as f32
 }

@@ -49,6 +49,15 @@ To run with a real board:
    ```bash
    cargo run --release -p wujud -- live --ports udp:192.168.4.1
    ```
+   Or keep the laptop on its own network and plug the hub in over USB: its serial carries every link (`--ports /dev/ttyACM0`).
+
+What the live view shows:
+
+- Empty, someone still, someone moving; breathing rate after about 30 still seconds.
+- With two boards: how near the person moves to the line between them. Two boards measure the same path both ways, so they cannot tell which board the person is near.
+- Distance from each board: join a phone to `wujud` and keep it on you. The hub pings it, every board hears its answers, and each board's signal strength gives a distance (about ±1 m). Rings around the boards in 3D meet where the person is.
+- With three or more boards: a position and the nearest board.
+- A board switched on while the view is open joins it; nothing needs restarting.
 
 Run the tests, which include golden comparisons against the Python reference:
 

@@ -1,16 +1,18 @@
-//! `WUJUD_SCREENSHOT=out.ppm`: run any window for a few seconds, save what it shows, and quit.
+//! `WUJUD_SCREENSHOT=out.ppm`: run any window for a few seconds (`WUJUD_SCREENSHOT_AFTER`, 25 unless
+//! set), save what it shows, and quit.
 //! For README pictures and for checking the 3D view without a person at the screen.
 
 use std::time::{Duration, Instant};
 
 use eframe::egui;
 
-const SETTLE: Duration = Duration::from_secs(25);
+const SETTLE_SECONDS: u64 = 25;
 
 pub struct Screenshot<A> {
     app: A,
     path: String,
     started: Instant,
+    after: Duration,
     requested: bool,
 }
 
@@ -20,6 +22,12 @@ pub fn wrap<A: eframe::App + 'static>(app: A) -> Box<dyn eframe::App> {
             app,
             path,
             started: Instant::now(),
+            after: Duration::from_secs(
+                std::env::var("WUJUD_SCREENSHOT_AFTER")
+                    .ok()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(SETTLE_SECONDS),
+            ),
             requested: false,
         }),
         Err(_) => Box::new(app),
@@ -29,7 +37,7 @@ pub fn wrap<A: eframe::App + 'static>(app: A) -> Box<dyn eframe::App> {
 impl<A: eframe::App> eframe::App for Screenshot<A> {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         self.app.update(ctx, frame);
-        if !self.requested && self.started.elapsed() > SETTLE {
+        if !self.requested && self.started.elapsed() > self.after {
             self.requested = true;
             ctx.send_viewport_cmd(egui::ViewportCommand::Screenshot(Default::default()));
         }

@@ -19,38 +19,35 @@ const REOPEN_DELAY: Duration = Duration::from_secs(1);
 const DISCOVERY_TIME: Duration = Duration::from_secs(3);
 
 pub struct PortLine {
-    pub port: usize,
+    /// `<board>@<device>`, or the board alone for untagged lines.
+    pub link: String,
     pub wall_seconds: f64,
     pub text: String,
 }
 
-/// One reader thread per board; its lines go out on one channel tagged with the link's index.
+/// One reader thread per board; its lines go out on one channel tagged with their link's name,
+/// including devices the board starts measuring later.
 pub fn read_ports(ports: &[String], record: Option<&str>) -> anyhow::Result<Receiver<PortLine>> {
     let (sender, receiver) = channel();
     let recorder = record.map(Recorder::append_to).transpose()?;
-    let mut links_by_board: BTreeMap<&str, BTreeMap<Option<String>, usize>> = BTreeMap::new();
-    for (index, name) in ports.iter().enumerate() {
+    let mut takes_untagged: BTreeMap<&str, bool> = BTreeMap::new();
+    for name in ports {
         let (board, device) = split_link_name(name);
-        links_by_board
-            .entry(board)
-            .or_default()
-            .insert(device.map(str::to_owned), index);
+        *takes_untagged.entry(board).or_default() |= device.is_none();
     }
-    for (board, links) in links_by_board {
+    for (board, takes_untagged) in takes_untagged {
         let board = board.to_owned();
         let sender = sender.clone();
         let mut recorder = recorder.as_ref().map(Recorder::try_clone).transpose()?;
         thread::spawn(move || {
             for text in open_board(&board) {
                 let (device, text) = split_device_tag(&text);
-                let Some(&port) = device
-                    .and_then(|d| links.get(&Some(d.to_owned())))
-                    .or_else(|| links.get(&None))
-                else {
+                // Untagged lines (status) only go to a link named after the board alone.
+                if device.is_none() && !takes_untagged {
                     continue;
-                };
+                }
                 let line = PortLine {
-                    port,
+                    link: link_name(&board, device),
                     wall_seconds: now_seconds(),
                     text: text.to_owned(),
                 };

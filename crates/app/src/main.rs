@@ -4,6 +4,7 @@ mod hall_view;
 mod hall_window;
 mod link_history;
 mod live_window;
+mod phone_range;
 mod room_setup;
 mod room_view;
 mod scene_3d;
@@ -79,10 +80,16 @@ fn live(
     record: Option<&str>,
 ) -> anyhow::Result<()> {
     let ports = serial::one_link_per_device(&ports);
-    let room = room_setup::room_engine(&ports, room)?;
-    println!("links: {}", room.links.join(", "));
-    let feed = sensor_feed::from_serial_ports(&room.links, record)?;
-    open_window(LiveWindow::new(feed, room))
+    let live = room_setup::room_engine(&ports, room)?;
+    println!("links: {}", live.links.join(", "));
+    let reading = std::sync::Arc::new(std::sync::Mutex::new(live.links.clone()));
+    let feed = sensor_feed::from_serial_ports(&ports, reading.clone(), record)?;
+    let window = LiveWindow::new(feed, live).growing(live_window::Growth {
+        seen: ports,
+        reading,
+        room_file: room.map(std::path::Path::to_path_buf),
+    });
+    open_window(window)
 }
 
 fn demo(boards: usize, seed: u64) -> anyhow::Result<()> {
@@ -125,7 +132,7 @@ fn open_window(window: impl eframe::App + 'static) -> anyhow::Result<()> {
 fn monitor(ports: &[String], record: Option<&str>) -> anyhow::Result<()> {
     let ports = serial::one_link_per_device(ports);
     for line in serial::read_ports(&ports, record)? {
-        let port = &ports[line.port];
+        let port = &line.link;
         match Line::parse(&line.text) {
             Ok(Line::Csi(packet)) => println!(
                 "[{port}] CSI  rssi {:>4} dBm  t {:>10} us",

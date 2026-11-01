@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
@@ -43,6 +43,8 @@ pub struct LiveRoom {
     pub engine: RoomEngine,
     /// One per scene node: the shared node first.
     pub node_names: Vec<String>,
+    /// The same nodes as the links name them (`router` for the hub, a MAC for a board).
+    pub node_ids: Vec<String>,
     /// The links the engine reads, in its order, as named on the command line.
     pub links: Vec<String>,
     /// The same links as the window shows them.
@@ -54,7 +56,7 @@ const HUB: &str = "router";
 /// Both ends of a link, sender first. `<board>@<node>><sender>` is measured by a node that joined the
 /// hub, from the hub (`hub`) or from another device; `<board>@<device>` by the hub from a device;
 /// a bare `<board>` by the board from the router (which `HUB` then stands for).
-fn link_ends(link: &str) -> (String, String) {
+pub fn link_ends(link: &str) -> (String, String) {
     match crate::serial::split_link_name(link) {
         (_, Some(tag)) => match tag.split_once('>') {
             Some((node, "hub")) => (HUB.to_owned(), node.to_owned()),
@@ -66,12 +68,17 @@ fn link_ends(link: &str) -> (String, String) {
 }
 
 /// Boards that joined the hub as nodes: the receivers of `<node>><sender>` links.
-fn nodes_among(links: &[String]) -> BTreeSet<String> {
-    links
-        .iter()
-        .filter_map(|link| crate::serial::split_link_name(link).1)
-        .filter_map(|tag| tag.split_once('>').map(|(node, _)| node.to_owned()))
-        .collect()
+/// In the order they first appear, so a board switched on later does not take an earlier one's spot.
+fn nodes_among(links: &[String]) -> Vec<String> {
+    let mut nodes: Vec<String> = Vec::new();
+    for tag in links.iter().filter_map(|link| crate::serial::split_link_name(link).1) {
+        if let Some((node, _)) = tag.split_once('>') {
+            if !nodes.iter().any(|n| n == node) {
+                nodes.push(node.to_owned());
+            }
+        }
+    }
+    nodes
 }
 
 /// Links whose ends are not in the room are left out. Without a room file see `default_room`.
@@ -143,6 +150,7 @@ pub fn room_engine(links: &[String], room_file: Option<&Path>) -> anyhow::Result
     Ok(LiveRoom {
         engine: RoomEngine::new(scene, pairs, "LIVE", model, nodes),
         node_names,
+        node_ids,
         links: kept,
         link_names,
     })
@@ -184,6 +192,7 @@ pub fn simulated_room_engine(room: &Room) -> anyhow::Result<LiveRoom> {
             model,
             room.nodes.clone(),
         ),
+        node_ids: node_names.clone(),
         node_names,
         links: room.links.iter().map(|(a, b)| format!("{a}-{b}")).collect(),
         link_names,
@@ -264,7 +273,7 @@ fn short_name(id: &str) -> &str {
     }
 }
 
-fn mac_tail(mac: &str) -> &str {
+pub fn mac_tail(mac: &str) -> &str {
     &mac[mac.len().saturating_sub(5)..]
 }
 

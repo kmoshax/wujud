@@ -1,14 +1,17 @@
+use std::path::PathBuf;
 use std::sync::mpsc::Receiver;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use eframe::egui::{
     self, Color32, ColorImage, Pos2, Sense, Stroke, TextureHandle, TextureOptions, Vec2,
 };
 use wujud_model::motion_tracker::{MotionTracker, Track};
-use wujud_model::room::{RoomEngine, RoomState};
+use wujud_model::room::{RoomEngine, RoomState, RoomState3};
 
 use crate::link_history::LinkHistory;
-use crate::room_setup::LiveRoom;
+use crate::phone_range::PhoneRange;
+use crate::room_setup::{self, LiveRoom};
 use crate::room_view;
 use crate::scene_3d::{Belief, Scene3d, SceneInputs};
 use crate::sensor_feed::{FeedEvent, SimulatedTruth};
@@ -21,6 +24,17 @@ const ENGINE_TICK: Duration = Duration::from_secs(1);
 const TRACKER_TICK: Duration = Duration::from_millis(100);
 const SIDE_PANEL_WIDTH: f32 = 300.0;
 const SIGNAL_PANEL_HEIGHT: f32 = 290.0;
+/// A board's links show up one by one; the room is rebuilt once none has come for this long.
+const SETTLE_NEW_LINKS: Duration = Duration::from_secs(3);
+
+/// Live boards only: a board switched on while the window is open joins the room.
+pub struct Growth {
+    /// Every link heard so far, read or not (a link whose ends are not placed yet may be placed later).
+    pub seen: Vec<String>,
+    /// The links the feed hands over, in the engine's order.
+    pub reading: Arc<Mutex<Vec<String>>>,
+    pub room_file: Option<PathBuf>,
+}
 
 pub struct LiveWindow {
     feed: Receiver<FeedEvent>,
@@ -30,7 +44,11 @@ pub struct LiveWindow {
     newest_board_seconds: f64,
     engine: RoomEngine,
     node_names: Vec<String>,
+    node_ids: Vec<String>,
+    phones: PhoneRange,
     link_names: Vec<String>,
+    one_line: bool,
+    still_since: Option<Instant>,
     room_state: Option<RoomState>,
     tracker: MotionTracker,
     track: Option<Track>,
@@ -39,36 +57,78 @@ pub struct LiveWindow {
     scene: Scene3d,
     last_tick: Instant,
     started: Instant,
+    growth: Option<Growth>,
+    new_link_at: Option<Instant>,
 }
 
 impl LiveWindow {
     pub fn new(feed: Receiver<FeedEvent>, room: LiveRoom) -> Self {
-        let LiveRoom {
-            engine,
-            node_names,
-            link_names,
-            ..
-        } = room;
-        let scene = engine.scene();
-        let tracker = MotionTracker::new(engine.link_ends(), scene.width, scene.depth);
-        LiveWindow {
-            node_names,
-            link_names: link_names.clone(),
+        let scene = room.engine.scene();
+        let tracker = MotionTracker::new(room.engine.link_ends(), scene.width, scene.depth);
+        let mut window = LiveWindow {
+            one_line: false,
+            still_since: None,
+            node_names: Vec::new(),
+            node_ids: room.node_ids,
+            phones: PhoneRange::default(),
+            link_names: Vec::new(),
             tracker,
             track: None,
             last_track: Instant::now(),
             feed,
-            links: link_names.iter().cloned().map(LinkHistory::new).collect(),
-            banners: vec![None; link_names.len()],
-            heatmaps: vec![None; link_names.len()],
+            links: Vec::new(),
+            banners: Vec::new(),
+            heatmaps: Vec::new(),
             newest_board_seconds: f64::NAN,
-            engine,
+            engine: room.engine,
             room_state: None,
             truth: None,
             scene: Scene3d::default(),
             last_tick: Instant::now(),
             started: Instant::now(),
-        }
+            growth: None,
+            new_link_at: None,
+        };
+        window.read_links(room.node_names, room.link_names);
+        window
+    }
+
+    pub fn growing(mut self, growth: Growth) -> Self {
+        self.growth = Some(growth);
+        self
+    }
+
+    fn read_links(&mut self, node_names: Vec<String>, link_names: Vec<String>) {
+        let ends = self.engine.link_ends();
+        let scene = self.engine.scene();
+        self.tracker = MotionTracker::new(ends.clone(), scene.width, scene.depth);
+        self.one_line = on_one_line(&ends);
+        self.node_names = node_names;
+        self.links = link_names.iter().cloned().map(LinkHistory::new).collect();
+        self.banners = vec![None; link_names.len()];
+        self.heatmaps = vec![None; link_names.len()];
+        self.link_names = link_names;
+        self.room_state = None;
+        self.track = None;
+        self.still_since = None;
+    }
+
+    /// A board switched on later: once its links stop arriving, the room is laid out again with them.
+    fn join_new_links(&mut self) {
+        let settled = self.new_link_at.is_some_and(|t| t.elapsed() >= SETTLE_NEW_LINKS);
+        let Some(growth) = self.growth.as_ref().filter(|_| settled) else { return };
+        self.new_link_at = None;
+        let reading = growth.reading.lock().unwrap().clone();
+        let room = match room_setup::room_engine(&growth.seen, growth.room_file.as_deref()) {
+            Ok(room) if room.links != reading => room,
+            Ok(_) => return,
+            Err(error) => return eprintln!("new links: {error}"),
+        };
+        println!("links: {}", room.links.join(", "));
+        *growth.reading.lock().unwrap() = room.links.clone();
+        self.engine = room.engine;
+        self.node_ids = room.node_ids;
+        self.read_links(room.node_names, room.link_names);
     }
 
     /// The engine runs on the boards' own clock, like research/live.py; one decision per wall-clock second.
@@ -80,6 +140,12 @@ impl LiveWindow {
         if self.newest_board_seconds.is_finite() {
             self.room_state = self.engine.tick(self.newest_board_seconds).ok();
         }
+        let still = self
+            .room_state
+            .as_ref()
+            .and_then(|s| s.room.decision.as_ref())
+            .is_some_and(|d| d.state3 == RoomState3::Still);
+        self.still_since = still.then(|| self.still_since.unwrap_or_else(Instant::now));
     }
 
     fn tick_tracker(&mut self) {
@@ -100,10 +166,13 @@ impl LiveWindow {
             .map(|l| fresh(l.rssi_spread_db()))
             .collect();
         if motion.iter().any(|m| !m.is_nan()) {
-            self.track = Some(
-                self.tracker
-                    .update(&motion, &shadowing, elapsed.as_secs_f64()),
-            );
+            let mut track = self
+                .tracker
+                .update(&motion, &shadowing, elapsed.as_secs_f64());
+            if self.one_line {
+                track.xy = None;
+            }
+            self.track = Some(track);
         }
     }
 
@@ -111,6 +180,7 @@ impl LiveWindow {
         let now = self.started.elapsed().as_secs_f64();
         for event in self.feed.try_iter() {
             match event {
+                FeedEvent::Frame(frame) if frame.link >= self.links.len() => {}
                 FeedEvent::Frame(frame) => {
                     self.engine.add(
                         frame.link,
@@ -121,8 +191,21 @@ impl LiveWindow {
                     self.newest_board_seconds = self.newest_board_seconds.max(frame.board_seconds);
                     self.links[frame.link].push(&frame, now);
                 }
-                FeedEvent::Banner { link, text } => self.banners[link] = Some(text),
+                FeedEvent::Banner { link, text } => {
+                    if let Some(banner) = self.banners.get_mut(link) {
+                        *banner = Some(text);
+                    }
+                }
                 FeedEvent::Truth(truth) => self.truth = Some(truth),
+                FeedEvent::Heard { link, rssi } => {
+                    self.phones.hear(&link, f64::from(rssi), &self.node_ids);
+                }
+                FeedEvent::NewLink(link) => {
+                    if let Some(growth) = &mut self.growth {
+                        growth.seen.push(link);
+                        self.new_link_at = Some(Instant::now());
+                    }
+                }
             }
         }
     }
@@ -130,8 +213,13 @@ impl LiveWindow {
     fn link_panel(&mut self, ui: &mut egui::Ui, index: usize) {
         let link = &self.links[index];
         let alive = link.packets_per_second() >= 10.0;
-        ui.horizontal(|ui| {
-            theme::status_dot(ui, if alive { theme::ALIVE } else { theme::SILENT }, 4.0, 18.0);
+        ui.horizontal_wrapped(|ui| {
+            theme::status_dot(
+                ui,
+                if alive { theme::ALIVE } else { theme::SILENT },
+                4.0,
+                18.0,
+            );
             ui.label(egui::RichText::new(&link.name).strong());
             let detail = match link.latest_rssi() {
                 Some(rssi) => format!("{:.0} packets/s · {rssi} dBm", link.packets_per_second()),
@@ -174,16 +262,34 @@ impl LiveWindow {
 impl eframe::App for LiveWindow {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.take_new_events();
+        self.join_new_links();
         self.tick_engine();
         self.tick_tracker();
         egui::SidePanel::left("state")
             .exact_width(SIDE_PANEL_WIDTH)
             .frame(panel_frame())
             .show(ctx, |ui| {
-                ui.label(egui::RichText::new("wujud").size(13.0).strong().color(theme::ACCENT).extra_letter_spacing(3.0));
+                ui.label(
+                    egui::RichText::new("wujud")
+                        .size(13.0)
+                        .strong()
+                        .color(theme::ACCENT)
+                        .extra_letter_spacing(3.0),
+                );
                 ui.add_space(8.0);
-                room_view::state_banner(ui, self.room_state.as_ref(), self.track.as_ref());
-                room_view::tracking(ui, self.track.as_ref(), &self.link_names);
+                let still_seconds = self.still_since.map_or(0.0, |t| t.elapsed().as_secs_f64());
+                room_view::state_banner(ui, self.room_state.as_ref(), still_seconds);
+                let boards = room_view::Boards {
+                    names: &self.node_names,
+                    at: &self.engine.scene().nodes,
+                    one_line: self.one_line,
+                    state: self.room_state.as_ref(),
+                };
+                let phones = self.phones.distances(&self.node_ids);
+                if self.growth.is_some() {
+                    room_view::phone_distances(ui, &phones, &self.node_names);
+                }
+                room_view::tracking(ui, self.track.as_ref(), &self.link_names, &boards);
                 if let Some(truth) = &self.truth {
                     room_view::simulator_truth(ui, truth);
                 }
@@ -205,6 +311,7 @@ impl eframe::App for LiveWindow {
             .frame(egui::Frame::NONE)
             .show(ctx, |ui| {
                 let (xs, ys) = self.tracker.grid();
+                let phones = self.phones.distances(&self.node_ids);
                 let inputs = SceneInputs {
                     scene: self.engine.scene(),
                     node_names: &self.node_names,
@@ -217,11 +324,31 @@ impl eframe::App for LiveWindow {
                     }),
                     truth: self.truth.as_ref(),
                     seconds: self.started.elapsed().as_secs_f32(),
+                    one_line: self.one_line,
+                    phones: &phones,
+                    still_seconds: self.still_since.map_or(0.0, |t| t.elapsed().as_secs_f32()),
                 };
                 self.scene.show(ui, &inputs);
             });
         ctx.request_repaint();
     }
+}
+
+fn on_one_line(links: &[([f64; 2], [f64; 2])]) -> bool {
+    let ends: Vec<[f64; 2]> = links.iter().flat_map(|&(a, b)| [a, b]).collect();
+    let Some(&first) = ends.first() else {
+        return true;
+    };
+    let Some(&second) = ends
+        .iter()
+        .find(|p| (p[0] - first[0]).hypot(p[1] - first[1]) > 0.1)
+    else {
+        return true;
+    };
+    let (dx, dy) = (second[0] - first[0], second[1] - first[1]);
+    let length = dx.hypot(dy);
+    ends.iter()
+        .all(|p| ((p[0] - first[0]) * dy - (p[1] - first[1]) * dx).abs() / length < 0.1)
 }
 
 /// Time runs left to right, subcarriers low to high frequency bottom to top; warm = stronger than usual, cyan = weaker.
@@ -241,15 +368,27 @@ fn diverging_color(value: f32) -> Color32 {
     let t = value.clamp(-1.0, 1.0);
     let toward = |from: Color32, to: Color32, amount: f32| {
         let mix = |a: u8, b: u8| (f32::from(a) + (f32::from(b) - f32::from(a)) * amount) as u8;
-        Color32::from_rgb(mix(from.r(), to.r()), mix(from.g(), to.g()), mix(from.b(), to.b()))
+        Color32::from_rgb(
+            mix(from.r(), to.r()),
+            mix(from.g(), to.g()),
+            mix(from.b(), to.b()),
+        )
     };
     let base = theme::BACKGROUND;
     let amount = t.abs();
     if t >= 0.0 {
         let hot = if amount < 0.6 {
-            toward(Color32::from_rgb(180, 40, 90), Color32::from_rgb(255, 120, 50), amount / 0.6)
+            toward(
+                Color32::from_rgb(180, 40, 90),
+                Color32::from_rgb(255, 120, 50),
+                amount / 0.6,
+            )
         } else {
-            toward(Color32::from_rgb(255, 120, 50), Color32::from_rgb(255, 230, 120), (amount - 0.6) / 0.4)
+            toward(
+                Color32::from_rgb(255, 120, 50),
+                Color32::from_rgb(255, 230, 120),
+                (amount - 0.6) / 0.4,
+            )
         };
         toward(base, hot, amount.min(1.0))
     } else {
@@ -282,7 +421,9 @@ fn draw_rssi(ui: &mut egui::Ui, link: &LinkHistory, width: f32) {
     let mut means = Vec::with_capacity(columns);
     for column in 0..columns {
         let from = column * values.len() / columns;
-        let to = ((column + 1) * values.len() / columns).max(from + 1).min(values.len());
+        let to = ((column + 1) * values.len() / columns)
+            .max(from + 1)
+            .min(values.len());
         let bucket = &values[from..to];
         let x = inner.left() + inner.width() * column as f32 / (columns - 1) as f32;
         let (lo, hi) = bucket

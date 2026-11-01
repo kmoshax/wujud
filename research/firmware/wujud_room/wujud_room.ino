@@ -566,6 +566,9 @@ static void start_hub() {
     open_network(home_channel);
   } else {
     report("I,wujud-room,cannot reach \"%s\": no internet for the devices", HOME_SSID);
+    // Retrying in the background would keep the radio scanning other channels and drop the pings.
+    WiFi.setAutoReconnect(false);
+    WiFi.disconnect();
     WiFi.softAP(WUJUD_SSID, WUJUD_PASSWORD, settings.channel, 0, MAX_DEVICES);
   }
 #else

@@ -1,6 +1,8 @@
 //! Where packets come from: real boards on serial ports, or the simulator playing a room in real time.
 
+use std::collections::{BTreeSet, HashMap};
 use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -27,7 +29,16 @@ pub enum FeedEvent {
     Frame(CsiFrame),
     Banner { link: usize, text: String },
     Truth(SimulatedTruth),
+    /// A board started measuring a device the window does not read yet (a board switched on later).
+    NewLink(String),
+    /// Signal strength on a link the window does not read (a phone): one in `HEARD_EVERY` packets.
+    Heard { link: String, rssi: i8 },
 }
+
+const HEARD_EVERY: u32 = 10;
+
+/// Lines a new device must send before it counts as a link, so a phone passing by does not.
+const NEW_LINK_LINES: u32 = 300;
 
 /// Every board counts from its own boot, so the hub's links and each node's links run on different
 /// clocks. Each link keeps its board's timing but is anchored to the laptop's clock at its first packet,
@@ -54,25 +65,51 @@ impl LinkClock {
     }
 }
 
+/// `reading` is the links the window reads, in its order; the window changes it when a board joins.
 pub fn from_serial_ports(
     ports: &[String],
+    reading: Arc<Mutex<Vec<String>>>,
     record: Option<&str>,
 ) -> anyhow::Result<Receiver<FeedEvent>> {
     let lines = serial::read_ports(ports, record)?;
     let (events, receiver) = channel();
-    let mut clocks: Vec<LinkClock> = ports.iter().map(|_| LinkClock::default()).collect();
+    let mut clocks: HashMap<String, LinkClock> = HashMap::new();
+    let mut unknown: HashMap<String, u32> = HashMap::new();
+    let mut announced = BTreeSet::new();
     thread::spawn(move || {
         for line in lines {
+            let index = reading.lock().unwrap().iter().position(|l| *l == line.link);
+            let Some(link) = index else {
+                let count = unknown.entry(line.link.clone()).or_default();
+                *count += 1;
+                let mut event = None;
+                if *count >= NEW_LINK_LINES && announced.insert(line.link.clone()) {
+                    event = Some(FeedEvent::NewLink(line.link.clone()));
+                } else if *count % HEARD_EVERY == 0 {
+                    if let Ok(Line::Csi(packet)) = Line::parse(&line.text) {
+                        event = Some(FeedEvent::Heard {
+                            link: line.link,
+                            rssi: packet.rssi,
+                        });
+                    }
+                }
+                if event.is_some_and(|e| events.send(e).is_err()) {
+                    return;
+                }
+                continue;
+            };
             let event = match Line::parse(&line.text) {
                 Ok(Line::Csi(packet)) => FeedEvent::Frame(CsiFrame {
-                    link: line.port,
-                    board_seconds: clocks[line.port]
+                    link,
+                    board_seconds: clocks
+                        .entry(line.link)
+                        .or_default()
                         .seconds(packet.rx_timestamp_us, line.wall_seconds),
                     iq: packet.csi.as_bytes().to_vec(),
                     rssi: packet.rssi,
                 }),
                 Ok(Line::Info(info)) => FeedEvent::Banner {
-                    link: line.port,
+                    link,
                     text: info.to_string(),
                 },
                 _ => continue,
