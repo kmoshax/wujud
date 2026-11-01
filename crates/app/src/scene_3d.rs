@@ -129,17 +129,7 @@ impl Scene3d {
 
         drawables.sort_by(|a, b| b.depth.total_cmp(&a.depth));
         painter.extend(drawables.into_iter().map(|d| d.shape));
-        for (node, name) in scene.nodes.iter().zip(inputs.node_names) {
-            if let Some(at) = view.project(add(point(*node), [0.0, 0.0, 0.22])) {
-                painter.text(
-                    at.at,
-                    egui::Align2::CENTER_BOTTOM,
-                    name,
-                    egui::FontId::proportional(13.0),
-                    LABEL,
-                );
-            }
-        }
+        node_labels(&painter, &view, &scene.nodes, inputs.node_names);
         painter.text(
             viewport.left_bottom() + Vec2::new(10.0, -10.0),
             egui::Align2::LEFT_BOTTOM,
@@ -183,6 +173,41 @@ impl Scene3d {
                 0.35
             },
         })
+    }
+}
+
+/// Name pills above the boards, pushed up when two would overlap.
+fn node_labels(painter: &egui::Painter, view: &Projection, nodes: &[[f64; 3]], names: &[String]) {
+    let font = egui::FontId::proportional(12.0);
+    let mut labels: Vec<(Pos2, &String)> = nodes
+        .iter()
+        .zip(names)
+        .filter_map(|(node, name)| Some((view.project(add(point(*node), [0.0, 0.0, 0.22]))?.at, name)))
+        .collect();
+    labels.sort_by(|a, b| b.0.y.total_cmp(&a.0.y));
+    let mut placed: Vec<Rect> = Vec::new();
+    for (anchor, name) in labels {
+        let galley = painter.layout_no_wrap(name.clone(), font.clone(), LABEL);
+        let size = galley.size() + Vec2::new(14.0, 6.0);
+        let mut rect = Rect::from_center_size(anchor - Vec2::new(0.0, size.y / 2.0), size);
+        while let Some(hit) = placed.iter().find(|p| p.expand(2.0).intersects(rect)) {
+            rect = rect.translate(Vec2::new(0.0, hit.top() - rect.bottom() - 3.0));
+        }
+        if rect.center().y < anchor.y - size.y {
+            painter.line_segment(
+                [anchor, Pos2::new(rect.center().x, rect.bottom())],
+                Stroke::new(1.0_f32, LABEL.gamma_multiply(0.4)),
+            );
+        }
+        painter.rect_filled(rect, egui::CornerRadius::same(255), Color32::from_rgba_unmultiplied(12, 16, 24, 210));
+        painter.rect_stroke(
+            rect,
+            egui::CornerRadius::same(255),
+            Stroke::new(1.0_f32, Color32::from_rgb(50, 60, 80)),
+            egui::StrokeKind::Inside,
+        );
+        painter.galley(rect.center() - galley.size() / 2.0, galley, LABEL);
+        placed.push(rect);
     }
 }
 

@@ -10,6 +10,7 @@ mod scene_3d;
 mod screenshot;
 mod sensor_feed;
 mod serial;
+mod theme;
 mod udp;
 
 use clap::{Parser, Subcommand};
@@ -78,23 +79,16 @@ fn live(
     record: Option<&str>,
 ) -> anyhow::Result<()> {
     let ports = serial::one_link_per_device(&ports);
-    println!("links: {}", ports.join(", "));
     let room = room_setup::room_engine(&ports, room)?;
-    let feed = sensor_feed::from_serial_ports(&ports, record)?;
-    open_window(LiveWindow::new(&ports, feed, room))
+    println!("links: {}", room.links.join(", "));
+    let feed = sensor_feed::from_serial_ports(&room.links, record)?;
+    open_window(LiveWindow::new(feed, room))
 }
 
 fn demo(boards: usize, seed: u64) -> anyhow::Result<()> {
     let stream = wujud_sim::stream::RoomStream::demo(seed, boards);
     let room = room_setup::simulated_room_engine(stream.room())?;
-    let names: Vec<String> = (1..=boards)
-        .map(|k| format!("simulated ESP32 {k}"))
-        .collect();
-    open_window(LiveWindow::new(
-        &names,
-        sensor_feed::from_simulator(stream),
-        room,
-    ))
+    open_window(LiveWindow::new(sensor_feed::from_simulator(stream), room))
 }
 
 fn demo_hall(seed: u64) -> anyhow::Result<()> {
@@ -120,7 +114,10 @@ fn open_window(window: impl eframe::App + 'static) -> anyhow::Result<()> {
     eframe::run_native(
         "wujud",
         options,
-        Box::new(move |_| Ok(screenshot::wrap(window))),
+        Box::new(move |creation| {
+            theme::apply(&creation.egui_ctx);
+            Ok(screenshot::wrap(window))
+        }),
     )
     .map_err(|e| anyhow::anyhow!("{e}"))
 }

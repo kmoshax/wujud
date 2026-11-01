@@ -1,18 +1,21 @@
 //! Lines from a board on Wi-Fi: the room firmware streams every CSI line to whoever asked last.
+//! A datagram is one line from the hub itself, or a batch of whole lines a node passed through it.
 
+use std::collections::VecDeque;
 use std::net::UdpSocket;
 use std::time::{Duration, Instant};
 
 pub const CSI_PORT: u16 = 5005;
 const ASK_EVERY: Duration = Duration::from_secs(1);
 const READ_TIMEOUT: Duration = Duration::from_millis(200);
-const MAX_LINE: usize = 512;
+const MAX_DATAGRAM: usize = 2048;
 
 /// Asking again every second keeps the stream coming after the board resets or the laptop reconnects.
 pub struct UdpReader {
     board: String,
     socket: Option<UdpSocket>,
     last_ask: Option<Instant>,
+    pending: VecDeque<String>,
 }
 
 impl UdpReader {
@@ -21,6 +24,7 @@ impl UdpReader {
             board: format!("{board_ip}:{CSI_PORT}"),
             socket: None,
             last_ask: None,
+            pending: VecDeque::new(),
         }
     }
 
@@ -56,14 +60,19 @@ impl Iterator for UdpReader {
     type Item = String;
 
     fn next(&mut self) -> Option<String> {
-        let mut buffer = [0u8; MAX_LINE];
+        let mut buffer = [0u8; MAX_DATAGRAM];
         loop {
+            if let Some(line) = self.pending.pop_front() {
+                return Some(line);
+            }
             self.ask_if_due();
             let Some(socket) = self.socket.as_ref() else {
                 continue;
             };
             if let Ok(length) = socket.recv(&mut buffer) {
-                return Some(String::from_utf8_lossy(&buffer[..length]).into_owned());
+                let text = String::from_utf8_lossy(&buffer[..length]);
+                self.pending
+                    .extend(text.split_inclusive('\n').map(str::to_owned));
             }
         }
     }

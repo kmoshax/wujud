@@ -29,19 +29,45 @@ pub enum FeedEvent {
     Truth(SimulatedTruth),
 }
 
+/// Every board counts from its own boot, so the hub's links and each node's links run on different
+/// clocks. Each link keeps its board's timing but is anchored to the laptop's clock at its first packet,
+/// and anchored again when it drifts off by more than `REANCHOR_SECONDS` (the board rebooted).
+#[derive(Default)]
+struct LinkClock {
+    board: RxClockUnwrapper,
+    offset: Option<f64>,
+}
+
+const REANCHOR_SECONDS: f64 = 5.0;
+
+impl LinkClock {
+    fn seconds(&mut self, rx_timestamp_us: u32, wall_seconds: f64) -> f64 {
+        let board_seconds = self.board.seconds(rx_timestamp_us);
+        let anchored = self
+            .offset
+            .map(|offset| board_seconds + offset)
+            .filter(|t| (t - wall_seconds).abs() <= REANCHOR_SECONDS);
+        anchored.unwrap_or_else(|| {
+            self.offset = Some(wall_seconds - board_seconds);
+            wall_seconds
+        })
+    }
+}
+
 pub fn from_serial_ports(
     ports: &[String],
     record: Option<&str>,
 ) -> anyhow::Result<Receiver<FeedEvent>> {
     let lines = serial::read_ports(ports, record)?;
     let (events, receiver) = channel();
-    let mut clocks: Vec<RxClockUnwrapper> = ports.iter().map(|_| RxClockUnwrapper::new()).collect();
+    let mut clocks: Vec<LinkClock> = ports.iter().map(|_| LinkClock::default()).collect();
     thread::spawn(move || {
         for line in lines {
             let event = match Line::parse(&line.text) {
                 Ok(Line::Csi(packet)) => FeedEvent::Frame(CsiFrame {
                     link: line.port,
-                    board_seconds: clocks[line.port].seconds(packet.rx_timestamp_us),
+                    board_seconds: clocks[line.port]
+                        .seconds(packet.rx_timestamp_us, line.wall_seconds),
                     iq: packet.csi.as_bytes().to_vec(),
                     rssi: packet.rssi,
                 }),

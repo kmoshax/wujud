@@ -3,98 +3,119 @@ use wujud_model::motion_tracker::Track;
 use wujud_model::room::{RoomState, RoomState3};
 
 use crate::sensor_feed::SimulatedTruth;
+use crate::theme;
 
 /// Only what a few links can tell reliably: empty, someone still, someone moving. The model also
 /// guesses lying / sitting / standing, but on real rooms with one or two links that guess is often
 /// wrong (a person lying on the bed came out as "sitting"), so it is not shown.
 pub fn state_banner(ui: &mut egui::Ui, state: Option<&RoomState>, _track: Option<&Track>) {
     let Some(decision) = state.and_then(|s| s.room.decision.as_ref()) else {
-        ui.label(
-            egui::RichText::new("Learning the room…")
-                .size(26.0)
-                .strong(),
-        );
-        ui.weak("The first answer comes after 20 seconds");
+        theme::card(ui, |ui| {
+            theme::caption(ui, "Room");
+            ui.horizontal(|ui| {
+                ui.spinner();
+                ui.label(egui::RichText::new("Learning the room…").size(22.0).strong());
+            });
+            ui.label(egui::RichText::new("The first answer comes after 20 seconds").color(theme::MUTED));
+        });
         return;
     };
-    let headline = match decision.state3 {
-        RoomState3::Empty => "Room empty",
-        RoomState3::Still => "Someone here, still",
-        RoomState3::Moving => "Someone moving",
+    let (headline, color) = match decision.state3 {
+        RoomState3::Empty => ("Room empty", theme::EMPTY),
+        RoomState3::Still => ("Someone here, still", theme::STILL),
+        RoomState3::Moving => ("Someone moving", theme::MOVING),
     };
-    ui.label(egui::RichText::new(headline).size(26.0).strong());
-    if let Some(bpm) = decision.breath_bpm {
-        ui.label(egui::RichText::new(format!("Breathing {bpm:.0} / min")).size(16.0));
-    }
-    ui.add_space(14.0);
-    ui.weak("How sure");
-    let p = &decision.probs;
-    let shares = [
-        ("empty", p[0]),
-        ("still", p[1] + p[2] + p[3]),
-        ("moving", p[4]),
-    ];
-    for (name, probability) in shares {
+    theme::card(ui, |ui| {
+        theme::caption(ui, "Room");
         ui.horizontal(|ui| {
-            ui.add_sized([70.0, 18.0], egui::Label::new(name));
-            ui.add(
-                egui::ProgressBar::new(probability as f32)
-                    .desired_width(140.0)
-                    .text(format!("{:.0}%", probability * 100.0)),
-            );
+            theme::status_dot(ui, color, 6.0, 30.0);
+            ui.add_space(4.0);
+            ui.label(egui::RichText::new(headline).size(22.0).strong().color(color));
         });
-    }
-    ui.add_space(14.0);
-    if let Some(distance) = decision.latch.distance {
-        ui.weak("Change from the empty room");
-        ui.label(format!(
-            "{distance:.2}  (someone stayed above {:.1})",
-            decision.latch.thr
-        ));
-    }
+        if let Some(bpm) = decision.breath_bpm {
+            ui.label(egui::RichText::new(format!("Breathing {bpm:.0} / min")).size(15.0));
+        }
+    });
+    theme::card(ui, |ui| {
+        theme::caption(ui, "How sure");
+        ui.add_space(4.0);
+        let p = &decision.probs;
+        let shares = [
+            ("empty", p[0], theme::EMPTY),
+            ("still", p[1] + p[2] + p[3], theme::STILL),
+            ("moving", p[4], theme::MOVING),
+        ];
+        for (name, probability, color) in shares {
+            theme::meter(
+                ui,
+                name,
+                probability as f32,
+                &format!("{:.0}%", probability * 100.0),
+                color,
+            );
+        }
+        if let Some(distance) = decision.latch.distance {
+            ui.add_space(4.0);
+            ui.label(
+                egui::RichText::new(format!(
+                    "change from empty {distance:.2} · stays above {:.1}",
+                    decision.latch.thr
+                ))
+                .small()
+                .color(theme::MUTED),
+            );
+        }
+    });
 }
 
 /// Where the person is, from the fast per-link disturbance (motion_tracker).
 pub fn tracking(ui: &mut egui::Ui, track: Option<&Track>, link_names: &[String]) {
     let Some(track) = track else { return };
-    ui.add_space(14.0);
-    ui.separator();
-    ui.weak("Position");
-    match (track.xy, track.moving) {
-        (Some([x, y]), true) => {
-            ui.label(egui::RichText::new(format!("moving at ({x:.1}, {y:.1}) m")).size(16.0));
-            ui.label(format!(
-                "sure within 60 cm: {:.0}%",
-                track.confidence * 100.0
-            ));
+    theme::card(ui, |ui| {
+        theme::caption(ui, "Position");
+        match (track.xy, track.moving) {
+            (Some([x, y]), true) => {
+                ui.label(egui::RichText::new(format!("({x:.1}, {y:.1}) m")).size(20.0).strong());
+                ui.label(
+                    egui::RichText::new(format!(
+                        "moving · sure within 60 cm: {:.0}%",
+                        track.confidence * 100.0
+                    ))
+                    .color(theme::MUTED),
+                );
+            }
+            (Some([x, y]), false) => {
+                ui.label(egui::RichText::new(format!("({x:.1}, {y:.1}) m")).size(20.0).strong());
+                ui.label(egui::RichText::new("last seen moving here").color(theme::MUTED));
+            }
+            (None, _) => {
+                ui.label(egui::RichText::new("waiting for the first movement").color(theme::MUTED));
+            }
         }
-        (Some([x, y]), false) => {
-            ui.label(format!("last seen moving at ({x:.1}, {y:.1}) m"));
-        }
-        (None, _) => {
-            ui.label("waiting for the first movement");
-        }
-    }
-    ui.add_space(8.0);
-    ui.weak("Disturbance per link, above its quiet level");
-    for (name, excess) in link_names.iter().zip(&track.link_excess) {
-        ui.horizontal(|ui| {
-            ui.add_sized([70.0, 18.0], egui::Label::new(name.as_str()).truncate());
-            ui.add(
-                egui::ProgressBar::new((*excess / 3.0).clamp(0.0, 1.0) as f32)
-                    .desired_width(140.0)
-                    .text(format!("{excess:.1}x")),
+    });
+    theme::card(ui, |ui| {
+        theme::caption(ui, "Disturbance per link");
+        ui.add_space(4.0);
+        for (name, excess) in link_names.iter().zip(&track.link_excess) {
+            let color = if *excess >= 1.0 { theme::ACCENT } else { theme::EMPTY };
+            theme::meter(
+                ui,
+                name,
+                (*excess / 3.0) as f32,
+                &format!("{excess:.1}×"),
+                color,
             );
-        });
-    }
+        }
+        ui.label(egui::RichText::new("above each link's quiet level").small().color(theme::MUTED));
+    });
 }
 
 pub fn simulator_truth(ui: &mut egui::Ui, truth: &SimulatedTruth) {
-    ui.add_space(14.0);
-    ui.separator();
-    ui.weak("What the simulator is really doing");
-    ui.label(egui::RichText::new(&truth.activity).size(18.0));
-    if let Some(bpm) = truth.breath_bpm {
-        ui.label(format!("breathing {bpm:.0} / min"));
-    }
+    theme::card(ui, |ui| {
+        theme::caption(ui, "Simulator ground truth");
+        ui.label(egui::RichText::new(&truth.activity).size(18.0).strong());
+        if let Some(bpm) = truth.breath_bpm {
+            ui.label(egui::RichText::new(format!("breathing {bpm:.0} / min")).color(theme::MUTED));
+        }
+    });
 }

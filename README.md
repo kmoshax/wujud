@@ -40,11 +40,11 @@ cargo run --release -p wujud -- demo --boards 3
 To run with a real board:
 
 1. Install the Arduino CLI and the ESP32 core.
-2. Flash the board once over USB:
+2. Flash each board once over USB, all with the same firmware:
    ```bash
    research/firmware/board.sh flash
    ```
-3. Join the laptop and a phone to the Wi-Fi network `wujud`.
+3. Switch the boards on. The first one opens the Wi-Fi network `wujud` and the others join it by themselves (`research/firmware/README.md`). Join the laptop to `wujud` too.
 4. Start the live view:
    ```bash
    cargo run --release -p wujud -- live --ports udp:192.168.4.1

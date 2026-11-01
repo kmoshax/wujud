@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
-# The room board, from the laptop. Over USB when it is plugged in, otherwise over Wi-Fi
-# (the laptop joined to the board's network "wujud").
-#   board.sh flash                     build research/firmware/wujud_room and send it
+# The room boards, from the laptop. Over USB when one is plugged in, otherwise over Wi-Fi
+# (the laptop joined to the hub's network "wujud").
+#   board.sh flash                     build research/firmware/wujud_room and send it; over Wi-Fi it goes
+#                                      to every node the hub lists, then to the hub
 #                                      (OVER_WIFI=1 sends it over Wi-Fi even when plugged in)
-#   board.sh status                    what the board is doing
-#   board.sh set ping_hz=200 channel=6 change settings (the board reboots)
-#   board.sh reboot
+#   board.sh status                    what the hub and every node are doing
+#   board.sh set ping_hz=200 channel=6 change the hub's settings (the hub reboots)
+#   board.sh reboot                    reboot the hub
+# BOARD=192.168.4.x talks to that board instead of the hub.
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
 sketch="$here/wujud_room"
 key_file="$sketch/ota_key.h"
-board="http://192.168.4.1"
+board="http://${BOARD:-192.168.4.1}"
 
 if [[ ! -f "$key_file" ]]; then
   echo "#define OTA_KEY \"$(head -c 18 /dev/urandom | base64 | tr '+/' 'xy')\"" > "$key_file"
@@ -31,15 +33,29 @@ flash() {
     arduino-cli upload --fqbn esp32:esp32:esp32 --port "$port" --input-dir "$build" \
       --board-options UploadSpeed=921600 "$sketch"
   else
-    # The update page refuses uploads whose Origin is not the board itself (CSRF guard).
-    call -H "Origin: $board" -F "firmware=@$build/wujud_room.ino.bin" "$board/update" >/dev/null
-    echo "sent over Wi-Fi; the board reboots into it"
+    local target
+    for target in $(node_ips) "${BOARD:-192.168.4.1}"; do
+      # The update page refuses uploads whose Origin is not the board itself (CSRF guard).
+      call -H "Origin: http://$target" -F "firmware=@$build/wujud_room.ino.bin" "http://$target/update" >/dev/null
+      echo "sent to $target over Wi-Fi; it reboots into it"
+    done
   fi
+}
+
+node_ips() {
+  [[ -n "${BOARD:-}" ]] && return
+  call "$board/status" | grep -o '"ip":"[0-9.]*","node":true' | cut -d'"' -f4
+}
+
+status() {
+  call "$board/status"
+  local ip
+  for ip in $(node_ips); do call "http://$ip/status"; done
 }
 
 case "${1:-}" in
   flash) flash ;;
-  status) call "$board/status" ;;
+  status) status ;;
   set)
     shift
     query="$(IFS='&'; echo "$*")"
@@ -47,7 +63,7 @@ case "${1:-}" in
     ;;
   reboot) call "$board/reboot" ;;
   *)
-    sed -n '2,9p' "$0"
+    sed -n '2,11p' "$0"
     exit 1
     ;;
 esac
