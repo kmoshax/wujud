@@ -7,7 +7,7 @@
 //!
 //! Writes `<out>.bin` (f32, per room: steps x links x 33) and `<out>.json` (per room: offset, steps, links,
 //! nodes, room size, movement per step, activity per second).
-//! cargo run --release -p wujud --example export_movements -- <out> <first_seed> <rooms> [seconds]
+//! cargo run --release -p wujud --example export_movements -- <out> <first_seed> <rooms> [seconds] [harsh_low harsh_high]
 
 use std::fs::File;
 use std::io::{BufWriter, Write};
@@ -51,7 +51,7 @@ struct RoomExport {
     index: serde_json::Value,
 }
 
-fn export_room(seed: u64, seconds: f64) -> RoomExport {
+fn export_room(seed: u64, seconds: f64, harsh: (f64, f64)) -> RoomExport {
     let mut rng = seeded(seed, 11);
     let boards = integer(&mut rng, 2, 4);
     let room = random_room(&mut seeded(seed, 0), &RoomOptions { boards, mesh: true, smart_placement: false });
@@ -65,7 +65,7 @@ fn export_room(seed: u64, seconds: f64) -> RoomExport {
         seconds: plan.iter().map(|step| step.seconds).sum(),
         fs: FS,
         plan: Some(plan),
-        harsh: uniform(&mut rng, 0.7, 2.0),
+        harsh: uniform(&mut rng, harsh.0, harsh.1),
         distractors,
         knobs: RealismKnobs {
             rcs_scale: 10f64.powf(uniform(&mut rng, -1.0, 0.0)),
@@ -106,7 +106,9 @@ fn main() {
     let first: u64 = args.get(1).map_or(1, |a| a.parse().unwrap());
     let rooms: u64 = args.get(2).map_or(10, |a| a.parse().unwrap());
     let seconds: f64 = args.get(3).map_or(240.0, |a| a.parse().unwrap());
-    let exports: Vec<RoomExport> = (first..first + rooms).into_par_iter().map(|seed| export_room(seed, seconds)).collect();
+    let harsh = (args.get(4).map_or(0.7, |a| a.parse().unwrap()), args.get(5).map_or(2.0, |a| a.parse().unwrap()));
+    let exports: Vec<RoomExport> =
+        (first..first + rooms).into_par_iter().map(|seed| export_room(seed, seconds, harsh)).collect();
     let mut data = BufWriter::new(File::create(format!("{out}.bin")).unwrap());
     let mut index = Vec::new();
     let mut offset = 0usize;

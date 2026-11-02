@@ -362,6 +362,7 @@ pub struct PostureChange {
     pub to: Activity,
     pub first: usize,
     pub end: usize,
+    pub movement: Movement,
 }
 
 /// Ground truth per frame.
@@ -378,10 +379,7 @@ pub struct PersonLabels {
 impl PersonLabels {
     pub fn movement_at(&self, frame: usize) -> Movement {
         let change = self.changes.iter().find(|c| (c.first..c.end).contains(&frame));
-        match change {
-            Some(change) => Movement::of_change(change.from, change.to),
-            None => Movement::of_activity(self.activity[frame]),
-        }
+        change.map_or_else(|| Movement::of_activity(self.activity[frame]), |c| c.movement)
     }
 }
 
@@ -572,7 +570,7 @@ pub fn room_person(
     if movement_session {
         place_head_over_body(&mut body);
     }
-    let changes = move_between_activities(&mut body, &plan, fs, frames);
+    let changes = move_between_activities(&mut body, &plan, fs, frames, movement_session);
     body.absorption = uniform(rng, BODY_ABSORPTION_RANGE.0, BODY_ABSORPTION_RANGE.1);
     body.chest_rcs = uniform(rng, 0.3, 0.8) * knobs.rcs_scale;
     if movement_session {
@@ -756,12 +754,21 @@ const POSTURE_CHANGE_S: f64 = 1.8;
 /// Walking speed to the next spot, and the longest a change may take.
 const WALK_TO_SPOT_M_S: f64 = 0.8;
 const LONGEST_CHANGE_S: f64 = 6.0;
+/// In movement sessions a walk at least this long is done before sitting down (after standing up).
+const MOVE_APART_S: f64 = 0.6;
 
 /// Without this the body jumps from one activity's pose and place to the next in one frame. Each change
 /// between two activities of someone in the room becomes movement over the start of the new one: the
 /// body walks to the new spot and goes down onto the chair or bed (or gets up), eased in and out, so the
-/// links see sitting down and lying down as they happen.
-fn move_between_activities(body: &mut Body, plan: &[PlanStep], fs: f64, frames: usize) -> Vec<PostureChange> {
+/// links see sitting down and lying down as they happen. With `walk_apart` (movement sessions) a longer
+/// walk comes before sitting down and after standing up instead of at the same time, as people do.
+fn move_between_activities(
+    body: &mut Body,
+    plan: &[PlanStep],
+    fs: f64,
+    frames: usize,
+    walk_apart: bool,
+) -> Vec<PostureChange> {
     let mut changes = Vec::new();
     let mut start = 0usize;
     let mut previous: Option<Activity> = None;
@@ -770,31 +777,67 @@ fn move_between_activities(body: &mut Body, plan: &[PlanStep], fs: f64, frames: 
         if n == 0 {
             break;
         }
-        if previous.is_some_and(|p| p != Activity::Away) && step.activity != Activity::Away && start > 0 {
+        if let Some(from_activity) = previous.filter(|&p| p != Activity::Away && step.activity != Activity::Away && start > 0) {
             let from = start - 1;
             let walk_m = {
                 let target = body.centre[(start + n / 2).min(start + n - 1)];
                 (target[0] - body.centre[from][0]).hypot(target[1] - body.centre[from][1])
             };
-            let posture = previous != Some(step.activity);
-            let seconds = (walk_m / WALK_TO_SPOT_M_S + if posture { POSTURE_CHANGE_S } else { 0.0 })
-                .min(LONGEST_CHANGE_S)
-                .min(step.seconds / 2.0);
+            let posture = from_activity != step.activity;
+            let walk_s = walk_m / WALK_TO_SPOT_M_S;
+            let posture_s = if posture { POSTURE_CHANGE_S } else { 0.0 };
+            let seconds = (walk_s + posture_s).min(LONGEST_CHANGE_S).min(step.seconds / 2.0);
             let length = ((seconds * fs) as usize).min(n.saturating_sub(1));
-            if length > 1 {
+            let change = |first: usize, end: usize, movement: Movement| PostureChange {
+                from: from_activity,
+                to: step.activity,
+                first,
+                end,
+                movement,
+            };
+            let posture_movement = Movement::of_change(from_activity, step.activity);
+            let walk_length = (length as f64 * walk_s / (walk_s + posture_s)) as usize;
+            if walk_apart && posture && walk_s >= MOVE_APART_S && walk_length > 1 && length - walk_length > 1 {
+                let getting_up = !from_activity.is_upright();
+                let middle = if getting_up { start + length - walk_length } else { start + walk_length };
+                let target = start + length;
+                if getting_up {
+                    place_pose_at(body, target, from, middle);
+                } else {
+                    place_pose_at(body, from, target, middle);
+                }
+                ease(body, from, middle, middle - start);
+                ease(body, middle, target, target - middle);
+                let (walking, changing) = if getting_up { (middle..target, start..middle) } else { (start..middle, middle..target) };
+                changes.push(change(changing.start, changing.end, posture_movement));
+                changes.push(change(walking.start, walking.end, Movement::Walk));
+            } else if length > 1 {
                 ease(body, from, start + length, length);
-                changes.push(PostureChange {
-                    from: previous.expect("checked above"),
-                    to: step.activity,
-                    first: start,
-                    end: start + length,
-                });
+                changes.push(change(start, start + length, posture_movement));
             }
         }
         previous = Some(step.activity);
         start += n;
     }
+    changes.sort_by_key(|c| c.first);
     changes
+}
+
+/// Frame `at` gets the pose of frame `pose`, moved to stand where frame `place` stands.
+fn place_pose_at(body: &mut Body, pose: usize, place: usize, at: usize) {
+    let [dx, dy] = [body.centre[place][0] - body.centre[pose][0], body.centre[place][1] - body.centre[pose][1]];
+    let shift = |p: Vec3| [p[0] + dx, p[1] + dy, p[2]];
+    body.centre[at] = body.centre[place];
+    body.z_bottom[at] = body.z_bottom[pose];
+    body.z_top[at] = body.z_top[pose];
+    body.half_width[at] = body.half_width[pose];
+    body.half_depth[at] = body.half_depth[pose];
+    body.yaw[at] = body.yaw[pose];
+    body.chest[at] = shift(body.chest[pose]);
+    body.limb[at] = shift(body.limb[pose]);
+    if !body.head.is_empty() {
+        body.head[at] = shift(body.head[pose]);
+    }
 }
 
 /// Frames `to - length .. to` move from the pose at `from` to the pose at `to`.

@@ -4,7 +4,10 @@ seconds around it, into gradient-boosted trees. Same rooms, same split, same per
 
     .venv/bin/python -I tools/movement_baseline.py cache/movements/part*.json
 """
+import os
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import numpy as np
 from sklearn.ensemble import HistGradientBoostingClassifier

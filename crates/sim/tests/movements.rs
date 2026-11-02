@@ -58,7 +58,9 @@ fn a_wave_moves_the_hand_above_the_head() {
     assert!(waving.iter().all(|&t| body.limb[t][2] > body.z_top[t]));
     assert!(waving.iter().all(|&t| (body.z_top[t] - 1.3).abs() < 0.05), "waves seated");
     assert!(waving.iter().all(|&t| labels.movement_at(t) == Movement::Wave));
-    assert_eq!(labels.movement_at(frame_at(5.5)), Movement::SitDown);
+    let sitting_down = (frame_at(5.0)..frame_at(11.0)).find(|&t| labels.movement_at(t) == Movement::SitDown).unwrap();
+    assert!(body.z_top[sitting_down] > 1.6, "walks to the chair standing, then sits down");
+    assert!((frame_at(5.0)..sitting_down).all(|t| labels.movement_at(t) == Movement::Walk));
 }
 
 #[test]

@@ -10,6 +10,7 @@ sees the body strongly and one that barely does read alike. A dilated 1-D CNN re
 the movement.
 
 Rooms are split by seed: train, validation (choosing the epoch and settings) and test (read once).
+Rooms with seeds above 5000 (export_movements with harsh 2-3.5) are a stress test, never learnt from.
 
     .venv/bin/python -I tools/movement_net.py cache/movements/part*.json [key=value ...]
 """
@@ -22,6 +23,7 @@ from torch import nn
 
 MOVEMENTS = ["still", "walk", "wave", "bow", "prostrate", "sit_down", "stand_up"]
 HZ, MEAN_S, BINS = 10, 30, 32
+STRESS_FROM = 5000
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 CONFIG = {
     "scale": 1, "width": 64, "dilations": "1,2,4,8,16", "epochs": 24, "window": 256, "batch": 48,
@@ -42,7 +44,7 @@ def lagged(x, n):
     return np.concatenate([np.repeat(x[:1], n, axis=0), x[:-n]], axis=0)
 
 
-def link_inputs(raw, scale):
+def link_inputs(raw, scale, dtype=np.float16):
     """raw: steps x links x 33 -> steps x links x 98, all relative to the link."""
     shape, rssi = raw[..., :BINS], raw[..., BINS:]
     short = shape - lagged(shape, 3)
@@ -54,7 +56,7 @@ def link_inputs(raw, scale):
     if scale:
         typical = rolling_mean(np.abs(second).mean(-1, keepdims=True), MEAN_S * HZ) + 0.05
         out = out / typical
-    return out.astype(np.float16)
+    return out.astype(dtype)
 
 
 def load(paths, scale):
@@ -159,7 +161,8 @@ def main():
     rooms = load(paths, CONFIG["scale"])
     train = [r for r in rooms if r["seed"] <= CONFIG["train_until"]]
     validate = [r for r in rooms if CONFIG["train_until"] < r["seed"] <= CONFIG["validate_until"]]
-    test = [r for r in rooms if r["seed"] > CONFIG["validate_until"]]
+    test = [r for r in rooms if CONFIG["validate_until"] < r["seed"] <= STRESS_FROM]
+    stress = [r for r in rooms if r["seed"] > STRESS_FROM]
     print(f"{CONFIG}\n{len(train)} rooms to learn from, {len(validate)} to choose with, {len(test)} never seen; {DEVICE}",
           flush=True)
     counts = np.bincount(np.concatenate([r["movement"] for r in train]), minlength=len(MOVEMENTS))
@@ -197,6 +200,8 @@ def main():
         for links in sorted({r["inputs"].shape[1] for r in test}):
             subset = [r for r in test if r["inputs"].shape[1] == links]
             print(report(confusion(model, subset), f"TEST rooms with {links} links")[0].splitlines()[0])
+        if stress:
+            print(report(confusion(model, stress), f"STRESS rooms (never seen, hardware harsher than any trained on)")[0])
 
 
 if __name__ == "__main__":
