@@ -28,7 +28,7 @@ SIGMA_M = 0.3
 NMS_M = 0.6
 TEST_SHARE = 0.2
 SECONDS_PER_STEP = 48
-EPOCHS = 24
+EPOCHS = int(__import__("os").environ.get("CROWD_EPOCHS", 30))
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
@@ -117,13 +117,23 @@ def forward_room(model, room, seconds, nodes, walkers):
     return heat, present, walking, points
 
 
-def loss_of(room, seconds, heat, present, walking, points, walkers):
+def count_weights(train):
+    """Per count class, 1/sqrt(share): rare large groups still get learnt, without drowning the rest."""
+    weights = {}
+    for key in ("present", "walking"):
+        counts = np.bincount(np.minimum(np.concatenate([r[key] for r in train]), MAX_PEOPLE), minlength=MAX_PEOPLE + 1)
+        w = 1 / np.sqrt(np.maximum(counts, 1) / counts.sum())
+        weights[key] = torch.tensor(w / (w * counts).sum() * counts.sum(), dtype=torch.float32, device=DEVICE)
+    return weights
+
+
+def loss_of(room, seconds, heat, present, walking, points, walkers, weights):
     target = torch.tensor(heat_target(points, walkers[seconds]), device=DEVICE)
     positive = target.sum() / target.numel()
     heat_loss = nn.functional.binary_cross_entropy_with_logits(
         heat, target, pos_weight=torch.clamp(1 / positive.clamp(min=1e-3) - 1, max=50.0).detach())
     count = lambda logits, key: nn.functional.cross_entropy(
-        logits, torch.tensor(np.minimum(room[key][seconds], MAX_PEOPLE), device=DEVICE))
+        logits, torch.tensor(np.minimum(room[key][seconds], MAX_PEOPLE), device=DEVICE), weight=weights[key])
     return heat_loss + count(present, "present") + count(walking, "walking")
 
 
@@ -147,9 +157,15 @@ def matched_errors(guess, truth):
     return list(cost[rows, cols])
 
 
+def chance_spots(room, k, rng):
+    low, high = np.array([0.5, 0.5]), np.array([room["width"] - 0.5, room["depth"] - 0.5])
+    return rng.uniform(low, high, size=(k, 2))
+
+
 def evaluate(model, rooms, majority):
     model.eval()
     cells = {}
+    rng = np.random.default_rng(0)
     with torch.no_grad():
         for room in rooms:
             n = len(room["nodes"])
@@ -185,12 +201,13 @@ def evaluate(model, rooms, majority):
                         cell_["missed"] += max(0, walking - len(said_k))
                         cell_["walkers"] += walking
                         cell_["centre"] += list(np.linalg.norm(truth - centre, axis=1))
+                        cell_["chance"] += matched_errors(chance_spots(room, walking, rng), truth)
     return cells
 
 
 def new_cell():
     return {k: 0 for k in ["seconds", "present_right", "present_near", "present_majority", "walking_right",
-                           "walking_majority", "missed", "walkers"]} | {"err_known_count": [], "err_said_count": [], "centre": []}
+                           "walking_majority", "missed", "walkers"]} | {"err_known_count": [], "err_said_count": [], "centre": [], "chance": []}
 
 
 def summary(cells):
@@ -202,7 +219,7 @@ def summary(cells):
                "walking_acc": c["walking_right"] / c["seconds"], "walking_majority_acc": c["walking_majority"] / c["seconds"],
                "err_known_count_m": med(c["err_known_count"]), "err_said_count_m": med(c["err_said_count"]),
                "within_1m": float(np.mean(np.array(c["err_known_count"]) < 1)) if c["err_known_count"] else None,
-               "centre_m": med(c["centre"]), "missed_share": c["missed"] / max(c["walkers"], 1)}
+               "centre_m": med(c["centre"]), "chance_m": med(c["chance"]), "missed_share": c["missed"] / max(c["walkers"], 1)}
         if len(key) == 2:
             row |= {"present_acc": c["present_right"] / c["seconds"], "present_within1": c["present_near"] / c["seconds"],
                     "present_majority_acc": c["present_majority"] / c["seconds"]}
@@ -217,7 +234,7 @@ def show(rows):
                  if r["group"] == "present" else "")
         print(f"  {r['devices']} dev {r['group']:>7} {r['count']}: n={r['seconds']:5d} {extra}"
               f"walking {r['walking_acc'] * 100:3.0f}% (maj {r['walking_majority_acc'] * 100:3.0f}%) "
-              f"err {fmt(r['err_known_count_m'])} / said-k {fmt(r['err_said_count_m'])} m, centre {fmt(r['centre_m'])}", flush=True)
+              f"err {fmt(r['err_known_count_m'])} / said-k {fmt(r['err_said_count_m'])} m, centre {fmt(r['centre_m'])}, chance {fmt(r['chance_m'])}", flush=True)
 
 
 def majorities(train):
@@ -235,6 +252,7 @@ def main():
     train = [r for r in rooms if not r["test"]]
     test = [r for r in rooms if r["test"]]
     majority = majorities(train)
+    weights = count_weights(train)
     features = train[0]["tokens"].shape[-1]
     print(f"{len(train)} rooms to learn from, {len(test)} never seen; majority {majority}; {DEVICE}", flush=True)
     torch.manual_seed(0)
@@ -250,7 +268,7 @@ def main():
             seconds = rng.choice(len(room["present"]), size=min(SECONDS_PER_STEP, len(room["present"])), replace=False)
             nodes, walkers = flipped(room, rng)
             heat, present, walking, points = forward_room(model, room, seconds, nodes, walkers)
-            loss = loss_of(room, seconds, heat, present, walking, points, walkers)
+            loss = loss_of(room, seconds, heat, present, walking, points, walkers, weights)
             optimiser.zero_grad()
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(), 1.0)
