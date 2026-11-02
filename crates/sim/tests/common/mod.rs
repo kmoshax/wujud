@@ -114,6 +114,8 @@ impl Npz {
                 limb: points3(&limb, q),
                 chest_rcs: rcs[q],
                 limb_rcs: limb_rcs[q],
+                head: Vec::new(),
+                head_rcs: 0.0,
             })
             .collect()
     }

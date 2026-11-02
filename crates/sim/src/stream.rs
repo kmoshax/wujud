@@ -9,7 +9,7 @@ use crate::capture::Capture;
 use crate::hall::{random_hall, Hall, HallOptions, NodePlacement};
 use crate::hall_sim::{ArrivalOptions, HallSession};
 use crate::random::seeded;
-use crate::room::{random_room, Activity, PlanStep, Room, RoomOptions};
+use crate::room::{random_room, Activity, PersonLabels, PlanStep, Room, RoomOptions};
 use crate::room_sim::{RoomSession, RoomSimOptions};
 
 /// live.py demo-room: away, walk, sit, walk, lie (breathing), walk, away.
@@ -95,6 +95,10 @@ impl RoomStream {
         (self.session.frames() as f64 / self.fs).ceil() as usize
     }
 
+    pub fn labels(&self) -> &PersonLabels {
+        self.session.labels()
+    }
+
     /// Empty-room packets of every link (the calibration a real install records first).
     pub fn calibration(&mut self) -> Vec<Capture> {
         self.session.calibrate()
@@ -104,7 +108,7 @@ impl RoomStream {
         let labels = self.session.labels();
         let frame = frame.min(labels.activity.len().saturating_sub(1));
         let activity = labels.activity[frame];
-        let breathing_visible = matches!(activity, Activity::Lie | Activity::Sit | Activity::Stand);
+        let breathing_visible = matches!(activity, Activity::Lie | Activity::Sit | Activity::Stand | Activity::Kneel);
         let xy = labels.xy[frame];
         RoomTruth {
             activity,

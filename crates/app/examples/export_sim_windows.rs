@@ -59,13 +59,7 @@ fn draw_session(rng: &mut SimRng) -> SessionDraw {
 }
 
 fn activity_name(activity: Activity) -> &'static str {
-    match activity {
-        Activity::Away => "away",
-        Activity::Lie => "lie",
-        Activity::Sit => "sit",
-        Activity::Stand => "stand",
-        Activity::Walk => "walk",
-    }
+    activity.name()
 }
 
 fn distractor_name(kind: DistractorKind) -> &'static str {

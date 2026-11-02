@@ -105,6 +105,8 @@ pub fn standing_body(rng: &mut SimRng, track: &[[f64; 2]], fs: f64, floor_z: f64
         limb: Vec::with_capacity(track.len()),
         chest_rcs: 0.6,
         limb_rcs: 0.1,
+        head: Vec::new(),
+        head_rcs: 0.0,
     };
     for (t, (&[x, y], &[vx, vy])) in track.iter().zip(&velocity).enumerate() {
         let time = t as f64 / fs;

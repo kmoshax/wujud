@@ -19,6 +19,14 @@ pub enum Activity {
     Sit,
     Stand,
     Walk,
+    /// Raises a hand and waves (or holds it up), keeping the posture it had.
+    Wave,
+    /// Ruku': torso pitched forward to horizontal, hands on the knees.
+    Bow,
+    /// Sujud: kneeling with forehead and hands on the floor.
+    Prostrate,
+    /// Sitting on the floor (between prostrations, or tashahhud).
+    Kneel,
 }
 
 impl Activity {
@@ -36,7 +44,84 @@ impl Activity {
     }
 
     pub fn name(self) -> &'static str {
-        ["away", "lie", "sit", "stand", "walk"][self.index()]
+        ["away", "lie", "sit", "stand", "walk", "wave", "bow", "prostrate", "kneel"][self.index()]
+    }
+
+    fn is_body_movement(self) -> bool {
+        matches!(self, Activity::Wave | Activity::Bow | Activity::Prostrate | Activity::Kneel)
+    }
+
+    fn is_seated(self) -> bool {
+        matches!(self, Activity::Sit | Activity::Kneel)
+    }
+
+    fn is_upright(self) -> bool {
+        matches!(self, Activity::Stand | Activity::Walk)
+    }
+}
+
+/// What the body is doing at a moment, the classes of the movement model.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum Movement {
+    /// Away, or holding a posture (standing, sitting, kneeling, lying).
+    Still,
+    /// Walking, or any other whole-body change of place.
+    Walk,
+    Wave,
+    Bow,
+    Prostrate,
+    SitDown,
+    StandUp,
+}
+
+impl Movement {
+    pub const ALL: [Movement; 7] = [
+        Movement::Still,
+        Movement::Walk,
+        Movement::Wave,
+        Movement::Bow,
+        Movement::Prostrate,
+        Movement::SitDown,
+        Movement::StandUp,
+    ];
+
+    pub fn index(self) -> usize {
+        self as usize
+    }
+
+    pub fn name(self) -> &'static str {
+        ["still", "walk", "wave", "bow", "prostrate", "sit_down", "stand_up"][self.index()]
+    }
+
+    /// Going into or out of a wave, bow or prostration belongs to it; a seated-upright change is
+    /// sitting down or standing up; any other change moves the whole body.
+    fn of_change(from: Activity, to: Activity) -> Movement {
+        let movement_of = |activity| match activity {
+            Activity::Wave => Some(Movement::Wave),
+            Activity::Bow => Some(Movement::Bow),
+            Activity::Prostrate => Some(Movement::Prostrate),
+            _ => None,
+        };
+        if let Some(movement) = movement_of(from).or(movement_of(to)) {
+            return movement;
+        }
+        if from.is_seated() && to.is_upright() {
+            Movement::StandUp
+        } else if from.is_upright() && to.is_seated() {
+            Movement::SitDown
+        } else {
+            Movement::Walk
+        }
+    }
+
+    fn of_activity(activity: Activity) -> Movement {
+        match activity {
+            Activity::Walk => Movement::Walk,
+            Activity::Wave => Movement::Wave,
+            Activity::Bow => Movement::Bow,
+            Activity::Prostrate => Movement::Prostrate,
+            _ => Movement::Still,
+        }
     }
 }
 
@@ -270,6 +355,15 @@ impl Default for RealismKnobs {
     }
 }
 
+/// Frames `first..end` over which the body went from one activity's pose into the next.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PostureChange {
+    pub from: Activity,
+    pub to: Activity,
+    pub first: usize,
+    pub end: usize,
+}
+
 /// Ground truth per frame.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PersonLabels {
@@ -278,6 +372,17 @@ pub struct PersonLabels {
     pub xy: Vec<[f64; 2]>,
     pub breath_hz: f64,
     pub plan: Vec<PlanStep>,
+    pub changes: Vec<PostureChange>,
+}
+
+impl PersonLabels {
+    pub fn movement_at(&self, frame: usize) -> Movement {
+        let change = self.changes.iter().find(|c| (c.first..c.end).contains(&frame));
+        match change {
+            Some(change) => Movement::of_change(change.from, change.to),
+            None => Movement::of_activity(self.activity[frame]),
+        }
+    }
 }
 
 pub fn random_plan(rng: &mut SimRng, seconds: f64) -> Vec<PlanStep> {
@@ -293,6 +398,64 @@ pub fn random_plan(rng: &mut SimRng, seconds: f64) -> Vec<PlanStep> {
         total += step;
     }
     plan
+}
+
+fn step(activity: Activity, seconds: f64) -> PlanStep {
+    PlanStep { activity, seconds }
+}
+
+/// Prayer cycles, hand waves while standing or sitting, sitting down and standing up, mixed with
+/// walking, lying and leaving, each move lasting a few seconds.
+pub fn random_movement_plan(rng: &mut SimRng, seconds: f64) -> Vec<PlanStep> {
+    let mut plan = vec![step(Activity::Walk, uniform(rng, 3.0, 8.0))];
+    while plan.iter().map(|s| s.seconds).sum::<f64>() < seconds {
+        match weighted_index(rng, &[0.35, 0.2, 0.15, 0.2, 0.1]) {
+            0 => prayer(rng, &mut plan),
+            1 => {
+                plan.push(step(Activity::Stand, uniform(rng, 3.0, 10.0)));
+                for _ in 0..integer(rng, 1, 3) {
+                    plan.push(step(Activity::Wave, uniform(rng, 2.0, 6.0)));
+                    plan.push(step(Activity::Stand, uniform(rng, 2.0, 8.0)));
+                }
+            }
+            2 => {
+                plan.push(step(Activity::Sit, uniform(rng, 5.0, 15.0)));
+                for _ in 0..integer(rng, 1, 3) {
+                    plan.push(step(Activity::Wave, uniform(rng, 2.0, 6.0)));
+                    plan.push(step(Activity::Sit, uniform(rng, 3.0, 10.0)));
+                }
+            }
+            3 => {
+                for _ in 0..integer(rng, 1, 4) {
+                    plan.push(step(Activity::Sit, uniform(rng, 4.0, 15.0)));
+                    plan.push(step(Activity::Stand, uniform(rng, 3.0, 10.0)));
+                }
+            }
+            _ => {
+                let rest = [Activity::Lie, Activity::Away][integer(rng, 0, 2)];
+                plan.push(step(rest, uniform(rng, 8.0, 25.0)));
+            }
+        }
+        plan.push(step(Activity::Walk, uniform(rng, 3.0, 10.0)));
+    }
+    plan
+}
+
+/// Stand, bow, stand, prostrate, sit, prostrate, stand; one to four times, sometimes ending seated.
+fn prayer(rng: &mut SimRng, plan: &mut Vec<PlanStep>) {
+    plan.push(step(Activity::Stand, uniform(rng, 3.0, 10.0)));
+    let cycles = integer(rng, 1, 5);
+    for cycle in 0..cycles {
+        plan.push(step(Activity::Bow, uniform(rng, 2.5, 6.0)));
+        plan.push(step(Activity::Stand, uniform(rng, 2.0, 4.5)));
+        plan.push(step(Activity::Prostrate, uniform(rng, 2.5, 6.0)));
+        plan.push(step(Activity::Kneel, uniform(rng, 2.0, 5.0)));
+        plan.push(step(Activity::Prostrate, uniform(rng, 2.5, 6.0)));
+        if cycle + 1 == cycles && chance(rng, 0.5) {
+            plan.push(step(Activity::Kneel, uniform(rng, 6.0, 20.0)));
+        }
+        plan.push(step(Activity::Stand, uniform(rng, 3.0, 8.0)));
+    }
 }
 
 struct Breathing {
@@ -321,8 +484,10 @@ fn absent_person(frames: usize) -> Body {
         absorption: 0.0,
         chest: vec![ABSENT; frames],
         limb: vec![ABSENT; frames],
+        head: Vec::new(),
         chest_rcs: 0.0,
         limb_rcs: 0.08,
+        head_rcs: 0.0,
     }
 }
 
@@ -341,8 +506,14 @@ pub fn room_person(
     };
     let breath = breathing(rng, frames, fs, knobs.breath_scale);
     let mut body = absent_person(frames);
+    let movement_session = plan.iter().any(|step| step.activity.is_body_movement());
+    if movement_session {
+        body.head = vec![ABSENT; frames];
+    }
     let mut activity = vec![Activity::Away; frames];
     let mut last_position = [room.shape().width / 2.0, room.shape().depth / 2.0];
+    let mut last_yaw = 0.0;
+    let mut previous = Activity::Away;
     let mut start = 0;
     for step in &plan {
         let n = (frames - start).min((step.seconds * fs) as usize);
@@ -357,26 +528,227 @@ pub fn room_person(
             breath: &breath.excursion,
         };
         let sway = ornstein_uhlenbeck_2d(rng, n, 0.003, 3.0, fs);
+        let here = Place {
+            spot: last_position,
+            yaw: last_yaw,
+        };
+        let stays_in_place = movement_session
+            && previous != Activity::Away
+            && (previous.is_body_movement()
+                || (step.activity == Activity::Stand && previous == Activity::Sit && chance(rng, 0.6)));
         match step.activity {
             Activity::Away => {}
             Activity::Lie => last_position = lie(rng, room, &mut body, &segment, &sway),
+            Activity::Sit | Activity::Stand if stays_in_place => {
+                let seated = step.activity == Activity::Sit;
+                hold_posture(rng, &mut body, &segment, &sway, &here, seated);
+                add_hand_fidgets(rng, &mut body, &segment);
+            }
             Activity::Sit | Activity::Stand => {
                 last_position = sit_or_stand(rng, room, &mut body, &segment, &sway, step.activity)
             }
             Activity::Walk => last_position = walk(rng, room, &mut body, &segment, last_position),
+            Activity::Wave => {
+                let place = if matches!(previous, Activity::Away | Activity::Walk) {
+                    Place {
+                        spot: last_position,
+                        yaw: uniform(rng, 0.0, 2.0 * PI),
+                    }
+                } else {
+                    here
+                };
+                wave(rng, &mut body, &segment, &sway, &place, previous.is_seated());
+            }
+            Activity::Bow => pose_in_place(&mut body, &segment, &sway, &here, &BOW),
+            Activity::Prostrate => pose_in_place(&mut body, &segment, &sway, &here, &PROSTRATION),
+            Activity::Kneel => pose_in_place(&mut body, &segment, &sway, &here, &KNEELING),
         }
+        if body.is_present(start + n - 1) {
+            last_yaw = body.yaw[start + n - 1];
+        }
+        previous = step.activity;
         start += n;
     }
-    move_between_activities(&mut body, &plan, fs, frames);
+    if movement_session {
+        place_head_over_body(&mut body);
+    }
+    let changes = move_between_activities(&mut body, &plan, fs, frames);
     body.absorption = uniform(rng, BODY_ABSORPTION_RANGE.0, BODY_ABSORPTION_RANGE.1);
     body.chest_rcs = uniform(rng, 0.3, 0.8) * knobs.rcs_scale;
+    if movement_session {
+        body.head_rcs = uniform(rng, 0.02, 0.08) * knobs.rcs_scale;
+        body.limb_rcs = uniform(rng, 0.04, 0.15);
+    }
     let labels = PersonLabels {
         activity,
         xy: body.centre.clone(),
         breath_hz: breath.hz,
         plan,
+        changes,
     };
     (body, labels)
+}
+
+/// Where a person stands and which way they face; prayer and waving stay there.
+struct Place {
+    spot: [f64; 2],
+    yaw: f64,
+}
+
+impl Place {
+    fn forward(&self) -> [f64; 2] {
+        [(self.yaw + FRAC_PI_2).cos(), (self.yaw + FRAC_PI_2).sin()]
+    }
+
+    fn right(&self) -> [f64; 2] {
+        [self.yaw.cos(), self.yaw.sin()]
+    }
+
+    /// The point `forward` m ahead and `right` m to the right of `anchor`, at height `z`.
+    fn offset(&self, anchor: [f64; 2], forward: f64, right: f64, z: f64) -> Vec3 {
+        let (f, r) = (self.forward(), self.right());
+        [
+            anchor[0] + f[0] * forward + r[0] * right,
+            anchor[1] + f[1] * forward + r[1] * right,
+            z,
+        ]
+    }
+}
+
+/// A held posture relative to where the person stands: the body box (its centre ahead of the feet,
+/// height, half depth along the facing direction) and the chest, hand and head scatterers.
+struct Pose {
+    box_ahead: f64,
+    z_top: f64,
+    half_width: f64,
+    half_depth: f64,
+    chest: (f64, f64),
+    hand: (f64, f64, f64),
+    head: (f64, f64),
+}
+
+/// Torso horizontal at hip height, head down ahead, hands on the knees.
+const BOW: Pose = Pose {
+    box_ahead: 0.22,
+    z_top: 1.05,
+    half_width: 0.21,
+    half_depth: 0.4,
+    chest: (0.35, 0.98),
+    hand: (0.2, 0.18, 0.55),
+    head: (0.7, 0.95),
+};
+
+/// Kneeling folded forward: forehead and hands on the floor ahead of the knees.
+const PROSTRATION: Pose = Pose {
+    box_ahead: 0.3,
+    z_top: 0.5,
+    half_width: 0.24,
+    half_depth: 0.5,
+    chest: (0.35, 0.4),
+    hand: (0.75, 0.2, 0.04),
+    head: (0.8, 0.12),
+};
+
+/// Sitting on the heels, upright, hands on the thighs.
+const KNEELING: Pose = Pose {
+    box_ahead: -0.05,
+    z_top: 0.92,
+    half_width: 0.22,
+    half_depth: 0.3,
+    chest: (0.02, 0.65),
+    hand: (0.25, 0.15, 0.42),
+    head: (0.0, 0.8),
+};
+
+fn pose_in_place(body: &mut Body, segment: &PlanSegment, sway: &[[f64; 2]], place: &Place, pose: &Pose) {
+    for (k, t) in segment.span.clone().enumerate() {
+        let breath = segment.breath[t];
+        let anchor = [place.spot[0] + sway[k][0], place.spot[1] + sway[k][1]];
+        let centre = place.offset(anchor, pose.box_ahead, 0.0, 0.0);
+        body.centre[t] = [centre[0], centre[1]];
+        body.z_bottom[t] = 0.0;
+        body.z_top[t] = pose.z_top + breath;
+        body.half_width[t] = pose.half_width;
+        body.half_depth[t] = pose.half_depth;
+        body.yaw[t] = place.yaw;
+        body.chest[t] = place.offset(anchor, pose.chest.0, 0.0, pose.chest.1 + breath);
+        body.limb[t] = place.offset(anchor, pose.hand.0, pose.hand.1, pose.hand.2);
+        body.head[t] = place.offset(anchor, pose.head.0, 0.0, pose.head.1);
+    }
+}
+
+/// Standing, or seated on a chair, at `place` (the poses of `sit_or_stand`).
+fn hold_posture(
+    rng: &mut SimRng,
+    body: &mut Body,
+    segment: &PlanSegment,
+    sway: &[[f64; 2]],
+    place: &Place,
+    seated: bool,
+) {
+    let (z_bottom, z_top, chest_z) = if seated { (0.4, 1.3, 1.0) } else { (0.0, 1.7, 1.3) };
+    let forward = place.forward();
+    let hand_jitter = ornstein_uhlenbeck_2d(rng, segment.span.len(), 0.01, 0.5, segment.fs);
+    for (k, t) in segment.span.clone().enumerate() {
+        let breath = segment.breath[t];
+        let [x, y] = [place.spot[0] + sway[k][0], place.spot[1] + sway[k][1]];
+        body.centre[t] = [x, y];
+        body.z_bottom[t] = z_bottom;
+        body.z_top[t] = z_top;
+        body.half_width[t] = 0.21;
+        body.half_depth[t] = 0.13 + breath;
+        body.yaw[t] = place.yaw;
+        body.chest[t] = [x + forward[0] * breath, y + forward[1] * breath, chest_z];
+        body.limb[t] = [
+            x + forward[0] * 0.3 + hand_jitter[k][0],
+            y + forward[1] * 0.3 + hand_jitter[k][1],
+            chest_z - 0.2,
+        ];
+    }
+}
+
+/// A hand raised above the head that waves side to side (or, a quarter of the time, is just held up).
+fn wave(
+    rng: &mut SimRng,
+    body: &mut Body,
+    segment: &PlanSegment,
+    sway: &[[f64; 2]],
+    place: &Place,
+    seated: bool,
+) {
+    hold_posture(rng, body, segment, sway, place, seated);
+    let side = if chance(rng, 0.5) { 1.0 } else { -1.0 };
+    let (amplitude, hz) = if chance(rng, 0.25) {
+        (uniform(rng, 0.01, 0.04), uniform(rng, 0.2, 0.5))
+    } else {
+        (uniform(rng, 0.08, 0.25), uniform(rng, 1.2, 3.0))
+    };
+    let reach = uniform(rng, 0.4, 0.6);
+    let phase = uniform(rng, 0.0, 2.0 * PI);
+    for (k, t) in segment.span.clone().enumerate() {
+        let swing = amplitude * (2.0 * PI * hz * k as f64 / segment.fs + phase).sin();
+        let anchor = body.centre[t];
+        let shoulder_z = body.z_top[t] - 0.25;
+        body.limb[t] = place.offset(anchor, 0.1, side * (0.3 + swing), shoulder_z + reach - swing.abs() * 0.3);
+    }
+}
+
+/// A head over every present frame that no pose placed one at: above the box, or at the pillow end
+/// of a lying body.
+fn place_head_over_body(body: &mut Body) {
+    for t in 0..body.frames() {
+        if !body.is_present(t) || body.head[t][0].is_finite() {
+            continue;
+        }
+        let [x, y] = body.centre[t];
+        let lying = body.half_width[t] > 0.5;
+        body.head[t] = if lying {
+            let along = body.half_width[t] - 0.12;
+            [x + body.yaw[t].cos() * along, y + body.yaw[t].sin() * along, body.z_top[t] - 0.07]
+        } else {
+            [x, y, body.z_top[t] - 0.12]
+        };
+    }
 }
 
 /// Seconds a body takes to go from one posture into another (sitting down, lying down, getting up).
@@ -389,7 +761,8 @@ const LONGEST_CHANGE_S: f64 = 6.0;
 /// between two activities of someone in the room becomes movement over the start of the new one: the
 /// body walks to the new spot and goes down onto the chair or bed (or gets up), eased in and out, so the
 /// links see sitting down and lying down as they happen.
-fn move_between_activities(body: &mut Body, plan: &[PlanStep], fs: f64, frames: usize) {
+fn move_between_activities(body: &mut Body, plan: &[PlanStep], fs: f64, frames: usize) -> Vec<PostureChange> {
+    let mut changes = Vec::new();
     let mut start = 0usize;
     let mut previous: Option<Activity> = None;
     for step in plan {
@@ -410,11 +783,18 @@ fn move_between_activities(body: &mut Body, plan: &[PlanStep], fs: f64, frames: 
             let length = ((seconds * fs) as usize).min(n.saturating_sub(1));
             if length > 1 {
                 ease(body, from, start + length, length);
+                changes.push(PostureChange {
+                    from: previous.expect("checked above"),
+                    to: step.activity,
+                    first: start,
+                    end: start + length,
+                });
             }
         }
         previous = Some(step.activity);
         start += n;
     }
+    changes
 }
 
 /// Frames `to - length .. to` move from the pose at `from` to the pose at `to`.
@@ -424,6 +804,7 @@ fn ease(body: &mut Body, from: usize, to: usize, length: usize) {
     let (zb0, zb1, zt0, zt1) = (body.z_bottom[from], body.z_bottom[to], body.z_top[from], body.z_top[to]);
     let (hw0, hw1, hd0, hd1) = (body.half_width[from], body.half_width[to], body.half_depth[from], body.half_depth[to]);
     let (ch0, ch1, li0, li1) = (body.chest[from], body.chest[to], body.limb[from], body.limb[to]);
+    let head_ends = (!body.head.is_empty()).then(|| [body.head[from], body.head[to]]);
     let yaw0 = body.yaw[from];
     let turn = (body.yaw[to] - yaw0 + std::f64::consts::PI).rem_euclid(2.0 * std::f64::consts::PI) - std::f64::consts::PI;
     for k in 0..length {
@@ -438,6 +819,9 @@ fn ease(body: &mut Body, from: usize, to: usize, length: usize) {
         body.yaw[t] = yaw0 + turn * w;
         body.chest[t] = [lerp(ch0[0], ch1[0], w), lerp(ch0[1], ch1[1], w), lerp(ch0[2], ch1[2], w)];
         body.limb[t] = [lerp(li0[0], li1[0], w), lerp(li0[1], li1[1], w), lerp(li0[2], li1[2], w)];
+        if let Some(&[h0, h1]) = head_ends.as_ref() {
+            body.head[t] = [lerp(h0[0], h1[0], w), lerp(h0[1], h1[1], w), lerp(h0[2], h1[2], w)];
+        }
     }
 }
 
