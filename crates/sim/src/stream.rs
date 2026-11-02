@@ -5,11 +5,13 @@ use std::ops::Range;
 
 use serde::{Deserialize, Serialize};
 
+use crate::band::BandPlan;
 use crate::capture::Capture;
+use crate::crowd::Crowd;
 use crate::hall::{random_hall, Hall, HallOptions, NodePlacement};
 use crate::hall_sim::{ArrivalOptions, HallSession};
 use crate::random::seeded;
-use crate::room::{random_room, Activity, PlanStep, Room, RoomOptions};
+use crate::room::{random_room, Activity, PersonLabels, PlanStep, Room, RoomOptions};
 use crate::room_sim::{RoomSession, RoomSimOptions};
 
 /// live.py demo-room: away, walk, sit, walk, lie (breathing), walk, away.
@@ -66,6 +68,17 @@ impl RoomStream {
         }
     }
 
+    /// A stream with `crowd` in the room besides the first person (whose truth stays in `RoomSecond`).
+    pub fn with_crowd(room: &Room, options: &RoomSimOptions, crowd: &Crowd, seed: u64) -> Self {
+        let session =
+            RoomSession::with_crowd(room, options, &BandPlan::default(), crowd, &mut seeded(seed, 1));
+        RoomStream {
+            session,
+            fs: options.fs,
+            next_second: 0,
+        }
+    }
+
     /// live.py demo-room: smart placement, `boards` ESP32s, 50 packets/s, `demo_room_plan()`.
     pub fn demo(seed: u64, boards: usize) -> Self {
         let room = random_room(
@@ -100,17 +113,29 @@ impl RoomStream {
         self.session.calibrate()
     }
 
+    /// Everyone's truth at the middle of `second`: the first person, then the crowd.
+    pub fn people_at(&self, second: usize) -> Vec<RoomTruth> {
+        let frame = ((second as f64 + 0.5) * self.fs) as usize;
+        std::iter::once(self.session.labels())
+            .chain(self.session.crowd_labels())
+            .map(|labels| truth_of(labels, frame))
+            .collect()
+    }
+
     fn truth_at(&self, frame: usize) -> RoomTruth {
-        let labels = self.session.labels();
-        let frame = frame.min(labels.activity.len().saturating_sub(1));
-        let activity = labels.activity[frame];
-        let breathing_visible = matches!(activity, Activity::Lie | Activity::Sit | Activity::Stand);
-        let xy = labels.xy[frame];
-        RoomTruth {
-            activity,
-            breath_bpm: breathing_visible.then_some(labels.breath_hz * 60.0),
-            xy: xy[0].is_finite().then_some(xy),
-        }
+        truth_of(self.session.labels(), frame)
+    }
+}
+
+fn truth_of(labels: &PersonLabels, frame: usize) -> RoomTruth {
+    let frame = frame.min(labels.activity.len().saturating_sub(1));
+    let activity = labels.activity[frame];
+    let breathing_visible = matches!(activity, Activity::Lie | Activity::Sit | Activity::Stand);
+    let xy = labels.xy[frame];
+    RoomTruth {
+        activity,
+        breath_bpm: breathing_visible.then_some(labels.breath_hz * 60.0),
+        xy: xy[0].is_finite().then_some(xy),
     }
 }
 

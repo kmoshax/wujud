@@ -14,6 +14,7 @@ use crate::bodies::Body;
 use crate::capture::{receive, Capture, LinkCapture};
 use crate::channel::{link_channel, link_channel_with_references, Link, ScatterReference};
 use crate::constants::SPEED_OF_LIGHT;
+use crate::crowd::{crowd_people, Crowd};
 use crate::distractors::{distractor, DistractorKind};
 use crate::paths::{diffuse_paths, geometric_paths, DiffuseDraws, PropagationPath};
 use crate::radio::{
@@ -104,6 +105,7 @@ pub struct RoomSession {
     bodies: Vec<Body>,
     scatter_references: Vec<ScatterReference>,
     labels: PersonLabels,
+    crowd_labels: Vec<PersonLabels>,
     /// Sabine factor of the reverberant field per frame (< 1 while the person is in the room).
     rest_absorb: Vec<f64>,
     links: Vec<RoomLinkSetup>,
@@ -123,6 +125,18 @@ impl RoomSession {
         room: &Room,
         options: &RoomSimOptions,
         band: &BandPlan,
+        rng: &mut SimRng,
+    ) -> Self {
+        RoomSession::with_crowd(room, options, band, &Crowd::default(), rng)
+    }
+
+    /// A session with `crowd` in the room besides the first person. The crowd is drawn after
+    /// everything else, so an empty crowd gives exactly `with_band`'s session.
+    pub fn with_crowd(
+        room: &Room,
+        options: &RoomSimOptions,
+        band: &BandPlan,
+        crowd: &Crowd,
         rng: &mut SimRng,
     ) -> Self {
         let frames = options.session_frames();
@@ -149,12 +163,10 @@ impl RoomSession {
             ),
             band,
         );
-        let absorb = sabine_amplitude(
-            room.shape().surface_area(),
-            sample_absorption_coefficient(rng),
-            band.effects.person_absorption_m2 / PERSON_ABSORPTION_M2,
-        );
-        let rest_absorb = person_present
+        let absorption_coefficient = sample_absorption_coefficient(rng);
+        let person_scale = band.effects.person_absorption_m2 / PERSON_ABSORPTION_M2;
+        let absorb = sabine_amplitude(room.shape().surface_area(), absorption_coefficient, person_scale);
+        let mut rest_absorb: Vec<f64> = person_present
             .iter()
             .map(|&p| if p { absorb } else { 1.0 })
             .collect();
@@ -172,6 +184,26 @@ impl RoomSession {
                 .map(|l| ReceiverNoise::new(seeded(noise_seed, 2 * l + offset)))
                 .collect()
         };
+        let mut crowd_labels = Vec::new();
+        if !crowd.is_empty() {
+            let placed = [bodies[0].clone()];
+            let mut present = person_present.iter().map(|&p| usize::from(p)).collect::<Vec<_>>();
+            for (mut body, labels) in
+                crowd_people(rng, room, crowd, &placed, frames, options.fs, &options.knobs)
+            {
+                body.absorption = band.effects.body_absorption(body.absorption);
+                for (t, count) in present.iter_mut().enumerate() {
+                    *count += usize::from(body.is_present(t));
+                }
+                bodies.push(body);
+                crowd_labels.push(labels);
+            }
+            let area = room.shape().surface_area();
+            rest_absorb = present
+                .iter()
+                .map(|&n| sabine_amplitude(area, absorption_coefficient, person_scale * n as f64))
+                .collect();
+        }
         RoomSession {
             room: room.clone(),
             options: options.clone(),
@@ -180,6 +212,7 @@ impl RoomSession {
             scatter_references: bodies.iter().map(ScatterReference::of).collect(),
             bodies,
             labels,
+            crowd_labels,
             rest_absorb,
             session_receivers: receivers(0),
             calibration_receivers: receivers(1),
@@ -189,6 +222,11 @@ impl RoomSession {
 
     pub fn labels(&self) -> &PersonLabels {
         &self.labels
+    }
+
+    /// Labels of the people after the first, in `Crowd::plans` order.
+    pub fn crowd_labels(&self) -> &[PersonLabels] {
+        &self.crowd_labels
     }
 
     pub fn bodies(&self) -> &[Body] {

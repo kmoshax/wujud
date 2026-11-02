@@ -5,6 +5,7 @@ pub mod bodies;
 pub mod capture;
 pub mod channel;
 pub mod constants;
+pub mod crowd;
 pub mod dataset;
 pub mod distractors;
 pub mod fresnel;
