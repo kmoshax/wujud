@@ -21,6 +21,9 @@ use crate::sensor_feed::{FeedEvent, SimulatedTruth};
 
 const ENGINE_TICK: Duration = Duration::from_secs(1);
 const TRACKER_TICK: Duration = Duration::from_millis(100);
+/// A gap in the boards' data (a hub hiccup, a relayout) keeps the last reading this long, so the
+/// person does not vanish; someone moving is then shown still until data comes back.
+const HOLD_THROUGH_GAP: Duration = Duration::from_secs(30);
 /// A board's links show up one by one; the room is rebuilt once none has come for this long.
 const SETTLE_NEW_LINKS: Duration = Duration::from_secs(3);
 const RELAYOUT_AFTER: Duration = Duration::from_secs(30);
@@ -59,6 +62,8 @@ pub struct LiveCore {
     pub placed: bool,
     still_since: Option<Instant>,
     pub room_state: Option<RoomState>,
+    /// When the room last had a reading, to hold it through a gap in the boards' data.
+    last_reading: Option<Instant>,
     pub tracker: MotionTracker,
     /// The network trained on simulated rooms; it places a walking person when the boards are placed.
     learned: Option<Locator>,
@@ -108,6 +113,7 @@ impl LiveCore {
             newest_board_seconds: f64::NAN,
             engine: room.engine,
             room_state: None,
+            last_reading: None,
             truth: None,
             last_tick: Instant::now(),
             started: Instant::now(),
@@ -268,6 +274,7 @@ impl LiveCore {
             }
             self.remember_drift();
             let started = Instant::now();
+            let previous = self.room_state.take();
             self.room_state = self.engine.tick(self.newest_board_seconds).ok();
             if std::env::var_os("WUJUD_LOG").is_some() {
                 println!("engine tick {} ms", started.elapsed().as_millis());
@@ -275,6 +282,11 @@ impl LiveCore {
             if self.sense.is_some() && self.engine.sensed.is_none() {
                 // Nothing read from the room yet: "learning", not the model's guess.
                 self.room_state = None;
+            }
+            if self.room_state.is_some() {
+                self.last_reading = Some(Instant::now());
+            } else if self.last_reading.is_some_and(|t| t.elapsed() < HOLD_THROUGH_GAP) {
+                self.room_state = previous.map(held_through_gap);
             }
             // The posture is the one taught in this room, or none: the model's own guess comes from a
             // model that read a real empty room as moving all the time.
@@ -700,4 +712,14 @@ impl Locator {
             Locator::Points(tracker) => tracker.position().map(|xy| (xy, String::from("?"))),
         }
     }
+}
+
+fn held_through_gap(mut state: RoomState) -> RoomState {
+    if let Some(decision) = state.room.decision.as_mut() {
+        if decision.state3 == RoomState3::Moving {
+            decision.state3 = RoomState3::Still;
+            decision.state = Pose::Still;
+        }
+    }
+    state
 }
