@@ -5,6 +5,7 @@ mod hall_window;
 mod learned_tracker;
 mod link_net;
 mod link_history;
+mod live_core;
 mod live_window;
 mod phone_range;
 mod room_sense;
@@ -17,6 +18,7 @@ mod serial;
 mod skeleton;
 mod theme;
 mod udp;
+mod view;
 
 use clap::{Parser, Subcommand};
 use wujud_proto::{Line, LineError};
@@ -54,6 +56,27 @@ enum Command {
         #[arg(long, default_value_t = 7)]
         seed: u64,
     },
+    /// The live room in 3D (Bevy): the boards, their links, the person, and the raw CSI.
+    View {
+        /// As for `live`.
+        #[arg(long, num_args = 1.., required = true)]
+        ports: Vec<String>,
+        #[arg(long)]
+        room: Option<std::path::PathBuf>,
+        #[arg(long)]
+        record: Option<String>,
+        #[command(flatten)]
+        view: ViewArgs,
+    },
+    /// The 3D view (Bevy) on the simulator: no boards needed.
+    ViewDemo {
+        #[arg(long, default_value_t = 3)]
+        boards: usize,
+        #[arg(long, default_value_t = 7)]
+        seed: u64,
+        #[command(flatten)]
+        view: ViewArgs,
+    },
     /// No boards needed: the simulator plays a lecture hall filling up, counted by 12 simulated wall nodes.
     DemoHall {
         #[arg(long, default_value_t = 3)]
@@ -68,6 +91,35 @@ enum Command {
     },
 }
 
+#[derive(clap::Args)]
+struct ViewArgs {
+    /// Frames a second at most (the view runs without vsync).
+    #[arg(long, default_value_t = 120.0)]
+    max_fps: f64,
+    /// Start full screen (f toggles it).
+    #[arg(long)]
+    fullscreen: bool,
+    /// The camera view to start in: 1 room, 2 from above, 3 low, 4 following the person.
+    #[arg(long, default_value_t = 1)]
+    camera: usize,
+    /// Save one frame to this PNG after `--after` seconds, then quit.
+    #[arg(long)]
+    screenshot: Option<std::path::PathBuf>,
+    #[arg(long, default_value_t = 25.0)]
+    after: f32,
+}
+
+impl ViewArgs {
+    fn options(self) -> view::ViewOptions {
+        view::ViewOptions {
+            max_fps: self.max_fps,
+            fullscreen: self.fullscreen,
+            first_view: self.camera,
+            screenshot: self.screenshot.map(|path| (path, self.after)),
+        }
+    }
+}
+
 fn main() -> anyhow::Result<()> {
     match Cli::parse().command {
         Command::Live {
@@ -76,6 +128,13 @@ fn main() -> anyhow::Result<()> {
             record,
         } => live(ports, room.as_deref(), record.as_deref()),
         Command::Demo { boards, seed } => demo(boards, seed),
+        Command::View {
+            ports,
+            room,
+            record,
+            view,
+        } => live_view(ports, room.as_deref(), record.as_deref(), view.options()),
+        Command::ViewDemo { boards, seed, view } => demo_view(boards, seed, view.options()),
         Command::DemoHall { seed } => demo_hall(seed),
         Command::Monitor { ports, record } => monitor(&ports, record.as_deref()),
     }
@@ -98,6 +157,32 @@ fn live(
         rssi,
     });
     open_window(window)
+}
+
+fn live_view(
+    ports: Vec<String>,
+    room: Option<&std::path::Path>,
+    record: Option<&str>,
+    options: view::ViewOptions,
+) -> anyhow::Result<()> {
+    let (ports, rssi) = serial::discover(&ports);
+    let live = room_setup::room_engine(&ports, room, &rssi)?;
+    println!("links: {}", live.links.join(", "));
+    let reading = std::sync::Arc::new(std::sync::Mutex::new(live.links.clone()));
+    let feed = sensor_feed::from_serial_ports(&ports, reading.clone(), record)?;
+    let core = live_core::LiveCore::new(feed, live).growing(live_core::Growth {
+        seen: ports,
+        reading,
+        room_file: room.map(std::path::Path::to_path_buf),
+        rssi,
+    });
+    view::run(core, options)
+}
+
+fn demo_view(boards: usize, seed: u64, options: view::ViewOptions) -> anyhow::Result<()> {
+    let stream = wujud_sim::stream::RoomStream::demo(seed, boards);
+    let room = room_setup::simulated_room_engine(stream.room())?;
+    view::run(live_core::LiveCore::new(sensor_feed::from_simulator(stream), room), options)
 }
 
 fn demo(boards: usize, seed: u64) -> anyhow::Result<()> {
