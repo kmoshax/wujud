@@ -1,5 +1,5 @@
 //! Where a walking person is, from every link at once (research/tools/link_net.py; trained on simulated
-//! rooms only: 0.53 m median error with four devices, 0.68 m with three, on rooms it never saw).
+//! rooms only: 0.52 m median error with four devices, 0.68 m with three, on rooms it never saw).
 //!
 //! Each pair of devices is one token: its disturbance and RSSI spread over its own quiet level, the same
 //! relative to the other pairs, each subcarrier's spread over its quiet level and how the spectrum's shape

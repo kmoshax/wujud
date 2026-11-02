@@ -80,7 +80,9 @@ def main():
     state = torch.load(weights, map_location=link_net.DEVICE, weights_only=True)
     features = state["embed.0.weight"].shape[1]
     link_net.CONTEXT_S = features // (4 + 2 * link_net.BINS)
-    model = LinkNet(features).to(link_net.DEVICE)
+    width = state["embed.0.weight"].shape[0]
+    layers = len({k.split(".")[2] for k in state if k.startswith("links.layers.")})
+    model = LinkNet(features, width, layers).to(link_net.DEVICE)
     model.load_state_dict(state)
     model.eval()
     tune = network_answers(model, list(load(tune_paths).values())[-40:])

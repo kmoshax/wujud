@@ -8,7 +8,7 @@ every grid point attends over the links, through how it sits relative to each (e
 the line, place along it, link length), and is scored. Rooms are flipped at random while learning, so
 no favourite spot can be learnt; a room with nothing moving should land near its centre.
 
-    .venv/bin/python -I tools/link_net.py <out.pt> cache/tracking/v2_part*.jsonl cache/tracking/v3_part*.jsonl cache/tracking/v2four_p*.jsonl
+    LINK_NET_WIDTH=192 LINK_NET_LAYERS=3 LINK_NET_EPOCHS=36 .venv/bin/python -I tools/link_net.py <out.pt> cache/tracking/v2_part*.jsonl cache/tracking/v3_part*.jsonl cache/tracking/v2four_p*.jsonl cache/tracking/v3four_p*.jsonl
 """
 import json
 import os
