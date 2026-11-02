@@ -276,9 +276,10 @@ impl LiveCore {
                 // Nothing read from the room yet: "learning", not the model's guess.
                 self.room_state = None;
             }
-            if self.room_state.is_some() {
+            let decided = |state: &Option<RoomState>| state.as_ref().is_some_and(|s| s.room.decision.is_some());
+            if decided(&self.room_state) {
                 self.last_reading = Some(Instant::now());
-            } else if self.last_reading.is_some_and(|t| t.elapsed() < HOLD_THROUGH_GAP) {
+            } else if decided(&previous) && self.last_reading.is_some_and(|t| t.elapsed() < HOLD_THROUGH_GAP) {
                 self.room_state = previous.map(held_through_gap);
             }
             // The posture is the one taught in this room, or none: the model's own guess comes from a
