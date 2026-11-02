@@ -5,13 +5,13 @@ use wujud_model::hall::HallState;
 
 use crate::camera::{Camera, Point3};
 use crate::scene_3d::{
-    point, radio_link, room_shell, solid_box, sphere, Drawable, BOARD, HEAD_RADIUS, PERSON,
-    TRUE_PERSON,
+    point, radio_link, room_shell, solid_box, sphere, Drawable, BOARD, HEAD_RADIUS, TRUE_PERSON,
 };
+use crate::theme;
 
-const STEP: Color32 = Color32::from_rgb(52, 58, 70);
-const SEAT_EMPTY: Color32 = Color32::from_rgb(70, 76, 88);
-const SEAT_LIKELY: Color32 = Color32::from_rgb(79, 179, 255);
+const STEP: Color32 = Color32::from_rgb(26, 26, 25);
+const SEAT_EMPTY: Color32 = Color32::from_rgb(52, 51, 49);
+const SEAT_LIKELY: Color32 = theme::RED;
 const ROW_DEPTH: f32 = 0.9;
 const HALL_ZOOM_OUT: f32 = 1.35;
 const SEAT_SIZE: [f32; 3] = [0.42, 0.42, 0.45];
@@ -61,7 +61,7 @@ impl HallView {
                 &mut drawables,
             );
             if detected.contains(&index) {
-                student(&view, [x, y, floor], PERSON, &mut drawables);
+                student(&view, [x, y, floor], theme::RED, &mut drawables);
             }
             if state
                 .hall
@@ -99,9 +99,9 @@ impl HallView {
         painter.text(
             viewport.left_bottom() + Vec2::new(8.0, -8.0),
             egui::Align2::LEFT_BOTTOM,
-            "drag to rotate · scroll to zoom · blue = detected, grey = really there",
+            "drag to rotate · scroll to zoom · red = detected, grey = really there",
             egui::FontId::proportional(11.0),
-            Color32::from_gray(110),
+            theme::MUTED,
         );
     }
 }

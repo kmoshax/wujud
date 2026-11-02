@@ -162,6 +162,7 @@ fn boards_core(
     room: Option<&std::path::Path>,
     record: Option<&str>,
 ) -> anyhow::Result<live_core::LiveCore> {
+    let recorded = ports.iter().any(|port| port.starts_with("replay:"));
     let (ports, rssi) = serial::discover(&ports);
     let live = room_setup::room_engine(&ports, room, &rssi)?;
     println!("links: {}", live.links.join(", "));
@@ -172,6 +173,7 @@ fn boards_core(
         reading,
         room_file: room.map(std::path::Path::to_path_buf),
         rssi,
+        recorded,
     }))
 }
 

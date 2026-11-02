@@ -10,34 +10,34 @@ use crate::phone_range::PhoneDistance;
 use crate::room_view;
 use crate::skeleton::{self, Gait};
 use crate::sensor_feed::SimulatedTruth;
+use crate::theme;
 
-const SKY_TOP: Color32 = Color32::from_rgb(22, 26, 36);
-const SKY_BOTTOM: Color32 = Color32::from_rgb(10, 12, 18);
-const FLOOR: Color32 = Color32::from_rgb(30, 35, 45);
-const FLOOR_LINE: Color32 = Color32::from_rgba_premultiplied(60, 70, 88, 110);
-const WALL: Color32 = Color32::from_rgba_premultiplied(34, 40, 54, 150);
-const EDGE: Color32 = Color32::from_rgb(78, 90, 110);
-const FURNITURE: Color32 = Color32::from_rgb(112, 118, 132);
-const BED: Color32 = Color32::from_rgb(96, 112, 150);
-const DESK: Color32 = Color32::from_rgb(150, 116, 84);
-const WARDROBE: Color32 = Color32::from_rgb(82, 88, 100);
-const BUFFET: Color32 = Color32::from_rgb(128, 98, 74);
-const MIRROR: Color32 = Color32::from_rgb(190, 214, 230);
-const HUB: Color32 = Color32::from_rgb(255, 138, 76);
-const DEVICE: Color32 = Color32::from_rgb(200, 206, 218);
-const LABEL: Color32 = Color32::from_rgb(170, 178, 192);
-const HEAT: Color32 = Color32::from_rgb(90, 200, 255);
+const SKY_TOP: Color32 = Color32::from_rgb(16, 16, 16);
+const SKY_BOTTOM: Color32 = theme::BACKGROUND;
+const FLOOR: Color32 = Color32::from_rgb(18, 18, 18);
+const FLOOR_LINE: Color32 = Color32::from_rgba_premultiplied(30, 30, 29, 110);
+const WALL: Color32 = Color32::from_rgba_premultiplied(18, 18, 18, 150);
+const EDGE: Color32 = Color32::from_rgb(72, 72, 70);
+const FURNITURE: Color32 = Color32::from_rgb(62, 61, 59);
+const BED: Color32 = Color32::from_rgb(74, 73, 70);
+const DESK: Color32 = Color32::from_rgb(68, 67, 64);
+const WARDROBE: Color32 = Color32::from_rgb(50, 49, 47);
+const BUFFET: Color32 = Color32::from_rgb(64, 63, 60);
+const MIRROR: Color32 = theme::MUTED;
+const HUB: Color32 = Color32::from_rgb(210, 206, 198);
+const DEVICE: Color32 = Color32::from_rgb(140, 138, 133);
+const LABEL: Color32 = Color32::from_rgb(170, 167, 160);
+const HEAT: Color32 = theme::RED;
 const SHADOW: Color32 = Color32::from_rgba_premultiplied(0, 0, 0, 90);
 pub(crate) const BOARD: Color32 = HUB;
-pub(crate) const LINK_IDLE: Color32 = Color32::from_rgb(45, 70, 105);
-pub(crate) const LINK_ACTIVE: Color32 = Color32::from_rgb(110, 210, 255);
-pub(crate) const PERSON: Color32 = Color32::from_rgb(79, 179, 255);
+pub(crate) const LINK_IDLE: Color32 = Color32::from_rgb(52, 52, 50);
+pub(crate) const LINK_ACTIVE: Color32 = theme::TEXT;
 pub(crate) const TRUE_PERSON: Color32 = Color32::from_rgba_premultiplied(70, 70, 70, 70);
 
 const FLOOR_TILE_M: f32 = 0.5;
 pub(crate) const HEAD_RADIUS: f32 = 0.11;
-const JOINT: Color32 = Color32::from_rgb(200, 235, 255);
-const SEAT: Color32 = Color32::from_rgb(70, 78, 96);
+const SEAT: Color32 = Color32::from_rgb(40, 40, 39);
+const SKELETON_LINE_M: f32 = 0.035;
 /// Share of the screen distance the drawn person closes each frame towards the tracked position.
 const FOLLOW: f32 = 0.12;
 /// The body turns to face where it walks, once a frame's step is longer than this.
@@ -47,11 +47,12 @@ const HEAT_SHOWN_ABOVE: f32 = 0.04;
 /// Beyond the boards' line by this much the body still disturbs the link clearly (first Fresnel zone, roughly).
 const NEAR_LINE_M: f32 = 0.45;
 const FAR_LINE_M: f32 = 1.4;
-const NEAR: Color32 = Color32::from_rgb(255, 170, 80);
-const FAR: Color32 = Color32::from_rgb(90, 200, 255);
-const PHONE: Color32 = Color32::from_rgb(200, 140, 255);
+const NEAR: Color32 = theme::RED;
+const FAR: Color32 = theme::MUTED;
+const PHONE: Color32 = theme::TEXT;
 const PHONE_HEIGHT_M: f64 = 0.9;
-const BREATH: Color32 = Color32::from_rgb(120, 230, 170);
+const BREATH: Color32 = theme::TEXT;
+const NEAREST_BOARD: Color32 = LABEL;
 /// room_view::BREATHING_AFTER_STILL_SECONDS, as the ring that fills while the breathing is read.
 const BREATHING_AFTER_STILL_SECONDS: f32 = 30.0;
 
@@ -174,10 +175,10 @@ impl Scene3d {
             if inputs.one_line {
                 "drag to rotate · scroll to zoom · lit floor = how near the person is to the boards' line"
             } else {
-                "drag to rotate · scroll to zoom · blue floor = where the person may be"
+                "drag to rotate · scroll to zoom · red floor = where the person may be"
             },
             egui::FontId::proportional(11.0),
-            Color32::from_gray(110),
+            theme::MUTED,
         );
     }
 
@@ -251,11 +252,11 @@ fn node_labels(painter: &egui::Painter, view: &Projection, nodes: &[[f64; 3]], n
                 Stroke::new(1.0_f32, LABEL.gamma_multiply(0.4)),
             );
         }
-        painter.rect_filled(rect, egui::CornerRadius::same(255), Color32::from_rgba_unmultiplied(12, 16, 24, 210));
+        painter.rect_filled(rect, egui::CornerRadius::same(1), Color32::from_rgba_unmultiplied(9, 9, 9, 210));
         painter.rect_stroke(
             rect,
-            egui::CornerRadius::same(255),
-            Stroke::new(1.0_f32, Color32::from_rgb(50, 60, 80)),
+            egui::CornerRadius::same(1),
+            Stroke::new(1.0_f32, theme::CARD_EDGE),
             egui::StrokeKind::Inside,
         );
         painter.galley(rect.center() - galley.size() / 2.0, galley, LABEL);
@@ -604,7 +605,7 @@ fn floor_disc(
     on_floor(view, &corners, color, 2.0, out);
 }
 
-/// The shared board is the orange box; every other end (laptop, phone) is a light slab.
+/// The shared board is the light box with a red light; every other end (laptop, phone) is a light slab.
 fn node_model(view: &Projection, at: Point3, is_hub: bool, out: &mut Vec<Drawable>) {
     floor_disc(view, [at[0], at[1]], 0.12, SHADOW, out);
     if is_hub {
@@ -613,7 +614,7 @@ fn node_model(view: &Projection, at: Point3, is_hub: bool, out: &mut Vec<Drawabl
             view,
             add(at, [0.0, 0.0, 0.05]),
             0.025,
-            Color32::from_rgb(90, 160, 255),
+            theme::RED,
             out,
         );
     } else {
@@ -647,7 +648,7 @@ pub(crate) fn radio_link(
     }
 }
 
-/// The skeleton: a soft glow under every bone, a solid core over it, and bright joints.
+/// The skeleton as thin flat lines: off-white while still, red while moving.
 fn person(view: &Projection, figure: &Figure, seconds: f32, out: &mut Vec<Drawable>) {
     let breath = figure
         .breath_bpm
@@ -665,17 +666,12 @@ fn person(view: &Projection, figure: &Figure, seconds: f32, out: &mut Vec<Drawab
         let back = [x - 0.06 * figure.heading.cos(), y - 0.06 * figure.heading.sin()];
         solid_box(view, [back[0], back[1], 0.22], [0.38, 0.38, 0.44], SEAT, out);
     }
-    let core = PERSON.gamma_multiply(figure.opacity);
-    let glow = PERSON.gamma_multiply(0.14 * figure.opacity);
-    for (from, to, thickness) in body.bones() {
-        bone(view, from, to, thickness * 2.6, glow, out);
-        bone(view, from, to, thickness, core, out);
+    let color = if gait == Gait::Walk { theme::MOVING } else { theme::STILL };
+    let line = color.gamma_multiply(figure.opacity);
+    for (from, to, _) in body.bones() {
+        bone(view, from, to, SKELETON_LINE_M, line, out);
     }
-    for joint in body.all() {
-        sphere(view, joint, 0.028, JOINT.gamma_multiply(figure.opacity), out);
-    }
-    sphere(view, body.head, skeleton::HEAD_RADIUS * 1.5, glow, out);
-    sphere(view, body.head, skeleton::HEAD_RADIUS, core, out);
+    sphere(view, body.head, skeleton::HEAD_RADIUS, line, out);
 }
 
 /// A limb as a line as thick as `thickness` metres at its distance from the camera.
@@ -807,13 +803,13 @@ fn nearest_board_line(view: &Projection, figure: &Figure, scene: &Scene, out: &m
         view,
         [figure.at[0], figure.at[1], 0.02],
         [to[0] as f32, to[1] as f32, 0.02],
-        Stroke::new(2.0_f32, NEAR.gamma_multiply(0.8)),
+        Stroke::new(1.5_f32, NEAREST_BOARD.gamma_multiply(0.8)),
         out,
     );
     if let Some(last) = out.last_mut() {
         last.depth = f32::MAX / 2.0 - 3.0;
     }
-    ring(view, [to[0] as f32, to[1] as f32], 0.2, 360.0, Stroke::new(2.5_f32, NEAR), out);
+    ring(view, [to[0] as f32, to[1] as f32], 0.2, 360.0, Stroke::new(1.5_f32, NEAREST_BOARD), out);
 }
 
 fn nearest_board(at: [f32; 2], scene: &Scene) -> Option<usize> {
@@ -849,7 +845,7 @@ fn figure_labels(painter: &egui::Painter, view: &Projection, figure: &Figure, in
     let metres = (to[0] as f32 - x).hypot(to[1] as f32 - y);
     let middle = [(x + to[0] as f32) / 2.0, (y + to[1] as f32) / 2.0, 0.05];
     if let Some(p) = view.project(middle) {
-        pill(painter, p.at, &format!("{metres:.1} m"), NEAR);
+        pill(painter, p.at, &format!("{metres:.1} m"), NEAREST_BOARD);
     }
 }
 
@@ -858,8 +854,8 @@ fn pill(painter: &egui::Painter, at: Pos2, text: &str, color: Color32) {
     let rect = Rect::from_center_size(at, galley.size() + Vec2::new(16.0, 8.0));
     painter.rect(
         rect,
-        egui::CornerRadius::same(255),
-        Color32::from_rgba_premultiplied(14, 18, 26, 220),
+        egui::CornerRadius::same(1),
+        Color32::from_rgba_premultiplied(9, 9, 9, 220),
         Stroke::new(1.0_f32, color.gamma_multiply(0.6)),
         egui::StrokeKind::Inside,
     );

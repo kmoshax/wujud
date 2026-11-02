@@ -26,32 +26,23 @@ pub fn state_banner(
             theme::caption(ui, "Room");
             ui.horizontal(|ui| {
                 ui.spinner();
-                ui.label(egui::RichText::new(title).size(22.0).strong());
+                ui.label(theme::pixel_text(title, 2.0, theme::TEXT));
             });
             ui.label(egui::RichText::new(detail).color(theme::MUTED));
         });
         return;
     };
     let quiet_for = sensed.and_then(|r| r.since_motion).filter(|_| decision.state3 == RoomState3::Empty);
-    let quiet_headline = quiet_for.map(|s| format!("No movement for {:.0} min", s / 60.0));
-    let (headline, color) = match decision.state3 {
-        RoomState3::Empty if quiet_headline.is_some() => (quiet_headline.as_deref().unwrap_or(""), theme::EMPTY),
-        RoomState3::Empty => ("Room empty", theme::EMPTY),
-        RoomState3::Still => ("Someone here, still", theme::STILL),
-        RoomState3::Moving => ("Someone moving", theme::MOVING),
+    let (headline, detail, color) = match (decision.state3, quiet_for) {
+        (RoomState3::Empty, Some(s)) => ("QUIET", format!("no movement for {:.0} min", s / 60.0), theme::EMPTY),
+        (RoomState3::Empty, None) => ("EMPTY", "nobody here".to_string(), theme::EMPTY),
+        (RoomState3::Still, _) => ("STILL", "someone here, not moving".to_string(), theme::STILL),
+        (RoomState3::Moving, _) => ("MOVING", "someone is walking".to_string(), theme::MOVING),
     };
     theme::card(ui, |ui| {
         theme::caption(ui, "Room");
-        ui.horizontal(|ui| {
-            theme::status_dot(ui, color, 6.0, 30.0);
-            ui.add_space(4.0);
-            ui.label(
-                egui::RichText::new(headline)
-                    .size(22.0)
-                    .strong()
-                    .color(color),
-            );
-        });
+        ui.label(theme::pixel_text(headline, 4.0, color));
+        ui.label(egui::RichText::new(detail).size(15.0));
         let posture = match decision.state {
             Pose::Lie => Some("lying down"),
             Pose::Sit => Some("sitting or crouching"),
@@ -148,7 +139,7 @@ pub fn tracking(ui: &mut egui::Ui, track: Option<&Track>, link_names: &[String],
             let (words, color) = match closeness(boards.state, Some(track)) {
                 None => ("no movement right now", theme::MUTED),
                 Some(c) if c >= VERY_CLOSE => ("very close to the line between the boards", theme::MOVING),
-                Some(c) if c >= CLOSE => ("close to the line between the boards", theme::ACCENT),
+                Some(c) if c >= CLOSE => ("close to the line between the boards", theme::TEXT),
                 Some(_) => ("moving, far from the line between the boards", theme::EMPTY),
             };
             ui.label(egui::RichText::new(words).size(16.0).strong());

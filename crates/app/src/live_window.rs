@@ -68,10 +68,10 @@ impl LiveWindow {
         let width = ui.available_width();
         ui.add(
             egui::Image::new((texture.id(), Vec2::new(width, HEATMAP_HEIGHT)))
-                .corner_radius(egui::CornerRadius::same(6)),
+                .corner_radius(egui::CornerRadius::ZERO),
         );
         ui.label(
-            egui::RichText::new("CSI per subcarrier · warm = stronger than usual, cyan = weaker")
+            egui::RichText::new("CSI per subcarrier · red = stronger than usual, grey = weaker")
                 .small()
                 .color(theme::MUTED),
         );
@@ -101,13 +101,9 @@ impl eframe::App for LiveWindow {
             .exact_width(SIDE_PANEL_WIDTH)
             .frame(panel_frame())
             .show(ctx, |ui| {
-                ui.label(
-                    egui::RichText::new("wujud")
-                        .size(13.0)
-                        .strong()
-                        .color(theme::ACCENT)
-                        .extra_letter_spacing(3.0),
-                );
+                ui.label(theme::pixel_text("WUJUD", 2.0, theme::TEXT));
+                ui.add_space(8.0);
+                theme::source_tag(ui, core.source());
                 ui.add_space(8.0);
                 room_view::state_banner(
                     ui,
@@ -175,7 +171,7 @@ impl eframe::App for LiveWindow {
     }
 }
 
-/// Time runs left to right, subcarriers low to high frequency bottom to top; warm = stronger than usual, cyan = weaker.
+/// Time runs left to right, subcarriers low to high frequency bottom to top; red = stronger than usual, grey = weaker.
 fn heatmap_image(changes: &[Vec<f32>]) -> ColorImage {
     let width = changes.len().max(1);
     let height = changes.first().map_or(1, Vec::len).max(1);
@@ -201,22 +197,9 @@ fn diverging_color(value: f32) -> Color32 {
     let base = theme::BACKGROUND;
     let amount = t.abs();
     if t >= 0.0 {
-        let hot = if amount < 0.6 {
-            toward(
-                Color32::from_rgb(180, 40, 90),
-                Color32::from_rgb(255, 120, 50),
-                amount / 0.6,
-            )
-        } else {
-            toward(
-                Color32::from_rgb(255, 120, 50),
-                Color32::from_rgb(255, 230, 120),
-                (amount - 0.6) / 0.4,
-            )
-        };
-        toward(base, hot, amount.min(1.0))
+        toward(base, theme::RED, amount)
     } else {
-        toward(base, Color32::from_rgb(40, 200, 255), amount)
+        toward(base, theme::MUTED, amount)
     }
 }
 
@@ -230,7 +213,7 @@ fn panel_frame() -> egui::Frame {
 fn draw_rssi(ui: &mut egui::Ui, link: &LinkHistory, width: f32) {
     let (rect, _) = ui.allocate_exact_size(Vec2::new(width, RSSI_HEIGHT), Sense::hover());
     let painter = ui.painter_at(rect);
-    painter.rect_filled(rect, egui::CornerRadius::same(6), theme::BACKGROUND);
+    painter.rect_filled(rect, egui::CornerRadius::ZERO, theme::BACKGROUND);
     let values: Vec<f32> = link.rssi_history().map(f32::from).collect();
     if values.len() < 2 {
         return;
@@ -255,12 +238,12 @@ fn draw_rssi(ui: &mut egui::Ui, link: &LinkHistory, width: f32) {
             .fold((f32::MAX, f32::MIN), |(lo, hi), &v| (lo.min(v), hi.max(v)));
         painter.line_segment(
             [Pos2::new(x, y_of(lo)), Pos2::new(x, y_of(hi))],
-            Stroke::new(2.0_f32, theme::ACCENT.gamma_multiply(0.18)),
+            Stroke::new(2.0_f32, theme::TEXT.gamma_multiply(0.12)),
         );
         let mean = bucket.iter().sum::<f32>() / bucket.len() as f32;
         means.push(Pos2::new(x, y_of(mean)));
     }
-    painter.line(means, Stroke::new(1.6_f32, theme::ACCENT));
+    painter.line(means, Stroke::new(1.5_f32, theme::TEXT));
     painter.text(
         rect.min + Vec2::new(8.0, 4.0),
         egui::Align2::LEFT_TOP,

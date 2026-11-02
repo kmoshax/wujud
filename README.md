@@ -79,6 +79,20 @@ Run the tests, which include golden comparisons against the Python reference:
 cargo test --workspace
 ```
 
+## Presenting
+
+One line each; the script builds the release binary first:
+
+```bash
+research/present.sh room     # the simulated room in 3D, full screen, 4 boards (BOARDS=3 for three)
+research/present.sh hall     # the simulated lecture hall counting students
+research/present.sh replay   # a real recording of the room (research/rec/guided_room_20261101_2120_test.csv)
+research/present.sh live     # the real boards (BOARD=udp:<address>, udp:192.168.1.40 by default)
+research/present.sh panel    # the simulated room with every number (egui window)
+```
+
+The simulated room plays empty, someone walks in, sits, walks, lies down, walks out, in about 3.5 minutes. Every screen says where its data comes from at the top left: SIMULATION, LIVE · REAL BOARDS, or REPLAY · REAL RECORDING. The cross on the floor (where the simulated person really is) appears only in simulation.
+
 ## What we found
 
 - **Motion is easy and presence is fine.** A person holding still versus an empty room is the hard case. On public ESP32 data (ESPectre), every single-link method we tried reaches an AUC of 0.55–0.65, and so do 31 deep networks.
