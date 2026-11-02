@@ -1,5 +1,5 @@
 //! Where a walking person is, from every link at once (research/tools/link_net.py; trained on simulated
-//! rooms only: 0.54 m median error with four devices, 0.71 m with three, on rooms it never saw).
+//! rooms only: 0.53 m median error with four devices, 0.68 m with three, on rooms it never saw).
 //!
 //! Each pair of devices is one token: its disturbance and RSSI spread over its own quiet level, the same
 //! relative to the other pairs, each subcarrier's spread over its quiet level and how the spectrum's shape
@@ -17,6 +17,9 @@ use serde::Deserialize;
 const HISTORY_SECONDS: usize = 300;
 const HISTORY_NEEDED: usize = 20;
 const LAYER_NORM_EPS: f32 = 1e-5;
+/// How far the belief spreads between two seconds of walking (research/tools/track_filter.py chose it on
+/// simulated rooms: as accurate as each second alone, with half the jumps over a metre).
+const WALK_SPREAD_M: f64 = 1.2;
 
 #[derive(Deserialize)]
 #[serde(untagged)]
@@ -344,6 +347,10 @@ pub struct LinkNetTracker {
     pairs: Vec<Vec<usize>>,
     names: Vec<Vec<String>>,
     history: Vec<VecDeque<Second>>,
+    /// points x points: where someone at one point may be a second later.
+    walk: Vec<Vec<f32>>,
+    /// Over the points: where the person is, followed through the seconds they walk.
+    belief: Vec<f32>,
 }
 
 impl LinkNetTracker {
@@ -374,6 +381,8 @@ impl LinkNetTracker {
             .par_iter()
             .map(|&p| ends.iter().map(|&(a, b)| network.geometry_part(&geometry(p, a, b))).collect())
             .collect();
+        let walk = walk_spread(&points);
+        let belief = vec![1.0 / points.len() as f32; points.len()];
         Ok(LinkNetTracker {
             network,
             bins: file.bins,
@@ -385,6 +394,8 @@ impl LinkNetTracker {
             geometry_part,
             names: pairs.iter().map(|p| p.iter().map(|&i| names[i].clone()).collect()).collect(),
             history: pairs.iter().map(|_| VecDeque::new()).collect(),
+            walk,
+            belief,
             pairs,
         })
     }
@@ -471,26 +482,50 @@ impl LinkNetTracker {
         Some(tokens)
     }
 
-    fn answer(&self, tokens: &[Vec<f32>]) -> ([f64; 2], Vec<f32>) {
+    /// The network's distribution over the points, and over the activities.
+    fn answer(&self, tokens: &[Vec<f32>]) -> (Vec<f32>, Vec<f32>) {
         let read = self.network.read_links(tokens);
         let width = read[0].len();
         let link_part: Vec<Vec<f32>> = read.iter().map(|c| self.network.pair0.part(c, 0, width)).collect();
         let scores: Vec<f32> = self.geometry_part.par_iter().map(|g| self.network.score(g, &link_part)).collect();
-        let weights = softmax(&scores);
+        (softmax(&scores), softmax(&self.network.activity(&read)))
+    }
+
+    fn mean_point(&self, weights: &[f32]) -> [f64; 2] {
         let mut xy = [0.0f64; 2];
-        for (p, w) in self.points.iter().zip(&weights) {
+        for (p, w) in self.points.iter().zip(weights) {
             xy[0] += p[0] * f64::from(*w);
             xy[1] += p[1] * f64::from(*w);
         }
-        (xy, softmax(&self.network.activity(&read)))
+        xy
     }
 
-    /// Where the network puts the person now, and what it thinks they do, once every pair has a history.
-    pub fn position(&self) -> Option<([f64; 2], &str)> {
-        let (xy, activity) = self.answer(&self.tokens()?);
+    /// Where the person is now and what the network thinks they do, once every pair has a history.
+    /// While they walk, the belief moves: spread by a second of walking, then weighed by this second's
+    /// answer; while they do not, it stays where they stopped.
+    pub fn position(&mut self, walking: bool) -> Option<([f64; 2], &str)> {
+        let (where_now, activity) = self.answer(&self.tokens()?);
+        if walking {
+            let spread: Vec<f32> = self.walk.par_iter().map(|row| row.iter().zip(&self.belief).map(|(m, b)| m * b).sum()).collect();
+            let weighed: Vec<f32> = spread.iter().zip(&where_now).map(|(s, p)| s * p.max(1e-12)).collect();
+            let total: f32 = weighed.iter().sum();
+            if total > 0.0 && total.is_finite() {
+                self.belief = weighed.into_iter().map(|w| w / total).collect();
+            }
+        }
         let best = (0..activity.len()).max_by(|&a, &b| activity[a].total_cmp(&activity[b]))?;
-        Some((xy, &self.activities[best]))
+        Some((self.mean_point(&self.belief), &self.activities[best]))
     }
+}
+
+/// Row i: from each point, the share of walkers who reach point i a second later.
+fn walk_spread(points: &[[f64; 2]]) -> Vec<Vec<f32>> {
+    let kernel = |a: [f64; 2], b: [f64; 2]| (-((a[0] - b[0]).powi(2) + (a[1] - b[1]).powi(2)) / (2.0 * WALK_SPREAD_M * WALK_SPREAD_M)).exp();
+    let from_totals: Vec<f64> = points.iter().map(|&from| points.iter().map(|&to| kernel(from, to)).sum()).collect();
+    points
+        .iter()
+        .map(|&to| points.iter().zip(&from_totals).map(|(&from, total)| (kernel(from, to) / total) as f32).collect())
+        .collect()
 }
 
 #[cfg(test)]
@@ -504,7 +539,8 @@ mod tests {
         let links: Vec<([f64; 2], [f64; 2])> = check.links.iter().map(|&[a, b]| (check.nodes[a], check.nodes[b])).collect();
         let names: Vec<String> = (0..links.len()).map(|i| i.to_string()).collect();
         let tracker = LinkNetTracker::load(&path, &links, &names, check.width, check.depth).unwrap();
-        let (xy, activity) = tracker.answer(&check.tokens);
+        let (weights, activity) = tracker.answer(&check.tokens);
+        let xy = tracker.mean_point(&weights);
         let expected = softmax(&check.activity);
         assert!((xy[0] - check.position[0]).abs() < 1e-3 && (xy[1] - check.position[1]).abs() < 1e-3, "{xy:?} vs {:?}", check.position);
         assert!(activity.iter().zip(&expected).all(|(a, e)| (a - e).abs() < 1e-3), "{activity:?} vs {expected:?}");
@@ -523,7 +559,7 @@ mod tests {
             let reading = |motion: f64| Some(LinkSecond { motion, shadow: 1.0, spread: vec![1.0; 52], shape: vec![0.0; 52] });
             tracker.add_second(&[reading(busy), None, reading(1.0), reading(1.1)]);
         }
-        let (xy, _) = tracker.position().unwrap();
+        let (xy, _) = tracker.position(true).unwrap();
         assert!(xy[0] > 0.0 && xy[0] < 4.0 && xy[1] > 0.0 && xy[1] < 3.5);
     }
 }

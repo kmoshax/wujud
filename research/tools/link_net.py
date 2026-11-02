@@ -8,7 +8,7 @@ every grid point attends over the links, through how it sits relative to each (e
 the line, place along it, link length), and is scored. Rooms are flipped at random while learning, so
 no favourite spot can be learnt; a room with nothing moving should land near its centre.
 
-    .venv/bin/python -I tools/link_net.py <out.pt> cache/tracking/v2_part*.jsonl cache/tracking/v2four_p*.jsonl
+    .venv/bin/python -I tools/link_net.py <out.pt> cache/tracking/v2_part*.jsonl cache/tracking/v3_part*.jsonl cache/tracking/v2four_p*.jsonl
 """
 import json
 import sys
@@ -20,7 +20,7 @@ from torch import nn
 ACTIVITIES = ["Away", "Walk", "Sit", "Lie", "Stand"]
 GRID_M = 0.25
 BINS = 32
-CONTEXT_S = 3
+CONTEXT_S = 5
 SHAPE_LAG_S = 3
 QUIET_PERCENTILE = 20
 TEST_SHARE = 0.2
@@ -193,7 +193,7 @@ def main():
     torch.manual_seed(0)
     model = LinkNet(features).to(DEVICE)
     optimiser = torch.optim.AdamW(model.parameters(), lr=5e-4, weight_decay=1e-4)
-    epochs = 24
+    epochs = 30
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimiser, epochs)
     for epoch in range(epochs):
         model.train()

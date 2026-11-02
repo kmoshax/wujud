@@ -25,8 +25,6 @@ const HEATMAP_HEIGHT: f32 = 150.0;
 const RSSI_HEIGHT: f32 = 60.0;
 const ENGINE_TICK: Duration = Duration::from_secs(1);
 const TRACKER_TICK: Duration = Duration::from_millis(100);
-/// Share of the way the shown position moves towards each new answer of the network (once a second).
-const FOLLOW_ANSWER: f64 = 0.5;
 const SIDE_PANEL_WIDTH: f32 = 300.0;
 const SIGNAL_PANEL_HEIGHT: f32 = 290.0;
 /// A board's links show up one by one; the room is rebuilt once none has come for this long.
@@ -314,15 +312,13 @@ impl LiveWindow {
             .collect();
         if self.last_learned.elapsed() >= Duration::from_secs(1) {
             self.last_learned = Instant::now();
+            let moving = self.sensed_moving();
             if let Some(learned) = &mut self.learned {
                 learned.add_second(&self.links);
-                self.learned_answer = learned.answer();
+                self.learned_answer = learned.answer(moving);
             }
-            if let (true, Some((xy, _))) = (self.sensed_moving(), &self.learned_answer) {
-                self.learned_xy = Some(match self.learned_xy {
-                    Some(old) => [old[0] + (xy[0] - old[0]) * FOLLOW_ANSWER, old[1] + (xy[1] - old[1]) * FOLLOW_ANSWER],
-                    None => *xy,
-                });
+            if let (true, Some((xy, _))) = (moving, &self.learned_answer) {
+                self.learned_xy = Some(*xy);
             }
         }
         if motion.iter().any(|m| !m.is_nan()) {
@@ -688,9 +684,9 @@ impl Locator {
         }
     }
 
-    fn answer(&self) -> Option<([f64; 2], String)> {
+    fn answer(&mut self, moving: bool) -> Option<([f64; 2], String)> {
         match self {
-            Locator::Links(tracker) => tracker.position().map(|(xy, what)| (xy, what.to_owned())),
+            Locator::Links(tracker) => tracker.position(moving).map(|(xy, what)| (xy, what.to_owned())),
             Locator::Points(tracker) => tracker.position().map(|xy| (xy, String::from("?"))),
         }
     }

@@ -1,7 +1,7 @@
 """link_net.pt as JSON for the live view (crates/app/src/link_net.rs), with one simulated second and the
 network's answer for it, so the Rust side can check it computes the same thing.
 
-    .venv/bin/python -I tools/export_link_net.py cache/tracking/link_net.pt cache/tracking/four_p5.jsonl ../crates/model/models/link_net.json
+    .venv/bin/python -I tools/export_link_net.py cache/tracking/link_net_v2.pt cache/tracking/four_p5.jsonl ../crates/model/models/link_net.json
 """
 import json
 import os
@@ -47,7 +47,7 @@ def main():
     round_all = lambda t: np.round(t.numpy().astype(np.float64), 6).tolist()
     out = {
         "about": "research/tools/link_net.py: every link a token, a transformer across links, attention over links per grid point; "
-                 "trained on simulated rooms only (4 devices: 0.54 m median, 86% within 1 m on unseen rooms; 3 devices 0.71 m)",
+                 "trained on simulated rooms only (4 devices: 0.53 m median, 87% within 1 m on unseen rooms; 3 devices 0.68 m, 75%)",
         "grid_m": GRID_M, "bins": BINS, "context_s": CONTEXT_S, "shape_lag_s": SHAPE_LAG_S,
         "quiet_percentile": QUIET_PERCENTILE, "heads": 4,
         "activities": ["Away", "Walk", "Sit", "Lie", "Stand"],
