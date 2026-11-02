@@ -17,9 +17,12 @@ pub struct Body {
     pub absorption: f64,
     pub chest: Vec<Vec3>,
     pub limb: Vec<Vec3>,
+    /// Empty for bodies without a separate head (every body except a person in a movement session).
+    pub head: Vec<Vec3>,
     /// Radar cross-sections in m².
     pub chest_rcs: f64,
     pub limb_rcs: f64,
+    pub head_rcs: f64,
 }
 
 impl Body {
@@ -42,9 +45,11 @@ impl Body {
             yaw: self.yaw[frames.clone()].to_vec(),
             absorption: self.absorption,
             chest: self.chest[frames.clone()].to_vec(),
-            limb: self.limb[frames].to_vec(),
+            limb: self.limb[frames.clone()].to_vec(),
+            head: if self.head.is_empty() { Vec::new() } else { self.head[frames].to_vec() },
             chest_rcs: self.chest_rcs,
             limb_rcs: self.limb_rcs,
+            head_rcs: self.head_rcs,
         }
     }
 
@@ -61,8 +66,10 @@ impl Body {
             absorption: self.absorption,
             chest: frames.iter().map(|&t| self.chest[t]).collect(),
             limb: frames.iter().map(|&t| self.limb[t]).collect(),
+            head: if self.head.is_empty() { Vec::new() } else { frames.iter().map(|&t| self.head[t]).collect() },
             chest_rcs: self.chest_rcs,
             limb_rcs: self.limb_rcs,
+            head_rcs: self.head_rcs,
         }
     }
 
@@ -72,6 +79,9 @@ impl Body {
             self.centre[t] = [f64::NAN; 2];
             self.chest[t] = [f64::NAN; 3];
             self.limb[t] = [f64::NAN; 3];
+            if let Some(head) = self.head.get_mut(t) {
+                *head = [f64::NAN; 3];
+            }
         }
     }
 }

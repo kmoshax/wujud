@@ -1,0 +1,23 @@
+{'scale': 1, 'width': 64, 'dilations': '1,2,4,8,16', 'epochs': 12, 'window': 256, 'batch': 48, 'train_until': 1600, 'validate_until': 1800, 'test': 0, 'out': '/home/kmosha/Projects/hallsense/research/cache/movements/run_b.pt', 'lr': 0.002, 'seed': 0, 'device': 'cpu'}
+1600 rooms to learn from, 200 to choose with, 200 never seen; cpu
+epoch 0 validation: accuracy 73.2%, balanced 74.8%, movement classes (wave..stand_up) mean recall 76.5%
+epoch 1 validation: accuracy 80.9%, balanced 80.3%, movement classes (wave..stand_up) mean recall 80.5%
+epoch 2 validation: accuracy 84.3%, balanced 81.9%, movement classes (wave..stand_up) mean recall 81.2%
+epoch 3 validation: accuracy 83.1%, balanced 83.8%, movement classes (wave..stand_up) mean recall 85.1%
+epoch 4 validation: accuracy 86.6%, balanced 82.5%, movement classes (wave..stand_up) mean recall 80.3%
+epoch 5 validation: accuracy 84.7%, balanced 83.5%, movement classes (wave..stand_up) mean recall 83.7%
+epoch 6 validation: accuracy 87.0%, balanced 84.5%, movement classes (wave..stand_up) mean recall 83.5%
+epoch 7 validation: accuracy 86.9%, balanced 85.7%, movement classes (wave..stand_up) mean recall 85.4%
+epoch 8 validation: accuracy 87.4%, balanced 85.3%, movement classes (wave..stand_up) mean recall 84.6%
+epoch 9 validation: accuracy 88.1%, balanced 85.2%, movement classes (wave..stand_up) mean recall 84.0%
+epoch 10 validation: accuracy 87.9%, balanced 85.6%, movement classes (wave..stand_up) mean recall 84.6%
+epoch 11 validation: accuracy 88.1%, balanced 85.0%, movement classes (wave..stand_up) mean recall 83.6%
+best epoch, validation rooms: accuracy 86.9%, balanced 85.7%, movement classes (wave..stand_up) mean recall 85.4%
+                still      walk      wave       bow prostrate  sit_down  stand_up   recall precision
+      still     17097       355      1337       466       843       285       237    82.9%   92.9%
+       walk       155     10095         0        22        48       603       313    89.8%   94.3%
+       wave       480         0      2696        13         6         4        15    83.9%   65.6%
+        bow       197        23        21      5166       331         1        53    89.2%   83.4%
+  prostrate       381        52        38       496     11160        30        54    91.4%   89.9%
+   sit_down        29       140         2         5        17       771        63    75.1%   45.4%
+   stand_up        69        35        15        26        13         6      1162    87.6%   61.3%

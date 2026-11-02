@@ -406,6 +406,8 @@ fn seated_student(rng: &mut SimRng, seat: Vec3, frames: usize, fs: f64, restless
         centre,
         chest_rcs: uniform(rng, 0.1, 0.5),
         limb_rcs: uniform(rng, 0.02, 0.1),
+        head: Vec::new(),
+        head_rcs: 0.0,
     }
 }
 

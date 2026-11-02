@@ -51,6 +51,8 @@ fn constant_box(
         absorption,
         chest_rcs: 0.0,
         limb_rcs: 0.0,
+        head: Vec::new(),
+        head_rcs: 0.0,
     }
 }
 

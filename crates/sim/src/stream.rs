@@ -108,6 +108,10 @@ impl RoomStream {
         (self.session.frames() as f64 / self.fs).ceil() as usize
     }
 
+    pub fn labels(&self) -> &PersonLabels {
+        self.session.labels()
+    }
+
     /// Empty-room packets of every link (the calibration a real install records first).
     pub fn calibration(&mut self) -> Vec<Capture> {
         self.session.calibrate()
@@ -130,7 +134,7 @@ impl RoomStream {
 fn truth_of(labels: &PersonLabels, frame: usize) -> RoomTruth {
     let frame = frame.min(labels.activity.len().saturating_sub(1));
     let activity = labels.activity[frame];
-    let breathing_visible = matches!(activity, Activity::Lie | Activity::Sit | Activity::Stand);
+    let breathing_visible = matches!(activity, Activity::Lie | Activity::Sit | Activity::Stand | Activity::Kneel);
     let xy = labels.xy[frame];
     RoomTruth {
         activity,

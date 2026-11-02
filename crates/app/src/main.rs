@@ -6,6 +6,7 @@ mod learned_tracker;
 mod link_net;
 mod link_history;
 mod live_core;
+mod movement_net;
 mod live_window;
 mod phone_range;
 mod room_sense;

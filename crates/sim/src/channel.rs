@@ -30,6 +30,7 @@ impl Link<'_> {
 pub struct ScatterReference {
     pub chest: Option<Vec3>,
     pub limb: Option<Vec3>,
+    pub head: Option<Vec3>,
 }
 
 impl ScatterReference {
@@ -38,11 +39,12 @@ impl ScatterReference {
         ScatterReference {
             chest: mean_present_position(&body.chest),
             limb: mean_present_position(&body.limb),
+            head: mean_present_position(&body.head),
         }
     }
 }
 
-/// `H[t,k] = absorb·rest[k] + Σ_paths F_p(t) h_p[k] + absorb·(chest + limb scatter)`.
+/// `H[t,k] = absorb·rest[k] + Σ_paths F_p(t) h_p[k] + absorb·(chest + limb + head scatter)`.
 ///
 /// `absorb` is the Sabine factor by which bodies weaken the reverberant field (1 = no bodies).
 pub fn link_channel(
@@ -87,6 +89,7 @@ pub fn link_channel_with_references(
         let parts = [
             (&body.chest, reference.chest, body.chest_rcs),
             (&body.limb, reference.limb, body.limb_rcs),
+            (&body.head, reference.head, body.head_rcs),
         ];
         for (track, reference, rcs) in parts {
             let Some(reference) = reference else {
