@@ -1,17 +1,12 @@
-use std::sync::mpsc::Receiver;
 use std::time::Instant;
 
 use eframe::egui::{self, Color32, ColorImage, Pos2, Sense, Stroke, TextureHandle, TextureOptions, Vec2};
 
 use crate::link_history::LinkHistory;
 use crate::live_core::LiveCore;
-use crate::room_setup::LiveRoom;
 use crate::room_view;
 use crate::scene_3d::{Belief, Scene3d, SceneInputs};
-use crate::sensor_feed::FeedEvent;
 use crate::theme;
-
-pub use crate::live_core::Growth;
 
 const CHANGE_RANGE_DB: f32 = 4.0;
 const HEATMAP_HEIGHT: f32 = 150.0;
@@ -27,18 +22,13 @@ pub struct LiveWindow {
 }
 
 impl LiveWindow {
-    pub fn new(feed: Receiver<FeedEvent>, room: LiveRoom) -> Self {
+    pub fn new(core: LiveCore) -> Self {
         LiveWindow {
-            core: LiveCore::new(feed, room),
+            core,
             heatmaps: Vec::new(),
             scene: Scene3d::default(),
             last_frame: Instant::now(),
         }
-    }
-
-    pub fn growing(mut self, growth: Growth) -> Self {
-        self.core = self.core.growing(growth);
-        self
     }
 
     fn link_panel(&mut self, ui: &mut egui::Ui, index: usize) {

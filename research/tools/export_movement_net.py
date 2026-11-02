@@ -1,4 +1,5 @@
-"""movement_net.pt as JSON for crates/app/src/movement_net.rs, with the start of one simulated room (raw
+"""movement_net.pt as JSON for a Rust port (crates/app/src/movement_net.rs until 774b4fe; dropped from the
+app after it failed on the real prayers, see results/movements), with the start of one simulated room (raw
 ten-per-second link steps), the network inputs of its last step and the network's logits for its last
 whole second with full look-ahead, so the Rust side can check it computes the same thing.
 

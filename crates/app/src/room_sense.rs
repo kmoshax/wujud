@@ -417,7 +417,7 @@ impl RoomSense {
         if shapes.is_empty() {
             return;
         }
-        let learning = self.learning.as_mut().expect("learning");
+        let Some(learning) = self.learning.as_mut() else { return };
         for (name, shape) in shapes {
             learning.entry(name).or_default().push(shape);
         }
@@ -425,7 +425,8 @@ impl RoomSense {
         if self.learnt_quiet_seconds < LEARN_EMPTY_SECONDS {
             return;
         }
-        let learnt = finish(self.learning.take().expect("learning"));
+        let Some(learning) = self.learning.take() else { return };
+        let learnt = finish(learning);
         if learnt.is_empty() {
             self.learn_empty_room();
         } else {

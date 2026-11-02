@@ -85,7 +85,7 @@ pub fn from_serial_ports(
                 let mut event = None;
                 if *count >= NEW_LINK_LINES && announced.insert(line.link.clone()) {
                     event = Some(FeedEvent::NewLink(line.link.clone()));
-                } else if *count % HEARD_EVERY == 0 {
+                } else if count.is_multiple_of(HEARD_EVERY) {
                     if let Ok(Line::Csi(packet)) = Line::parse(&line.text) {
                         event = Some(FeedEvent::Heard {
                             link: line.link,

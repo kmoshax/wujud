@@ -277,6 +277,7 @@ fn state_words(snapshot: &Snapshot) -> (&'static str, String, Color) {
         RoomStatus::Waiting => ("WAITING", "for the first movement".into(), MUTED),
         RoomStatus::Empty { quiet_for: Some(seconds) } => ("QUIET", format!("no movement for {:.0} min", seconds / 60.0), MUTED),
         RoomStatus::Empty { quiet_for: None } => ("EMPTY", "nobody here".into(), MUTED),
+        RoomStatus::Still { last_moved: Some(seconds) } if seconds < 1.0 => ("STILL", "small movements".into(), TEXT),
         RoomStatus::Still { last_moved: Some(seconds) } => ("STILL", format!("last moved {}", ago(seconds)), TEXT),
         RoomStatus::Still { last_moved: None } => ("STILL", format!("still for {:.0} s", snapshot.still_seconds), TEXT),
         RoomStatus::Moving => ("MOVING", "someone is walking".into(), RED),

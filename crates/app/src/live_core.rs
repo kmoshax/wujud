@@ -216,35 +216,28 @@ impl LiveCore {
     fn join_new_links(&mut self) {
         let settled = self.new_link_at.is_some_and(|t| t.elapsed() >= SETTLE_NEW_LINKS);
         // A few seconds of RSSI at the start place the boards roughly; half a minute places them better.
-        let relayout = self.growth.is_some() && !self.relaid && self.started.elapsed() >= RELAYOUT_AFTER;
-        if !(settled || relayout) || self.growth.is_none() {
+        let relayout = !self.relaid && self.started.elapsed() >= RELAYOUT_AFTER;
+        if !(settled || relayout) {
             return;
         }
+        let Some(growth) = self.growth.as_mut() else { return };
         self.new_link_at = None;
         self.relaid |= relayout;
-        let heard: Vec<(String, f64)> = {
-            let reading = self.growth.as_ref().expect("growth").reading.lock().unwrap().clone();
-            reading
-                .into_iter()
-                .zip(&self.links)
-                .filter_map(|(name, link)| {
-                    let mut rssi: Vec<f64> = link.rssi_history().map(f64::from).collect();
-                    rssi.sort_by(f64::total_cmp);
-                    Some((name, *rssi.get(rssi.len() / 2)?))
-                })
-                .collect()
-        };
-        let growth = self.growth.as_mut().expect("growth");
-        growth.rssi.extend(heard);
-        let growth = self.growth.as_ref().expect("growth");
         let reading = growth.reading.lock().unwrap().clone();
+        for (name, link) in reading.iter().zip(&self.links) {
+            let mut rssi: Vec<f64> = link.rssi_history().map(f64::from).collect();
+            rssi.sort_by(f64::total_cmp);
+            if let Some(&median) = rssi.get(rssi.len() / 2) {
+                growth.rssi.insert(name.clone(), median);
+            }
+        }
         let room = match room_setup::room_engine(&growth.seen, growth.room_file.as_deref(), &growth.rssi) {
             Ok(room) if relayout || room.links != reading => room,
             Ok(_) => return,
             Err(error) => return eprintln!("new links: {error}"),
         };
-        println!("links: {}", room.links.join(", "));
         *growth.reading.lock().unwrap() = room.links.clone();
+        println!("links: {}", room.links.join(", "));
         let sensed = self.engine.sensed;
         self.engine = room.engine;
         self.engine.sensed = sensed;
@@ -659,8 +652,8 @@ fn in_64_bins(iq: &[i8]) -> Cow<'_, [i8]> {
 /// The network that places a walking person: every link at once (link_net), or with
 /// `WUJUD_TRACKER=points` the earlier one that scores each link on its own (learned_tracker).
 enum Locator {
-    Links(LinkNetTracker),
-    Points(LearnedTracker),
+    Links(Box<LinkNetTracker>),
+    Points(Box<LearnedTracker>),
 }
 
 impl Locator {
@@ -668,12 +661,12 @@ impl Locator {
         let models = room_setup::models_dir();
         if std::env::var("WUJUD_TRACKER").as_deref() != Ok("points") {
             match LinkNetTracker::load(&models.join("link_net.json"), ends, names, width, depth) {
-                Ok(tracker) => return Some(Locator::Links(tracker)),
+                Ok(tracker) => return Some(Locator::Links(Box::new(tracker))),
                 Err(error) => eprintln!("link_net.json: {error}"),
             }
         }
         LearnedTracker::load(&models.join("learned_tracker.json"), ends, names, width, depth)
-            .map(Locator::Points)
+            .map(|tracker| Locator::Points(Box::new(tracker)))
             .map_err(|error| eprintln!("learned_tracker.json: {error}"))
             .ok()
     }

@@ -6,7 +6,6 @@ mod learned_tracker;
 mod link_net;
 mod link_history;
 mod live_core;
-mod movement_net;
 mod live_window;
 mod phone_range;
 mod room_sense;
@@ -146,18 +145,7 @@ fn live(
     room: Option<&std::path::Path>,
     record: Option<&str>,
 ) -> anyhow::Result<()> {
-    let (ports, rssi) = serial::discover(&ports);
-    let live = room_setup::room_engine(&ports, room, &rssi)?;
-    println!("links: {}", live.links.join(", "));
-    let reading = std::sync::Arc::new(std::sync::Mutex::new(live.links.clone()));
-    let feed = sensor_feed::from_serial_ports(&ports, reading.clone(), record)?;
-    let window = LiveWindow::new(feed, live).growing(live_window::Growth {
-        seen: ports,
-        reading,
-        room_file: room.map(std::path::Path::to_path_buf),
-        rssi,
-    });
-    open_window(window)
+    open_window(LiveWindow::new(boards_core(ports, room, record)?))
 }
 
 fn live_view(
@@ -166,30 +154,39 @@ fn live_view(
     record: Option<&str>,
     options: view::ViewOptions,
 ) -> anyhow::Result<()> {
+    view::run(boards_core(ports, room, record)?, options)
+}
+
+fn boards_core(
+    ports: Vec<String>,
+    room: Option<&std::path::Path>,
+    record: Option<&str>,
+) -> anyhow::Result<live_core::LiveCore> {
     let (ports, rssi) = serial::discover(&ports);
     let live = room_setup::room_engine(&ports, room, &rssi)?;
     println!("links: {}", live.links.join(", "));
     let reading = std::sync::Arc::new(std::sync::Mutex::new(live.links.clone()));
     let feed = sensor_feed::from_serial_ports(&ports, reading.clone(), record)?;
-    let core = live_core::LiveCore::new(feed, live).growing(live_core::Growth {
+    Ok(live_core::LiveCore::new(feed, live).growing(live_core::Growth {
         seen: ports,
         reading,
         room_file: room.map(std::path::Path::to_path_buf),
         rssi,
-    });
-    view::run(core, options)
+    }))
+}
+
+fn simulated_core(boards: usize, seed: u64) -> anyhow::Result<live_core::LiveCore> {
+    let stream = wujud_sim::stream::RoomStream::demo(seed, boards);
+    let room = room_setup::simulated_room_engine(stream.room())?;
+    Ok(live_core::LiveCore::new(sensor_feed::from_simulator(stream), room))
 }
 
 fn demo_view(boards: usize, seed: u64, options: view::ViewOptions) -> anyhow::Result<()> {
-    let stream = wujud_sim::stream::RoomStream::demo(seed, boards);
-    let room = room_setup::simulated_room_engine(stream.room())?;
-    view::run(live_core::LiveCore::new(sensor_feed::from_simulator(stream), room), options)
+    view::run(simulated_core(boards, seed)?, options)
 }
 
 fn demo(boards: usize, seed: u64) -> anyhow::Result<()> {
-    let stream = wujud_sim::stream::RoomStream::demo(seed, boards);
-    let room = room_setup::simulated_room_engine(stream.room())?;
-    open_window(LiveWindow::new(sensor_feed::from_simulator(stream), room))
+    open_window(LiveWindow::new(simulated_core(boards, seed)?))
 }
 
 fn demo_hall(seed: u64) -> anyhow::Result<()> {
