@@ -81,13 +81,15 @@ cargo test --workspace
 
 ## Presenting
 
+![The main commands](docs/commands.png)
+
 One line each; the script builds the release binary first:
 
 ```bash
 research/present.sh room     # the simulated room in 3D, full screen, 4 boards (BOARDS=3 for three)
 research/present.sh hall     # the simulated lecture hall counting students
 research/present.sh replay   # a real recording of the room (research/rec/guided_room_20261101_2120_test.csv)
-research/present.sh live     # the real boards (BOARD=udp:<address>, udp:192.168.1.40 by default)
+research/present.sh live     # the real boards (finds the hub at 192.168.4.1, .1.42 or .1.40; BOARD=udp:<address> to choose)
 research/present.sh panel    # the simulated room with every number (egui window)
 ```
 
