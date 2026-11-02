@@ -29,6 +29,32 @@ const SETTLE_NEW_LINKS: Duration = Duration::from_secs(3);
 const RELAYOUT_AFTER: Duration = Duration::from_secs(30);
 const DRIFT_HISTORY_SECONDS: usize = 120;
 
+/// Where the packets come from, shown on screen so the simulator is never taken for the real room.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Source {
+    Simulation,
+    Live,
+    Replay,
+}
+
+impl Source {
+    pub fn tag(self) -> &'static str {
+        match self {
+            Source::Simulation => "SIMULATION",
+            Source::Live => "LIVE · REAL BOARDS",
+            Source::Replay => "REPLAY · REAL RECORDING",
+        }
+    }
+
+    pub fn note(self) -> &'static str {
+        match self {
+            Source::Simulation => "simulated room · no boards",
+            Source::Live => "the ESP32 boards, right now",
+            Source::Replay => "real boards, recorded earlier",
+        }
+    }
+}
+
 /// Live boards only: a board switched on while the window is open joins the room.
 pub struct Growth {
     /// Every link heard so far, read or not (a link whose ends are not placed yet may be placed later).
@@ -38,6 +64,7 @@ pub struct Growth {
     pub room_file: Option<PathBuf>,
     /// Each link's signal strength, for placing the boards (refreshed from the live links on a rebuild).
     pub rssi: std::collections::BTreeMap<String, f64>,
+    pub recorded: bool,
 }
 
 /// One second of the drift detector: the links' recent change, and the line above which it is movement.
@@ -163,6 +190,14 @@ impl LiveCore {
 
     pub fn is_growing(&self) -> bool {
         self.growth.is_some()
+    }
+
+    pub fn source(&self) -> Source {
+        match &self.growth {
+            None => Source::Simulation,
+            Some(growth) if growth.recorded => Source::Replay,
+            Some(_) => Source::Live,
+        }
     }
 
     /// The network that places people is the trained one, so no belief map is drawn.
@@ -492,7 +527,7 @@ impl LiveCore {
             truth_xy: self.truth.as_ref().and_then(|t| t.xy).map(|xy| xy.map(|v| v as f32)),
             one_line: self.one_line,
             placed: self.placed,
-            simulated: self.growth.is_none(),
+            source: self.source(),
         }
     }
 
@@ -546,7 +581,7 @@ pub struct Snapshot {
     pub truth_xy: Option<[f32; 2]>,
     pub one_line: bool,
     pub placed: bool,
-    pub simulated: bool,
+    pub source: Source,
 }
 
 impl Snapshot {

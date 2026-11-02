@@ -7,7 +7,7 @@ use bevy::text::FontSmoothing;
 use bevy::ui::UiSystem;
 use bevy::window::PrimaryWindow;
 
-use crate::live_core::{RoomStatus, Snapshot};
+use crate::live_core::{RoomStatus, Snapshot, Source};
 use crate::skeleton::Gait;
 
 use super::palette::{RED, EDGE, FAINT, GRID, MUTED, TEXT};
@@ -133,6 +133,7 @@ fn spawn_panels(mut commands: Commands, font: Res<PixelFont>, latest: Res<Latest
         })
         .with_children(|panel| {
             panel.spawn(text(font, "WUJUD", 2, TEXT));
+            source_tag(panel, font, latest.0.source);
             panel.spawn((Readout::Source, text(font, "", 1, MUTED), gap(PIXEL)));
             panel.spawn((Readout::State, text(font, "", 6, MUTED), gap(5.0 * PIXEL)));
             panel.spawn((Readout::Detail, text(font, "", 2, TEXT), gap(2.0 * PIXEL)));
@@ -151,7 +152,7 @@ fn spawn_panels(mut commands: Commands, font: Res<PixelFont>, latest: Res<Latest
         "RED ELLIPSE: ITS FRESNEL ZONE. THE PERSON IS",
         "WHERE THE LIT ZONES CROSS",
     ];
-    if latest.0.simulated {
+    if latest.0.source == Source::Simulation {
         legend.push("+ : WHERE THE SIMULATED PERSON REALLY IS");
     }
     commands
@@ -174,6 +175,33 @@ fn spawn_panels(mut commands: Commands, font: Res<PixelFont>, latest: Res<Latest
         text(font, "", 1, FAINT),
         Node { position_type: PositionType::Absolute, right: Val::Px(MARGIN), bottom: Val::Px(MARGIN), ..default() },
     ));
+}
+
+/// Simulation outlined and muted; real data in off-white, live with a red dot.
+fn source_tag(panel: &mut ChildSpawnerCommands, font: &PixelFont, source: Source) {
+    let color = if source == Source::Simulation { MUTED } else { TEXT };
+    panel
+        .spawn((
+            Node {
+                margin: UiRect::top(Val::Px(2.0 * PIXEL)),
+                padding: UiRect::axes(Val::Px(1.5 * PIXEL), Val::Px(PIXEL)),
+                border: UiRect::all(Val::Px(1.0)),
+                flex_direction: FlexDirection::Column,
+                align_self: AlignSelf::FlexStart,
+                row_gap: Val::Px(PIXEL),
+                ..default()
+            },
+            BorderColor(color),
+        ))
+        .with_children(|tag| {
+            tag.spawn(Node { column_gap: Val::Px(PIXEL), align_items: AlignItems::Center, ..default() }).with_children(|row| {
+                if source == Source::Live {
+                    row.spawn((Node { width: Val::Px(PIXEL), height: Val::Px(PIXEL), ..default() }, BackgroundColor(RED)));
+                }
+                row.spawn(text(font, source.tag(), 2, color));
+            });
+            tag.spawn(text(font, &source.note().to_uppercase(), 1, MUTED));
+        });
 }
 
 #[allow(clippy::type_complexity)]
@@ -312,9 +340,8 @@ fn where_words(snapshot: &Snapshot, figure: &Figure) -> String {
 }
 
 fn source_words(snapshot: &Snapshot) -> String {
-    let source = if snapshot.simulated { "SIMULATOR" } else { "LIVE" };
     let rate: f64 = snapshot.links.iter().map(|l| l.packets_per_second).sum();
-    format!("{source}  {} BOARDS  {} LINKS  {rate:.0} PKT/S", snapshot.boards.len(), snapshot.links.len())
+    format!("{} BOARDS  {} LINKS  {rate:.0} PKT/S", snapshot.boards.len(), snapshot.links.len())
 }
 
 fn update_panels(

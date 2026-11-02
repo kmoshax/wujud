@@ -62,21 +62,6 @@ impl Joints {
         }
         bones
     }
-
-    pub fn all(&self) -> Vec<Point3> {
-        let mut joints = vec![self.neck, self.chest, self.pelvis];
-        for side in 0..2 {
-            joints.extend([
-                self.shoulder[side],
-                self.elbow[side],
-                self.wrist[side],
-                self.hip[side],
-                self.knee[side],
-                self.ankle[side],
-            ]);
-        }
-        joints
-    }
 }
 
 /// `breath` runs -1..1 with each breath; `heading` is where the body faces, radians from +x;
@@ -246,7 +231,7 @@ mod tests {
         let lie = pose(Gait::Lie, [0.0, 0.0], 0.0, 0.0, 0.0, 0.0);
         assert!(sit.head[2] < stand.head[2] - 0.35);
         assert!(sit.ankle.iter().all(|a| a[2] > -0.05 && a[2] < 0.2));
-        assert!(lie.all().iter().all(|j| j[2] < 0.45));
+        assert!(lie.bones().iter().all(|(from, to, _)| from[2] < 0.45 && to[2] < 0.45));
         assert!((lie.head[0] - lie.ankle[0][0]).abs() > 1.2);
     }
 
