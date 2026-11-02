@@ -3,7 +3,7 @@
 #   research/present.sh room     the simulated room in 3D, full screen (no boards needed)
 #   research/present.sh hall     the simulated lecture hall counting students
 #   research/present.sh replay   a real recording of the room played back in 3D
-#   research/present.sh live     the real boards (the hub on its own Wi-Fi "wujud" or the home network)
+#   research/present.sh live     the real boards (the hub over USB, else on Wi-Fi)
 #   research/present.sh panel    the simulated room with the numbers panel (egui)
 # Keys in the 3D view: f full screen, 1/2/3 room views, 4 follow the person, space slow turn, q quit.
 set -euo pipefail
@@ -13,6 +13,9 @@ replay_file=research/rec/guided_room_20261101_2120_test.csv
 hub_addresses=(192.168.4.1 192.168.1.42 192.168.1.40)
 
 find_hub() {
+    for port in /dev/ttyACM0 /dev/ttyUSB0; do
+        [[ -e $port ]] && { echo "$port"; return; }
+    done
     for address in "${hub_addresses[@]}"; do
         ping -c 1 -W 1 "$address" >/dev/null 2>&1 && { echo "udp:$address"; return; }
     done
