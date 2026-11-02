@@ -37,3 +37,12 @@ Classes: still (holding any posture, or away), walk, wave (hand raised, waving o
 - The answer comes about 6 s late: the network reads ±6.2 s around each second.
 - Wave and the transitions raise false alarms. About 7% of still seconds are called wave, so wave precision is 60%.
 - "still" does not tell standing, sitting, kneeling, lying or an empty room apart.
+
+## On a real recording: it does not transfer
+
+`tools/real_movements.py` ran the network (run_b.pt) on the real prayer recording of 2026-11-01
+(three boards, Asr, Maghrib and Isha, 11 rak'ahs; 2313 s with every board-to-board link). It said
+walk for 1097 s, wave 264 s, bow 32 s (18 stretches) and prostrate 40 s (17 stretches); 11 rak'ahs
+hold 22 prostrations of several seconds each. The 84% on simulated rooms does not carry over to this
+room, so the views do not show movements. The drift detector on the same recording found 43
+movements of about 5 s each, consistent with the bows and prostrations, without naming them.

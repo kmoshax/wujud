@@ -1,5 +1,5 @@
 //! Lines from the boards (USB serial ports, or Wi-Fi as `udp:<ip>`), surviving unplug/reset,
-//! optionally recorded to a file.
+//! optionally recorded to a file. `replay:<recording.csv>` plays a recording at the pace it was made.
 //!
 //! The room firmware tags every line with the device it measured (`<mac>|P,...`); each device is
 //! its own link, named `<board>@<mac>`. A link named after the board alone takes every line.
@@ -112,10 +112,36 @@ fn devices_seen(board: &str) -> BTreeMap<String, Vec<f64>> {
 }
 
 fn open_board(board: &str) -> Box<dyn Iterator<Item = String>> {
+    if let Some(path) = board.strip_prefix("replay:") {
+        return Box::new(replay(path));
+    }
     match board.strip_prefix("udp:") {
         Some(board_ip) => Box::new(UdpReader::new(board_ip)),
         None => Box::new(PortReader::new(board.to_owned())),
     }
+}
+
+/// A recording's lines (`<wall seconds>,<link>,<line>`) as the board sent them (`<mac>|<line>`),
+/// each one when as much time has passed since the first as when it was recorded.
+fn replay(path: &str) -> impl Iterator<Item = String> {
+    let lines = File::open(path).map(|f| BufReader::new(f).lines().map_while(Result::ok));
+    if let Err(error) = &lines {
+        eprintln!("{path}: {error}");
+    }
+    let started = Instant::now();
+    let mut first: Option<f64> = None;
+    lines.into_iter().flatten().filter_map(move |row| {
+        let mut fields = row.splitn(3, ',');
+        let wall: f64 = fields.next()?.parse().ok()?;
+        let (_, device) = split_link_name(fields.next()?);
+        let text = fields.next()?;
+        let due = Duration::from_secs_f64(wall - *first.get_or_insert(wall));
+        thread::sleep(due.saturating_sub(started.elapsed()));
+        Some(match device {
+            Some(device) => format!("{device}|{text}"),
+            None => text.to_owned(),
+        })
+    })
 }
 
 pub fn split_link_name(name: &str) -> (&str, Option<&str>) {
