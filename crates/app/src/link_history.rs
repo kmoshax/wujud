@@ -150,6 +150,12 @@ impl LinkHistory {
         Some((spread, level.into_iter().map(|v| v - overall).collect()))
     }
 
+    /// The newest packets, oldest first: each subcarrier in dB over the packet's mean power.
+    pub fn newest_amplitudes_db(&self, packets: usize) -> Vec<Vec<f32>> {
+        let skip = self.amplitudes_db.len().saturating_sub(packets);
+        self.amplitudes_db.iter().skip(skip).cloned().collect()
+    }
+
     /// Each subcarrier as dB above or below its own average over the kept packets, oldest first.
     pub fn amplitude_changes_db(&self) -> Vec<Vec<f32>> {
         let Some(first) = self.amplitudes_db.front() else {

@@ -195,7 +195,10 @@ impl Network {
     fn from(weights: HashMap<String, Tensor>, heads: usize) -> anyhow::Result<Self> {
         let mut w = Weights(weights);
         let mut encoders = Vec::new();
-        for layer in 0..2 {
+        for layer in 0.. {
+            if !w.0.contains_key(&format!("links.layers.{layer}.linear1.weight")) {
+                break;
+            }
             let at = |part: &str| format!("links.layers.{layer}.{part}");
             encoders.push(Encoder {
                 in_proj: Dense { w: w.matrix(&at("self_attn.in_proj_weight"))?, b: w.vector(&at("self_attn.in_proj_bias"))? },

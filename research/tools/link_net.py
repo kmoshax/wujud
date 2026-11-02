@@ -11,6 +11,7 @@ no favourite spot can be learnt; a room with nothing moving should land near its
     .venv/bin/python -I tools/link_net.py <out.pt> cache/tracking/v2_part*.jsonl cache/tracking/v3_part*.jsonl cache/tracking/v2four_p*.jsonl
 """
 import json
+import os
 import sys
 
 import numpy as np
@@ -25,6 +26,9 @@ SHAPE_LAG_S = 3
 QUIET_PERCENTILE = 20
 TEST_SHARE = 0.2
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+WIDTH = int(os.environ.get("LINK_NET_WIDTH", 128))
+LAYERS = int(os.environ.get("LINK_NET_LAYERS", 2))
+EPOCHS = int(os.environ.get("LINK_NET_EPOCHS", 30))
 
 
 def to_bins(values):
@@ -95,11 +99,11 @@ def load(paths):
 
 
 class LinkNet(nn.Module):
-    def __init__(self, features, width=128):
+    def __init__(self, features, width=WIDTH, layers=LAYERS):
         super().__init__()
         self.embed = nn.Sequential(nn.Linear(features, width), nn.ReLU(), nn.Linear(width, width))
-        layer = nn.TransformerEncoderLayer(width, 4, 256, dropout=0.1, batch_first=True)
-        self.links = nn.TransformerEncoder(layer, 2)
+        layer = nn.TransformerEncoderLayer(width, 4, width * 2, dropout=0.1, batch_first=True)
+        self.links = nn.TransformerEncoder(layer, layers)
         self.geo = nn.Sequential(nn.Linear(4, 64), nn.ReLU(), nn.Linear(64, 64))
         self.pair = nn.Sequential(nn.Linear(width + 64, 128), nn.ReLU(), nn.Linear(128, 128), nn.ReLU())
         self.attend = nn.Linear(128, 1)
@@ -193,7 +197,7 @@ def main():
     torch.manual_seed(0)
     model = LinkNet(features).to(DEVICE)
     optimiser = torch.optim.AdamW(model.parameters(), lr=5e-4, weight_decay=1e-4)
-    epochs = 30
+    epochs = EPOCHS
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimiser, epochs)
     for epoch in range(epochs):
         model.train()

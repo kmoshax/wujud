@@ -37,6 +37,15 @@ You need a Rust toolchain. To see the simulator, no hardware required:
 cargo run --release -p wujud -- demo --boards 3
 ```
 
+The same room in the 3D view (Bevy: the links as lines, the Fresnel zones that place the person, the raw CSI per link):
+
+```bash
+cargo run --release -p wujud -- view-demo --fullscreen
+cargo run --release -p wujud -- view --ports udp:192.168.4.1   # real boards
+```
+
+Keys: drag to orbit, scroll to zoom, space for the slow turn, 1/2/3 room views, 4 to follow the person, f full screen, q quit. `--screenshot out.png --after 30` saves a frame and quits. The view runs without vsync (`--max-fps`, 120 by default), which keeps Hyprland from calling it not responding. Its font is Press Start 2P (SIL OFL, `crates/app/assets/fonts`).
+
 To run with a real board:
 
 1. Install the Arduino CLI and the ESP32 core.

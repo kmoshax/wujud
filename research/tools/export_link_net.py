@@ -29,7 +29,9 @@ def main():
     weights_path, rows_path, out_path = sys.argv[1:4]
     state = torch.load(weights_path, map_location="cpu", weights_only=True)
     features = state["embed.0.weight"].shape[1]
-    model = LinkNet(features)
+    width = state["embed.0.weight"].shape[0]
+    layers = len({k.split(".")[2] for k in state if k.startswith("links.layers.")})
+    model = LinkNet(features, width, layers)
     model.load_state_dict(state)
     model.eval()
 
