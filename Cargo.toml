@@ -30,6 +30,7 @@ clap = { version = "4", features = ["derive"] }
 libm = "0.2"
 eframe = { version = "0.31", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
 serialport = { version = "4", default-features = false }
+socket2 = "0.5"
 
 [profile.release]
 debug = 1

@@ -9,6 +9,8 @@ pub const CSI_PORT: u16 = 5005;
 const ASK_EVERY: Duration = Duration::from_secs(1);
 const READ_TIMEOUT: Duration = Duration::from_millis(200);
 const MAX_DATAGRAM: usize = 2048;
+/// A few seconds of every link: a moment the app is busy no longer drops datagrams.
+const RECEIVE_BUFFER: usize = 4 << 20;
 
 /// Asking again every second keeps the stream coming after the board resets or the laptop reconnects.
 pub struct UdpReader {
@@ -30,7 +32,7 @@ impl UdpReader {
 
     fn socket(&mut self) -> Option<&UdpSocket> {
         if self.socket.is_none() {
-            match UdpSocket::bind("0.0.0.0:0") {
+            match bind() {
                 Ok(socket) => {
                     let _ = socket.set_read_timeout(Some(READ_TIMEOUT));
                     self.socket = Some(socket);
@@ -76,4 +78,11 @@ impl Iterator for UdpReader {
             }
         }
     }
+}
+
+fn bind() -> std::io::Result<UdpSocket> {
+    let socket = socket2::Socket::new(socket2::Domain::IPV4, socket2::Type::DGRAM, Some(socket2::Protocol::UDP))?;
+    let _ = socket.set_recv_buffer_size(RECEIVE_BUFFER);
+    socket.bind(&std::net::SocketAddr::from(([0, 0, 0, 0], 0)).into())?;
+    Ok(socket.into())
 }
