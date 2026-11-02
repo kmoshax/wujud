@@ -3,7 +3,8 @@
 #   research/present.sh room     the simulated room in 3D, full screen (no boards needed)
 #   research/present.sh hall     the simulated lecture hall counting students
 #   research/present.sh replay   a real recording of the room played back in 3D
-#   research/present.sh live     the real boards (the hub over USB, else on Wi-Fi)
+#   research/present.sh live     the real boards (the hub over USB, else on Wi-Fi); ROOM=research/rooms/demo.json
+#                                places the boards where they really are instead of from their signal strength
 #   research/present.sh panel    the simulated room with the numbers panel (egui)
 # Keys in the 3D view: f full screen, 1/2/3 room views, 4 follow the person, space slow turn, q quit.
 set -euo pipefail
@@ -34,9 +35,9 @@ case "${1:-}" in
     replay)
         [[ -f $replay_file ]] || { echo "missing $replay_file" >&2; exit 1; }
         wujud view --ports "replay:$replay_file" --fullscreen ;;
-    live) wujud view --ports "${BOARD:-$(find_hub)}" --fullscreen ;;
+    live) wujud view --ports "${BOARD:-$(find_hub)}" ${ROOM:+--room "$ROOM"} --fullscreen ;;
     panel) wujud demo --boards "${BOARDS:-3}" ;;
     *)
-        sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'
+        sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'
         exit 1 ;;
 esac
