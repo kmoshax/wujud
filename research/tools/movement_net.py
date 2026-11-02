@@ -200,6 +200,9 @@ def main():
         for links in sorted({r["inputs"].shape[1] for r in test}):
             subset = [r for r in test if r["inputs"].shape[1] == links]
             print(report(confusion(model, subset), f"TEST rooms with {links} links")[0].splitlines()[0])
+        per_room = [np.diag(m).sum() / m.sum() for m in (confusion(model, [r]) for r in test)]
+        print("TEST per-room accuracy: worst {:.0f}%, 10th percentile {:.0f}%, median {:.0f}%".format(
+            *(100 * np.percentile(per_room, [0, 10, 50]))))
         if stress:
             print(report(confusion(model, stress), f"STRESS rooms (never seen, hardware harsher than any trained on)")[0])
 

@@ -1,0 +1,18 @@
+baseline (motion energy + trees), validation rooms: accuracy 51.5%, balanced 54.9%, movement classes (wave..stand_up) mean recall 54.0%
+                still      walk      wave       bow prostrate  sit_down  stand_up   recall precision
+      still      8249       685      4722      2015      3032       960       957    40.0%   76.2%
+       walk       224      8298        16       446       466      1228       558    73.9%   84.2%
+       wave       355        15      2604        18       134        10        78    81.0%   30.8%
+        bow       627       242       256      1985      1772       213       697    34.3%   28.4%
+  prostrate      1223       375       691      2314      6171       493       944    50.5%   52.2%
+   sit_down        51       149        26        60       118       558        65    54.3%   15.9%
+   stand_up        90        93       141       157       136        46       663    50.0%   16.7%
+baseline (motion energy + trees), test rooms: accuracy 50.8%, balanced 54.2%, movement classes (wave..stand_up) mean recall 53.1%
+                still      walk      wave       bow prostrate  sit_down  stand_up   recall precision
+      still      8338       730      4629      2012      2958       860       977    40.7%   76.7%
+       walk       234      7832        15       428       453      1124       578    73.4%   82.5%
+       wave       323        12      2408        48       100         7        86    80.7%   29.7%
+        bow       586       264       241      1920      1916       217       635    33.2%   27.1%
+  prostrate      1230       413       660      2450      6058       525       964    49.3%   51.8%
+   sit_down        52       146        35        66        81       514        79    52.8%   15.5%
+   stand_up       110        97       111       153       134        59       645    49.3%   16.3%

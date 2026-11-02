@@ -1,0 +1,31 @@
+1600 rooms to learn from, 200 to choose with, 200 never seen; cpu
+best epoch, validation rooms: accuracy 86.9%, balanced 85.7%, movement classes (wave..stand_up) mean recall 85.4%
+                still      walk      wave       bow prostrate  sit_down  stand_up   recall precision
+      still     17097       355      1337       466       843       285       237    82.9%   92.9%
+       walk       155     10095         0        22        48       603       313    89.8%   94.3%
+       wave       480         0      2696        13         6         4        15    83.9%   65.6%
+        bow       197        23        21      5166       331         1        53    89.2%   83.4%
+  prostrate       381        52        38       496     11160        30        54    91.4%   89.9%
+   sit_down        29       140         2         5        17       771        63    75.1%   45.4%
+   stand_up        69        35        15        26        13         6      1162    87.6%   61.3%
+best epoch, TEST rooms (never seen): accuracy 85.6%, balanced 84.4%, movement classes (wave..stand_up) mean recall 84.0%
+                still      walk      wave       bow prostrate  sit_down  stand_up   recall precision
+      still     16850       325      1425       521       846       262       275    82.2%   92.1%
+       walk       175      9452         5        34        52       620       326    88.6%   94.8%
+       wave       436         0      2474        25        18         1        30    82.9%   60.4%
+        bow       240        11        47      5044       373         2        62    87.3%   81.2%
+  prostrate       476        35       104       564     11027        40        54    89.7%   89.3%
+   sit_down        30       103         7         8        17       737        71    75.7%   43.9%
+   stand_up        85        42        32        18        12        16      1104    84.3%   57.4%
+TEST rooms with 3 links: accuracy 84.1%, balanced 82.5%, movement classes (wave..stand_up) mean recall 81.9%
+TEST rooms with 6 links: accuracy 87.8%, balanced 86.9%, movement classes (wave..stand_up) mean recall 86.8%
+TEST per-room accuracy: worst 58%, 10th percentile 77%, median 87%
+STRESS rooms (never seen, hardware harsher than any trained on): accuracy 81.6%, balanced 79.2%, movement classes (wave..stand_up) mean recall 77.9%
+                still      walk      wave       bow prostrate  sit_down  stand_up   recall precision
+      still     16480       294      1459       516      1139       271       294    80.6%   87.1%
+       walk       345      9219        12        61       163       673       476    84.2%   94.8%
+       wave       853         2      2337         8        23         0        20    72.1%   56.8%
+        bow       343        14        94      4574       620         6        90    79.7%   78.1%
+  prostrate       736        36       185       656     10275        38        85    85.5%   83.5%
+   sit_down        59       125         4         9        45       701        59    70.0%   41.3%
+   stand_up       103        33        20        29        37        10      1064    82.1%   51.0%
