@@ -2,6 +2,7 @@ mod camera;
 mod hall_feed;
 mod hall_view;
 mod hall_window;
+mod layout_study;
 mod learned_tracker;
 mod link_net;
 mod link_history;
@@ -82,6 +83,16 @@ enum Command {
         #[arg(long, default_value_t = 3)]
         seed: u64,
     },
+    /// No boards needed: how far from their real places the boards are drawn in simulated bedrooms.
+    LayoutStudy {
+        #[arg(long, default_value_t = 200)]
+        rooms: usize,
+        /// The first room's seed: tune on other rooms than the ones the numbers are reported on.
+        #[arg(long, default_value_t = 0)]
+        seeds_from: u64,
+        #[arg(long)]
+        out: Option<std::path::PathBuf>,
+    },
     /// Print what the boards send, decoded, to check the wiring.
     Monitor {
         #[arg(long, num_args = 1.., required = true)]
@@ -137,6 +148,11 @@ fn main() -> anyhow::Result<()> {
         Command::ViewDemo { boards, seed, view } => demo_view(boards, seed, view.options()),
         Command::DemoHall { seed } => demo_hall(seed),
         Command::Monitor { ports, record } => monitor(&ports, record.as_deref()),
+        Command::LayoutStudy {
+            rooms,
+            seeds_from,
+            out,
+        } => layout_study::run(rooms, seeds_from, out.as_deref()),
     }
 }
 

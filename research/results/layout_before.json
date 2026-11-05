@@ -1,0 +1,38 @@
+[
+  {
+    "boards": 3,
+    "channels": 1,
+    "rooms": 200,
+    "mean_error_m": 0.860957267256261,
+    "median_error_m": 0.8320179724052165,
+    "p90_error_m": 1.4455359390731124,
+    "worst_board_median_m": 1.1266286276308013
+  },
+  {
+    "boards": 3,
+    "channels": 3,
+    "rooms": 200,
+    "mean_error_m": 0.8339240105364916,
+    "median_error_m": 0.7937936718710343,
+    "p90_error_m": 1.3779803105469401,
+    "worst_board_median_m": 1.084753956625343
+  },
+  {
+    "boards": 4,
+    "channels": 1,
+    "rooms": 200,
+    "mean_error_m": 1.4723918013954636,
+    "median_error_m": 1.4811757069944629,
+    "p90_error_m": 1.9529537865234419,
+    "worst_board_median_m": 2.1624371275154863
+  },
+  {
+    "boards": 4,
+    "channels": 3,
+    "rooms": 200,
+    "mean_error_m": 1.4723918013954636,
+    "median_error_m": 1.4811757069944629,
+    "p90_error_m": 1.9529537865234419,
+    "worst_board_median_m": 2.1624371275154863
+  }
+]

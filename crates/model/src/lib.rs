@@ -5,6 +5,7 @@ pub mod espectre;
 pub mod features;
 pub mod gbdt;
 pub mod hall;
+pub mod board_layout;
 pub mod linalg;
 pub mod metrics;
 pub mod motion_tracker;

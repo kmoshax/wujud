@@ -21,7 +21,8 @@ cargo run --release -p wujud -- live --ports udp:192.168.4.1
 ```
 
 - The app finds every link by itself, from the hub and from each node.
-- Without `--room`, it places the hub on the left wall of a 4 x 3.5 m room and the nodes in the far corners. It prints where each board goes, by the end of its MAC. Put them there, or describe the real room in a `--room` file, keyed by MAC.
+- Without `--room`, it places the boards itself from how strongly each hears each other, on the walls of a rectangular room, and places them again every 10 s (`docs/FINDINGS.md`, section 6). Four boards in the four corners are placed best. For exact places, describe the real room in a `--room` file, keyed by MAC.
+- Power each board from its own charger or a powered USB hub: four boards on one unpowered hub brown out and drop off USB.
 - With nodes, only the links between boards are used, because a phone's place is unknown. A phone link counts only when the room file gives it a place.
 
 ### Talking to the board: `research/firmware/board.sh`

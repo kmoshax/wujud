@@ -26,7 +26,12 @@ const TRACKER_TICK: Duration = Duration::from_millis(100);
 const HOLD_THROUGH_GAP: Duration = Duration::from_secs(30);
 /// A board's links show up one by one; the room is rebuilt once none has come for this long.
 const SETTLE_NEW_LINKS: Duration = Duration::from_secs(3);
-const RELAYOUT_AFTER: Duration = Duration::from_secs(30);
+/// The boards are placed again from the newest signal strengths this often, in the background.
+const RELAYOUT_EVERY: Duration = Duration::from_secs(10);
+/// A new layout replaces the shown one only when a board moved this far: no jitter on screen.
+const RELAYOUT_MOVE_M: f64 = 0.3;
+/// Each new median signal strength moves the remembered one by this share (about a minute of memory).
+const RSSI_MEMORY_SHARE: f64 = 0.3;
 const DRIFT_HISTORY_SECONDS: usize = 120;
 
 /// Where the packets come from, shown on screen so the simulator is never taken for the real room.
@@ -97,8 +102,10 @@ pub struct LiveCore {
     learned_xy: Option<[f64; 2]>,
     /// The network's newest answer (where, and the activity it thinks), refreshed once a second.
     learned_answer: Option<([f64; 2], String)>,
-    relaid: bool,
     last_learned: Instant,
+    places: std::collections::BTreeMap<String, [f64; 3]>,
+    last_layout: Instant,
+    layout_job: Option<Receiver<std::collections::BTreeMap<String, [f64; 3]>>>,
     pub track: Option<Track>,
     last_track: Instant,
     pub truth: Option<SimulatedTruth>,
@@ -130,8 +137,10 @@ impl LiveCore {
             learned: None,
             learned_xy: None,
             learned_answer: None,
-            relaid: false,
             last_learned: Instant::now(),
+            places: room.places,
+            last_layout: Instant::now(),
+            layout_job: None,
             track: None,
             last_track: Instant::now(),
             feed,
@@ -248,26 +257,94 @@ impl LiveCore {
     }
 
     /// A board switched on later: once its links stop arriving, the room is laid out again with them.
+    /// Without a room file, the boards are also placed again every few seconds from the newest signal
+    /// strengths (read while nobody walks, who would shadow them), and shown there once one has moved.
     fn join_new_links(&mut self) {
-        let settled = self.new_link_at.is_some_and(|t| t.elapsed() >= SETTLE_NEW_LINKS);
-        // A few seconds of RSSI at the start place the boards roughly; half a minute places them better.
-        let relayout = !self.relaid && self.started.elapsed() >= RELAYOUT_AFTER;
-        if !(settled || relayout) {
+        let settled = self
+            .new_link_at
+            .is_some_and(|t| t.elapsed() >= SETTLE_NEW_LINKS);
+        let moved = self
+            .finished_layout()
+            .is_some_and(|places| self.boards_moved(&places));
+        if self.last_layout.elapsed() >= RELAYOUT_EVERY {
+            self.last_layout = Instant::now();
+            self.remember_rssi();
+            self.start_layout();
+        }
+        if settled || moved {
+            self.new_link_at = None;
+            self.rebuild_room();
+        }
+    }
+
+    fn remember_rssi(&mut self) {
+        if self.sensed_moving() {
             return;
         }
-        let Some(growth) = self.growth.as_mut() else { return };
-        self.new_link_at = None;
-        self.relaid |= relayout;
+        let Some(growth) = self.growth.as_mut() else {
+            return;
+        };
         let reading = growth.reading.lock().unwrap().clone();
         for (name, link) in reading.iter().zip(&self.links) {
             let mut rssi: Vec<f64> = link.rssi_history().map(f64::from).collect();
             rssi.sort_by(f64::total_cmp);
             if let Some(&median) = rssi.get(rssi.len() / 2) {
-                growth.rssi.insert(name.clone(), median);
+                let remembered = growth.rssi.entry(name.clone()).or_insert(median);
+                *remembered += RSSI_MEMORY_SHARE * (median - *remembered);
             }
         }
-        let room = match room_setup::room_engine(&growth.seen, growth.room_file.as_deref(), &growth.rssi) {
-            Ok(room) if relayout || room.links != reading => room,
+    }
+
+    fn start_layout(&mut self) {
+        let Some(growth) = self.growth.as_ref().filter(|g| g.room_file.is_none()) else {
+            return;
+        };
+        if self.layout_job.is_some() {
+            return;
+        }
+        let (seen, rssi) = (growth.seen.clone(), growth.rssi.clone());
+        let (send, receive) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let _ = send.send(room_setup::board_places(
+                &seen,
+                &rssi,
+                room_setup::ESP32_RADIO,
+            ));
+        });
+        self.layout_job = Some(receive);
+    }
+
+    fn finished_layout(&mut self) -> Option<std::collections::BTreeMap<String, [f64; 3]>> {
+        let places = self.layout_job.as_ref()?.try_recv().ok()?;
+        self.layout_job = None;
+        Some(places)
+    }
+
+    fn boards_moved(&self, places: &std::collections::BTreeMap<String, [f64; 3]>) -> bool {
+        if places.keys().ne(self.places.keys()) {
+            return true;
+        }
+        let flat = |p: &std::collections::BTreeMap<String, [f64; 3]>| -> Vec<[f64; 2]> {
+            p.values().map(|v| [v[0], v[1]]).collect()
+        };
+        let (new, shown) = (flat(places), flat(&self.places));
+        wujud_model::board_layout::largest_move(
+            &wujud_model::board_layout::align_to(&new, &shown),
+            &shown,
+        ) > RELAYOUT_MOVE_M
+    }
+
+    fn rebuild_room(&mut self) {
+        let Some(growth) = self.growth.as_mut() else {
+            return;
+        };
+        let reading = growth.reading.lock().unwrap().clone();
+        let room = match room_setup::room_engine(
+            &growth.seen,
+            growth.room_file.as_deref(),
+            &growth.rssi,
+        ) {
+            Ok(room) if room.links != reading || room.places != self.places => room,
             Ok(_) => return,
             Err(error) => return eprintln!("new links: {error}"),
         };
@@ -278,6 +355,7 @@ impl LiveCore {
         self.engine.sensed = sensed;
         self.node_ids = room.node_ids;
         self.placed = room.placed;
+        self.places = room.places;
         let sense = RoomSense::new(&room.links);
         self.sense = Some(match &self.sense {
             Some(previous) => sense.carry_over(previous),
