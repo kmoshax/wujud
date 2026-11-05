@@ -30,8 +30,9 @@ const SETTLED_SECONDS: usize = 4;
 /// Moving: the links' median drift over five seconds above three times the room's typical drift of the
 /// last five minutes: 100% of the walking, 98% of the stillness.
 const MOVING_SECONDS: usize = 5;
-const MOVING_TIMES_TYPICAL: f64 = 3.0;
+const MOVING_TIMES_TYPICAL: f64 = 4.0;
 const MOVING_ABOVE_MIN_DB: f64 = 0.12;
+const MOVING_ABOVE_MAX_DB: f64 = 0.4;
 /// Smaller movements (sitting down, bowing in prayer): over three seconds, three times the room's
 /// quietest fifth. They mean someone is here, not walking.
 const STIRRING_SECONDS: usize = 3;
@@ -336,8 +337,8 @@ impl RoomSense {
             self.history.push_back(d);
         }
         let moving_above = self
-            .typical(50)
-            .map_or(MOVING_ABOVE_START_DB, |t| (t * MOVING_TIMES_TYPICAL).max(MOVING_ABOVE_MIN_DB));
+            .typical(20)
+            .map_or(MOVING_ABOVE_START_DB, |t| (t * MOVING_TIMES_TYPICAL).clamp(MOVING_ABOVE_MIN_DB, MOVING_ABOVE_MAX_DB));
         let stirring_above = self
             .typical(20)
             .map_or(STIRRING_ABOVE_START_DB, |t| (t * STIRRING_TIMES_QUIET).max(STIRRING_ABOVE_MIN_DB));
