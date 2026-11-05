@@ -90,6 +90,9 @@ enum Command {
         /// The first room's seed: tune on other rooms than the ones the numbers are reported on.
         #[arg(long, default_value_t = 0)]
         seeds_from: u64,
+        /// Each board's own antenna gain spread in dB; 5 is what the real boards showed.
+        #[arg(long, default_value_t = 0.0)]
+        board_gain_spread: f64,
         #[arg(long)]
         out: Option<std::path::PathBuf>,
     },
@@ -154,8 +157,9 @@ fn main() -> anyhow::Result<()> {
         Command::LayoutStudy {
             rooms,
             seeds_from,
+            board_gain_spread,
             out,
-        } => layout_study::run(rooms, seeds_from, out.as_deref()),
+        } => layout_study::run(rooms, seeds_from, board_gain_spread, out.as_deref()),
     }
 }
 

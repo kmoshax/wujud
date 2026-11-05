@@ -160,7 +160,8 @@ impl RoomSession {
                 room.nodes.len(),
                 options.harsh,
                 options.knobs.evm_shift_db,
-            ),
+            )
+            .with_antenna_gains(rng, options.knobs.board_gain_spread_db),
             band,
         );
         let absorption_coefficient = sample_absorption_coefficient(rng);

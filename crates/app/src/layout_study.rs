@@ -8,7 +8,7 @@ use serde::Serialize;
 use wujud_model::board_layout::{align_to, largest_move};
 use wujud_sim::band::{channel_2g4_hz, BandPlan, SubcarrierLayout};
 use wujud_sim::random::seeded;
-use wujud_sim::room::{random_room, Room, RoomOptions};
+use wujud_sim::room::{random_room, RealismKnobs, Room, RoomOptions};
 use wujud_sim::room_sim::{RoomSession, RoomSimOptions};
 
 use crate::room_setup::{board_places, Radio, HUB};
@@ -53,6 +53,7 @@ struct Row {
 
 #[derive(Serialize)]
 struct Study {
+    board_gain_spread_db: f64,
     simulated_rssi_at_1m: f64,
     simulated_exponent: f64,
     simulated_scatter_db: f64,
@@ -83,8 +84,8 @@ pub fn place_recording(path: &std::path::Path) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn run(rooms: usize, seeds_from: u64, out: Option<&std::path::Path>) -> anyhow::Result<()> {
-    let (radio, scatter_db) = simulated_radio();
+pub fn run(rooms: usize, seeds_from: u64, board_gain_spread_db: f64, out: Option<&std::path::Path>) -> anyhow::Result<()> {
+    let (radio, scatter_db) = simulated_radio(board_gain_spread_db);
     println!(
         "simulated radio: {:.1} dBm at 1 m, path-loss exponent {:.2}, links scatter {scatter_db:.1} dB around it",
         radio.rssi_at_1m, radio.exponent
@@ -99,7 +100,7 @@ pub fn run(rooms: usize, seeds_from: u64, out: Option<&std::path::Path>) -> anyh
         for channels in [vec![6], vec![1, 6, 11]] {
             let errors: Vec<(f64, f64)> = (seeds_from..seeds_from + rooms as u64)
                 .into_par_iter()
-                .map(|seed| room_error(seed, placement, boards, &channels, radio))
+                .map(|seed| room_error(seed, placement, boards, &channels, radio, board_gain_spread_db))
                 .collect();
             let row = summarise(placement, boards, channels.len(), &errors);
             println!(
@@ -117,6 +118,7 @@ pub fn run(rooms: usize, seeds_from: u64, out: Option<&std::path::Path>) -> anyh
     }
     if let Some(path) = out {
         let study = Study {
+            board_gain_spread_db,
             simulated_rssi_at_1m: radio.rssi_at_1m,
             simulated_exponent: radio.exponent,
             simulated_scatter_db: scatter_db,
@@ -173,7 +175,13 @@ struct Measured {
     links: Vec<(usize, usize, f64)>,
 }
 
-fn measure_room(seed: u64, placement: Placement, boards: usize, channels: &[u32]) -> Measured {
+fn measure_room(
+    seed: u64,
+    placement: Placement,
+    boards: usize,
+    channels: &[u32],
+    board_gain_spread_db: f64,
+) -> Measured {
     let mut rng = seeded(seed, 0x1a70);
     let mut room = random_room(
         &mut rng,
@@ -189,6 +197,10 @@ fn measure_room(seed: u64, placement: Placement, boards: usize, channels: &[u32]
     let options = RoomSimOptions {
         seconds: SECONDS,
         fs: PACKETS_PER_SECOND,
+        knobs: RealismKnobs {
+            board_gain_spread_db,
+            ..RealismKnobs::default()
+        },
         ..RoomSimOptions::default()
     };
     let band = BandPlan::hopping(
@@ -227,11 +239,11 @@ fn put_in_corners(room: &mut Room, seed: u64) {
 
 /// Least-squares line of RSSI against 10 log10(distance) over rooms the study never scores, and how
 /// far the links scatter around it.
-fn simulated_radio() -> (Radio, f64) {
+fn simulated_radio(board_gain_spread_db: f64) -> (Radio, f64) {
     let points: Vec<(f64, f64)> = (RADIO_SEEDS_FROM..RADIO_SEEDS_FROM + RADIO_ROOMS)
         .into_par_iter()
         .flat_map_iter(|seed| {
-            let measured = measure_room(seed, Placement::Walls, 4, &[6]);
+            let measured = measure_room(seed, Placement::Walls, 4, &[6], board_gain_spread_db);
             let nodes = measured.room.nodes.clone();
             measured.links.into_iter().map(move |(tx, rx, db)| {
                 let (a, b) = (nodes[tx], nodes[rx]);
@@ -268,11 +280,12 @@ fn room_error(
     boards: usize,
     channels: &[u32],
     radio: Radio,
+    board_gain_spread_db: f64,
 ) -> (f64, f64) {
     let Measured {
         room,
         links: measured,
-    } = measure_room(seed, placement, boards, channels);
+    } = measure_room(seed, placement, boards, channels, board_gain_spread_db);
     let mut links = Vec::new();
     let mut rssi = BTreeMap::new();
     for (tx, rx, db) in measured {

@@ -24,3 +24,20 @@ numbers below are from that run.
 On rooms 2,000,000+ (never scored): link fading 3 or 6 dB, board gain spread 2-6 dB, exponent
 spread 0.3-0.8, common gain spread 0.5-3 dB and room side spread 0.5-2 m all gave a 4-board mean
 error within 1.04-1.14 m. The information in the RSSI, not the priors, sets the error.
+
+## The CSI phase slope (2026-11-05)
+
+`research/tools/csi_delay_pairs.py` reads each pair's phase slope across the subcarriers, both
+directions averaged.
+
+- **Steady and gain-free:** on the real boards it holds to about 0.3 ns over 20 s, the two
+  directions agree, and a board's gain does not touch it.
+- **Not absolute time of flight:** packets between boards with unsynchronised clocks spread only
+  1.3-3 ns (interquartile), so the receiver re-times every packet to its arrival and the absolute
+  delay is gone.
+- **What is left is the multipath shape around the first path.** With a person moving it drifts
+  0.5-1.4 ns over minutes. In the first square the diagonals were the largest pairs (4.3 and 3.3
+  ns); after the hub was swapped they were the smallest.
+- **Weak in simulation too:** re-timed to the direct path, the slope correlates -0.27 with
+  distance, against -0.78 for the noise-free channel power (150 rooms, 900 links; probe removed
+  after the run).

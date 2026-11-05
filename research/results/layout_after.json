@@ -1,4 +1,5 @@
 {
+  "board_gain_spread_db": 0.0,
   "simulated_rssi_at_1m": -31.68734630846593,
   "simulated_exponent": 1.4002497296947496,
   "simulated_scatter_db": 5.982004506532081,
@@ -9,59 +10,59 @@
       "boards": 3,
       "channels": 1,
       "rooms": 200,
-      "mean_error_m": 0.884938486969204,
-      "median_error_m": 0.8337747765494554,
-      "p90_error_m": 1.5307340514851306,
-      "worst_board_median_m": 1.188456220263995
+      "mean_error_m": 0.8840874607750594,
+      "median_error_m": 0.8403908460270703,
+      "p90_error_m": 1.5068000605581273,
+      "worst_board_median_m": 1.1954165611280596
     },
     {
       "placement": "walls",
       "boards": 3,
       "channels": 3,
       "rooms": 200,
-      "mean_error_m": 0.8435304251527963,
-      "median_error_m": 0.8400512069216028,
-      "p90_error_m": 1.4895840848397992,
-      "worst_board_median_m": 1.1218298680041145
+      "mean_error_m": 0.8380651012844754,
+      "median_error_m": 0.8282395557528625,
+      "p90_error_m": 1.4880717414175908,
+      "worst_board_median_m": 1.1111925137130414
     },
     {
       "placement": "walls",
       "boards": 4,
       "channels": 1,
       "rooms": 200,
-      "mean_error_m": 1.074077898429438,
-      "median_error_m": 1.0055812047219217,
-      "p90_error_m": 1.8083417189105568,
-      "worst_board_median_m": 1.4229595308636938
+      "mean_error_m": 1.159046284638344,
+      "median_error_m": 1.0556664407970955,
+      "p90_error_m": 1.8738313035792942,
+      "worst_board_median_m": 1.550219190585723
     },
     {
       "placement": "walls",
       "boards": 4,
       "channels": 3,
       "rooms": 200,
-      "mean_error_m": 1.027521936710798,
-      "median_error_m": 0.9307719947828822,
-      "p90_error_m": 1.7898347238563068,
-      "worst_board_median_m": 1.3947931249748353
+      "mean_error_m": 1.117456530971839,
+      "median_error_m": 1.051697674125379,
+      "p90_error_m": 1.8506714628495842,
+      "worst_board_median_m": 1.5536445641099477
     },
     {
       "placement": "corners",
       "boards": 4,
       "channels": 1,
       "rooms": 200,
-      "mean_error_m": 1.0624016584961025,
-      "median_error_m": 0.7023430348865951,
-      "p90_error_m": 2.1683323520631843,
-      "worst_board_median_m": 0.7023430348865954
+      "mean_error_m": 1.0351546698664384,
+      "median_error_m": 0.645163514547691,
+      "p90_error_m": 2.191706222285654,
+      "worst_board_median_m": 0.6451635145476913
     },
     {
       "placement": "corners",
       "boards": 4,
       "channels": 3,
       "rooms": 200,
-      "mean_error_m": 0.9382843610369958,
+      "mean_error_m": 0.9108029646758653,
       "median_error_m": 0.5927135254365846,
-      "p90_error_m": 2.150328130666952,
+      "p90_error_m": 2.137686197943316,
       "worst_board_median_m": 0.5927135254365847
     }
   ]

@@ -343,6 +343,10 @@ pub struct RealismKnobs {
     pub rcs_scale: f64,
     pub breath_scale: f64,
     pub evm_shift_db: f64,
+    /// Spread of each board's own antenna and amplifier gain, on what it sends and what it hears.
+    /// 0 keeps every earlier simulation as it was (no extra random draws).
+    #[serde(default)]
+    pub board_gain_spread_db: f64,
 }
 
 impl Default for RealismKnobs {
@@ -351,6 +355,7 @@ impl Default for RealismKnobs {
             rcs_scale: 1.0,
             breath_scale: 1.0,
             evm_shift_db: 0.0,
+            board_gain_spread_db: 0.0,
         }
     }
 }

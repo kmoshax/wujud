@@ -13,6 +13,7 @@ pub const CALIBRATED_KNOBS: RealismKnobs = RealismKnobs {
     rcs_scale: 0.1,
     breath_scale: 0.5,
     evm_shift_db: 6.0,
+    board_gain_spread_db: 0.0,
 };
 
 pub const SESSION_SECONDS: f64 = 60.0;

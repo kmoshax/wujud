@@ -71,6 +71,7 @@ fn export_room(seed: u64, seconds: f64, harsh: (f64, f64)) -> RoomExport {
             rcs_scale: 10f64.powf(uniform(&mut rng, -1.0, 0.0)),
             breath_scale: uniform(&mut rng, 0.5, 1.0),
             evm_shift_db: uniform(&mut rng, 0.0, 6.0),
+            board_gain_spread_db: 0.0,
         },
         ..RoomSimOptions::default()
     };

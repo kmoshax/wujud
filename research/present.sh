@@ -13,9 +13,15 @@ cd "$(dirname "$0")/.."
 replay_file=research/rec/guided_room_20261101_2120_test.csv
 hub_addresses=(192.168.4.1 192.168.1.42 192.168.1.40)
 
+# A hub tags what it measures with the device's MAC alone; a node always as <itself>><sender>.
+is_hub_port() {
+    stty -F "$1" 921600 raw -echo 2>/dev/null || return 1
+    timeout 3 cat "$1" 2>/dev/null | grep -aqE '^([0-9a-f]{2}:){5}[0-9a-f]{2}\|P,'
+}
+
 find_hub() {
-    for port in /dev/ttyACM0 /dev/ttyUSB0; do
-        [[ -e $port ]] && { echo "$port"; return; }
+    for port in /dev/ttyACM* /dev/ttyUSB*; do
+        [[ -e $port ]] && is_hub_port "$port" && { echo "$port"; return; }
     done
     for address in "${hub_addresses[@]}"; do
         ping -c 1 -W 1 "$address" >/dev/null 2>&1 && { echo "udp:$address"; return; }

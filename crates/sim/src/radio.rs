@@ -12,6 +12,9 @@ use crate::random::{normal, standard_normals, uniform, unit, SimRng};
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct BoardRadios {
     pub tx_power_dbm: Vec<f64>,
+    /// Each board's antenna and amplifier: counts on what it sends and on what it hears.
+    #[serde(default)]
+    pub antenna_gain_db: Vec<f64>,
     pub evm_db: Vec<f64>,
     pub agc_target: Vec<f64>,
     pub loss_probability: f64,
@@ -28,6 +31,7 @@ impl BoardRadios {
         let agc_target = (0..boards).map(|_| uniform(rng, 12.0, 24.0)).collect();
         BoardRadios {
             tx_power_dbm,
+            antenna_gain_db: vec![0.0; boards],
             evm_db,
             agc_target,
             loss_probability: uniform(rng, 0.01, 0.08) * harsh,
@@ -35,9 +39,18 @@ impl BoardRadios {
         }
     }
 
+    /// Draws each board's antenna gain only when `spread_db > 0`, so the default simulation is unchanged.
+    pub fn with_antenna_gains(mut self, rng: &mut SimRng, spread_db: f64) -> Self {
+        if spread_db > 0.0 {
+            self.antenna_gain_db = (0..self.tx_power_dbm.len()).map(|_| normal(rng, 0.0, spread_db)).collect();
+        }
+        self
+    }
+
     pub fn link(&self, tx: usize, rx: usize, tx_drift_db: f64) -> LinkRadio {
+        let antennas = self.antenna_gain_db.get(tx).unwrap_or(&0.0) + self.antenna_gain_db.get(rx).unwrap_or(&0.0);
         LinkRadio {
-            tx_power_dbm: self.tx_power_dbm[tx] + tx_drift_db,
+            tx_power_dbm: self.tx_power_dbm[tx] + tx_drift_db + antennas,
             evm_db: self.evm_db[rx],
             agc_target: self.agc_target[rx],
             loss_probability: self.loss_probability,

@@ -41,6 +41,7 @@ fn randomised_knobs(rng: &mut SimRng) -> RealismKnobs {
         rcs_scale: 10f64.powf(uniform(rng, -1.0, 0.0)),
         breath_scale: uniform(rng, 0.5, 1.0),
         evm_shift_db: uniform(rng, 0.0, 6.0),
+        board_gain_spread_db: 0.0,
     }
 }
 
