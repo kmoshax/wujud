@@ -113,6 +113,7 @@ struct Settings {
   int ping_len;
   int home_wifi;
   int prefer_hub;
+  int csi_ltf;
 };
 
 struct Listener {
@@ -175,7 +176,9 @@ static void queue_csi_line(const char *tag, const wifi_csi_info_t *info) {
   CsiLine line;
   int n = snprintf(line.text, sizeof(line.text), "%s|P,%d,%lu,", tag, info->rx_ctrl.rssi,
                    (unsigned long)info->rx_ctrl.timestamp);
-  const uint8_t *b = (const uint8_t *)info->buf;
+  // csi_ltf=1: the HT-LTF that follows the L-LTF in the buffer, same 64-bin layout.
+  int offset = settings.csi_ltf && info->len >= 256 ? 128 : 0;
+  const uint8_t *b = (const uint8_t *)info->buf + offset;
   for (int i = 0; i < 128 && n < (int)sizeof(line.text) - 3; i++) {
     line.text[n++] = HEX_[b[i] >> 4];
     line.text[n++] = HEX_[b[i] & 15];
@@ -471,6 +474,7 @@ static void load_settings() {
   settings.ping_len = stored.getInt("ping_len", 0);
   settings.home_wifi = stored.getInt("home_wifi", 1);
   settings.prefer_hub = stored.getInt("prefer_hub", 0);
+  settings.csi_ltf = stored.getInt("csi_ltf", 0);
 }
 
 static bool authorised() {
@@ -502,7 +506,7 @@ static void serve_status() {
   String json = "{\"role\":\"hub\",\"uptime_s\":" + String(millis() / 1000) + ",\"channel\":" + String(settings.channel) +
                 ",\"ping_hz\":" + String(settings.ping_hz) +
                 ",\"no_11b\":" + String(settings.no_11b) + ",\"ping_len\":" + String(settings.ping_len) + ",\"home_wifi\":" + String(settings.home_wifi) +
-                ",\"prefer_hub\":" + String(settings.prefer_hub) + ",\"free_heap\":" + String(ESP.getFreeHeap()) +
+                ",\"prefer_hub\":" + String(settings.prefer_hub) + ",\"csi_ltf\":" + String(settings.csi_ltf) + ",\"free_heap\":" + String(ESP.getFreeHeap()) +
                 ",\"devices\":[";
   bool first = true;
   for (const Device &d : devices) {
@@ -550,6 +554,10 @@ static void serve_set() {
     stored.putInt("home_wifi", web.arg("home_wifi").toInt() ? 1 : 0);
     changed = true;
   }
+  if (web.hasArg("csi_ltf")) {
+    stored.putInt("csi_ltf", web.arg("csi_ltf").toInt() ? 1 : 0);
+    changed = true;
+  }
   if (web.hasArg("prefer_hub")) {
     stored.putInt("prefer_hub", web.arg("prefer_hub").toInt() ? 1 : 0);
     changed = true;
@@ -564,7 +572,7 @@ static void serve_set() {
     stored.putInt("ping_hz", hz);
     changed = true;
   }
-  if (!changed) return web.send(400, "text/plain", "nothing to set (channel, ping_hz, no_11b, ping_len, home_wifi, prefer_hub)\n");
+  if (!changed) return web.send(400, "text/plain", "nothing to set (channel, ping_hz, no_11b, ping_len, home_wifi, prefer_hub, csi_ltf)\n");
   web.send(200, "text/plain", "saved, rebooting\n");
   reboot_soon();
 }
@@ -643,6 +651,7 @@ static void copy_hub_ping_len() {
 static void start_csi(wifi_csi_cb_t callback) {
   wifi_csi_config_t cfg = {};
   cfg.lltf_en = true;
+  cfg.htltf_en = settings.csi_ltf != 0;
   esp_wifi_set_csi_config(&cfg);
   esp_wifi_set_csi_rx_cb(callback, NULL);
   esp_wifi_set_csi(true);
