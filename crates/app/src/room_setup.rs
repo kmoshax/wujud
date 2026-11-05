@@ -28,6 +28,9 @@ pub struct RoomFile {
     pub names: BTreeMap<String, String>,
     #[serde(default)]
     pub furniture: Vec<serde_json::Value>,
+    /// What placing the boards found worth telling (a board that hears weakly).
+    #[serde(skip)]
+    pub notes: Vec<String>,
 }
 
 fn default_height() -> f64 {
@@ -54,6 +57,7 @@ pub struct LiveRoom {
     pub placed: bool,
     /// Where each board was put (`HUB` included), to tell when they have moved.
     pub places: BTreeMap<String, [f64; 3]>,
+    pub notes: Vec<String>,
 }
 
 pub const HUB: &str = "router";
@@ -102,6 +106,7 @@ pub fn room_engine(
     };
     let mut places = room.boards.clone();
     places.insert(HUB.to_owned(), room.router);
+    let notes = room.notes.clone();
     let position = |end: &str, link: &str| -> Option<[f64; 3]> {
         if end == HUB {
             return Some(room.router);
@@ -170,6 +175,7 @@ pub fn room_engine(
         link_names,
         placed,
         places,
+        notes,
     })
 }
 
@@ -228,6 +234,7 @@ pub fn simulated_room_engine(room: &Room) -> anyhow::Result<LiveRoom> {
         link_names,
         placed: true,
         places: BTreeMap::new(),
+        notes: Vec::new(),
     })
 }
 
@@ -285,6 +292,7 @@ fn default_room(links: &[String]) -> RoomFile {
         boards,
         furniture: vec![],
         names,
+        notes: Vec::new(),
     }
 }
 
@@ -301,7 +309,9 @@ pub const ESP32_RADIO: Radio = Radio {
 };
 
 /// How far one board's antenna and amplifier may be from another's; a phone sends at its own power.
-const BOARD_GAIN_SPREAD_DB: f64 = 3.0;
+/// research/rec/layout_room_20261105.csv: boards in a square, the hub (30:c0) heard 9 dB below the
+/// others; with 3 dB the square came out as a line.
+const BOARD_GAIN_SPREAD_DB: f64 = 6.0;
 const COMMON_GAIN_SPREAD_DB: f64 = 1.0;
 const PHONE_GAIN_SPREAD_DB: f64 = 10.0;
 const EXPONENT_SPREAD: f64 = 0.5;
@@ -394,6 +404,14 @@ fn auto_layout(links: &[String], rssi: &BTreeMap<String, f64>, radio: Radio) -> 
         layout.residual_db,
         layout.exponent
     );
+    for ((id, p), gain) in ids.iter().zip(&points).zip(&layout.gains_db) {
+        let name = names.get(id).map_or(id.as_str(), String::as_str);
+        println!("  {name:<16} ({:.1}, {:.1}) m, gain {gain:+.1} dB", p[0], p[1]);
+    }
+    let notes = weak_boards(&boards, &ids, &layout.gains_db);
+    for note in &notes {
+        println!("  {note}");
+    }
     let place = |p: [f64; 2]| [p[0], p[1], BOARD_HEIGHT_M];
     Some(RoomFile {
         width: (width + 2.0 * WALL_MARGIN_M).max(2.0),
@@ -408,7 +426,34 @@ fn auto_layout(links: &[String], rssi: &BTreeMap<String, f64>, radio: Radio) -> 
             .collect(),
         furniture: vec![],
         names,
+        notes,
     })
+}
+
+/// A board this far below the others' typical gain is worth a look: its antenna, its cable, or
+/// something metal next to it. research/rec/layout_room_20261105.csv: 30:c0 12 dB below the median;
+/// with another board in its place (layout_room_20261105_swapped.csv) no board was more than 5 dB off.
+const WEAK_BOARD_DB: f64 = 8.0;
+
+fn weak_boards(boards: &[String], ids: &[String], gains_db: &[f64]) -> Vec<String> {
+    let mut board_gains: Vec<(String, f64)> = ids
+        .iter()
+        .zip(gains_db)
+        .filter(|(id, _)| boards.contains(id))
+        .map(|(id, &g)| (id.clone(), g))
+        .collect();
+    board_gains.sort_by(|a, b| a.1.total_cmp(&b.1));
+    let middle = board_gains.len() / 2;
+    let typical = if board_gains.len().is_multiple_of(2) {
+        (board_gains[middle - 1].1 + board_gains[middle].1) / 2.0
+    } else {
+        board_gains[middle].1
+    };
+    board_gains
+        .iter()
+        .filter(|(_, g)| typical - g >= WEAK_BOARD_DB)
+        .map(|(id, g)| format!("{} hears {:.0} dB low: check its antenna", short_name(id), typical - g))
+        .collect()
 }
 
 /// Senders that are not boards but are heard by every board.
@@ -587,5 +632,37 @@ mod tests {
             board_layout::largest_move(&aligned, &truth) < 0.15,
             "{drawn:?}"
         );
+    }
+
+    #[test]
+    fn the_measured_square_with_a_weak_hub_stays_a_square() {
+        // research/rec/layout_room_20261105.csv: four boards in a square, the hub heard 12-15 dB low.
+        let heard = [
+            ("ec:e3:34:21:b5:14", -64.0),
+            ("ec:e3:34:21:d9:bc", -65.0),
+            ("ec:e3:34:22:74:ec", -62.0),
+            ("ec:e3:34:21:b5:14>hub", -65.0),
+            ("ec:e3:34:21:d9:bc>hub", -65.0),
+            ("ec:e3:34:22:74:ec>hub", -62.0),
+            ("ec:e3:34:21:b5:14>ec:e3:34:21:d9:bc", -49.0),
+            ("ec:e3:34:21:b5:14>ec:e3:34:22:74:ec", -56.0),
+            ("ec:e3:34:21:d9:bc>ec:e3:34:21:b5:14", -45.0),
+            ("ec:e3:34:21:d9:bc>ec:e3:34:22:74:ec", -50.0),
+            ("ec:e3:34:22:74:ec>ec:e3:34:21:b5:14", -53.0),
+            ("ec:e3:34:22:74:ec>ec:e3:34:21:d9:bc", -50.0),
+        ];
+        let rssi: BTreeMap<String, f64> =
+            heard.iter().map(|(tag, db)| (format!("/dev/ttyACM0@{tag}"), *db)).collect();
+        let links: Vec<String> = rssi.keys().cloned().collect();
+        let places = board_places(&links, &rssi, ESP32_RADIO);
+        let at = |id: &str| [places[id][0], places[id][1]];
+        let apart = |a: &str, b: &str| (at(a)[0] - at(b)[0]).hypot(at(a)[1] - at(b)[1]);
+        let (b5, d9, e74) = ("ec:e3:34:21:b5:14", "ec:e3:34:21:d9:bc", "ec:e3:34:22:74:ec");
+        let diagonals = [apart(HUB, d9), apart(b5, e74)];
+        let sides = [apart(HUB, b5), apart(b5, d9), apart(d9, e74), apart(e74, HUB)];
+        let longest_side = sides.iter().copied().fold(0.0, f64::max);
+        let shortest_side = sides.iter().copied().fold(f64::MAX, f64::min);
+        assert!(diagonals.iter().all(|&d| d > longest_side), "{places:?}");
+        assert!(longest_side < 1.5 * shortest_side, "{places:?}");
     }
 }

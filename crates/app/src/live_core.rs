@@ -104,6 +104,7 @@ pub struct LiveCore {
     learned_answer: Option<([f64; 2], String)>,
     last_learned: Instant,
     places: std::collections::BTreeMap<String, [f64; 3]>,
+    notes: Vec<String>,
     last_layout: Instant,
     layout_job: Option<Receiver<std::collections::BTreeMap<String, [f64; 3]>>>,
     pub track: Option<Track>,
@@ -139,6 +140,7 @@ impl LiveCore {
             learned_answer: None,
             last_learned: Instant::now(),
             places: room.places,
+            notes: room.notes,
             last_layout: Instant::now(),
             layout_job: None,
             track: None,
@@ -356,6 +358,7 @@ impl LiveCore {
         self.node_ids = room.node_ids;
         self.placed = room.placed;
         self.places = room.places;
+        self.notes = room.notes;
         let sense = RoomSense::new(&room.links);
         self.sense = Some(match &self.sense {
             Some(previous) => sense.carry_over(previous),
@@ -573,12 +576,13 @@ impl LiveCore {
                 at: at.map(|v| v as f32),
             })
             .collect();
-        let links = scene
-            .links
-            .iter()
+        let links = self
+            .engine
+            .link_nodes()
+            .into_iter()
             .zip(&self.links)
             .enumerate()
-            .map(|(index, (&ends, history))| {
+            .map(|(index, (ends, history))| {
                 LinkView {
                     name: self.link_names.get(index).cloned().unwrap_or_default(),
                     ends,
@@ -606,6 +610,7 @@ impl LiveCore {
             truth_xy: self.truth.as_ref().and_then(|t| t.xy).map(|xy| xy.map(|v| v as f32)),
             one_line: self.one_line,
             placed: self.placed,
+            notes: self.notes.clone(),
             source: self.source(),
         }
     }
@@ -660,6 +665,8 @@ pub struct Snapshot {
     pub truth_xy: Option<[f32; 2]>,
     pub one_line: bool,
     pub placed: bool,
+    /// What placing the boards found worth telling.
+    pub notes: Vec<String>,
     pub source: Source,
 }
 

@@ -93,6 +93,8 @@ enum Command {
         #[arg(long)]
         out: Option<std::path::PathBuf>,
     },
+    /// Where the live view would place the boards of a recording (`--record`), printed.
+    PlaceRecording { recording: std::path::PathBuf },
     /// Print what the boards send, decoded, to check the wiring.
     Monitor {
         #[arg(long, num_args = 1.., required = true)]
@@ -148,6 +150,7 @@ fn main() -> anyhow::Result<()> {
         Command::ViewDemo { boards, seed, view } => demo_view(boards, seed, view.options()),
         Command::DemoHall { seed } => demo_hall(seed),
         Command::Monitor { ports, record } => monitor(&ports, record.as_deref()),
+        Command::PlaceRecording { recording } => layout_study::place_recording(&recording),
         Command::LayoutStudy {
             rooms,
             seeds_from,

@@ -83,6 +83,7 @@ enum Readout {
     Where,
     Drift,
     Frames,
+    Notes,
 }
 
 #[derive(Component)]
@@ -146,6 +147,7 @@ fn spawn_panels(mut commands: Commands, font: Res<PixelFont>, latest: Res<Latest
                 Node { width: Val::Px(SPARK_WIDTH as f32), height: Val::Px(SPARK_HEIGHT as f32), margin: UiRect::top(Val::Px(PIXEL)), ..default() },
             ));
             panel.spawn((Readout::Drift, text(font, "", 1, MUTED), gap(PIXEL)));
+            panel.spawn((Readout::Notes, text(font, "", 1, TEXT), gap(4.0 * PIXEL)));
         });
     let mut legend = vec![
         "LINE: A WI-FI LINK. THICKER = A BODY DISTURBS IT",
@@ -370,6 +372,7 @@ fn update_panels(
                     None => "LEARNING THE QUIET LEVEL".into(),
                 },
             ),
+            Readout::Notes => set(&mut text, snapshot.notes.join("\n").to_uppercase()),
             Readout::Frames => {}
         }
     }

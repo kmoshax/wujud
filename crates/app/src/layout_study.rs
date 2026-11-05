@@ -60,6 +60,29 @@ struct Study {
     rows: Vec<Row>,
 }
 
+/// The places the live view would give the boards of a recording: each link's median RSSI.
+pub fn place_recording(path: &std::path::Path) -> anyhow::Result<()> {
+    let mut heard: BTreeMap<String, Vec<f64>> = BTreeMap::new();
+    for line in std::fs::read_to_string(path)?.lines() {
+        let fields: Vec<&str> = line.splitn(5, ',').collect();
+        if let [_, link, "P", rssi, _] = fields.as_slice() {
+            if let Ok(rssi) = rssi.parse::<f64>() {
+                heard.entry((*link).to_owned()).or_default().push(rssi);
+            }
+        }
+    }
+    let rssi: BTreeMap<String, f64> = heard
+        .into_iter()
+        .map(|(link, mut values)| {
+            values.sort_by(f64::total_cmp);
+            (link, values[values.len() / 2])
+        })
+        .collect();
+    let links: Vec<String> = rssi.keys().cloned().collect();
+    board_places(&links, &rssi, crate::room_setup::ESP32_RADIO);
+    Ok(())
+}
+
 pub fn run(rooms: usize, seeds_from: u64, out: Option<&std::path::Path>) -> anyhow::Result<()> {
     let (radio, scatter_db) = simulated_radio();
     println!(

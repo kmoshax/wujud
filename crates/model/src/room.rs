@@ -223,6 +223,11 @@ impl RoomEngine {
     }
 
     /// The floor-plan ends of every link, for `MotionTracker`.
+    /// Each link's two nodes, in the order the links are read.
+    pub fn link_nodes(&self) -> Vec<[usize; 2]> {
+        self.links.iter().map(|&(a, b)| [a, b]).collect()
+    }
+
     pub fn link_ends(&self) -> Vec<([f64; 2], [f64; 2])> {
         let plan = |node: usize| [self.nodes[node][0], self.nodes[node][1]];
         self.links

@@ -392,7 +392,8 @@ pub fn largest_move(points: &[[f64; 2]], reference: &[[f64; 2]]) -> f64 {
 }
 
 /// Boards stand along a room's walls, so the layout is turned until its bounding box is smallest;
-/// then node 0 is put in the corner nearest the origin, and the box moved to start at `margin`.
+/// the long side is laid along x, node 0 put in the corner nearest the origin, and the box moved to
+/// start at `margin`.
 pub fn square_to_walls(points: &[[f64; 2]], margin: f64) -> Vec<[f64; 2]> {
     let turned = |angle: f64| -> Vec<[f64; 2]> {
         let (s, c) = angle.sin_cos();
@@ -410,6 +411,10 @@ pub fn square_to_walls(points: &[[f64; 2]], margin: f64) -> Vec<[f64; 2]> {
         .min_by(|&a, &b| area(&turned(a)).total_cmp(&area(&turned(b))))
         .unwrap_or(0.0);
     let mut p = turned(best_angle);
+    let (w, d) = extent(&p);
+    if d > w {
+        p.iter_mut().for_each(|q| *q = [q[1], q[0]]);
+    }
     for axis in 0..2 {
         let (low, high) = span(p.iter().map(|q| q[axis]));
         if p[0][axis] - low > high - p[0][axis] {
@@ -513,7 +518,7 @@ mod tests {
             .collect();
         let squared = square_to_walls(&rect, 0.2);
         let (w, d) = extent(&squared);
-        assert!((w * d - 12.0).abs() < 0.2, "{w} x {d}");
+        assert!((w * d - 12.0).abs() < 0.2 && w >= d, "{w} x {d}");
         assert!(
             squared[0][0] < 0.3 && squared[0][1] < 0.3,
             "{:?}",
