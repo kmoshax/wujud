@@ -3,7 +3,10 @@
 //! per second: the links' disturbance and RSSI spread (as the live view computes them), each link's
 //! per-subcarrier spread and spectrum shape (dB, mean removed), the boards' places, the room size, and
 //! the simulator's truth. Odd seeds walk a lot; even seeds follow a random plan of every activity.
-//! cargo run --release -p wujud --example export_tracking -- <out.jsonl> <first_seed> <rooms> [boards besides the hub, 2]
+//! cargo run --release -p wujud --example export_tracking -- <out.jsonl> <first_seed> <rooms> [boards besides the hub, 2] [small]
+//! `small`: bedrooms 2.3-3.3 by 2.2-3 m (the taped room of research/rooms/home_20261105.json is 2.7 by
+//! 2.4), every link in both directions as the real boards measure them, and with four boards every
+//! other room has them in its corners.
 
 use std::fs::File;
 use std::io::{BufWriter, Write};
@@ -13,7 +16,7 @@ use serde_json::json;
 use wujud_model::motion_tracker::{disturbance_db, rssi_spread_db};
 use wujud_sim::capture::Capture;
 use wujud_sim::random::{seeded, uniform};
-use wujud_sim::room::{random_plan, random_room, Activity, PlanStep, RoomOptions};
+use wujud_sim::room::{random_plan, random_room, random_room_sized, Activity, PlanStep, Room, RoomOptions};
 use wujud_sim::room_sim::RoomSimOptions;
 use wujud_sim::stream::RoomStream;
 
@@ -31,22 +34,36 @@ fn plan() -> Vec<PlanStep> {
     .to_vec()
 }
 
+fn small_room(seed: u64, options: &RoomOptions) -> Room {
+    let mut rng = seeded(seed, 0);
+    let mut room = random_room_sized(&mut rng, options, (2.3, 3.3), (2.2, 3.0));
+    if room.nodes.len() == 4 && seed.is_multiple_of(2) {
+        let (w, d) = (room.shape().width, room.shape().depth);
+        let inset = uniform(&mut rng, 0.05, 0.3);
+        let corners = [[inset, inset], [w - inset, inset], [w - inset, d - inset], [inset, d - inset]];
+        let first = (seed / 2 % 4) as usize;
+        let turn = if (seed / 8).is_multiple_of(2) { 1 } else { 3 };
+        for (k, node) in room.nodes.iter_mut().enumerate() {
+            let [x, y] = corners[(first + k * turn) % 4];
+            *node = [x, y, node[2]];
+        }
+    }
+    let n = room.nodes.len();
+    room.links = (0..n).flat_map(|a| (0..n).filter(move |&b| b != a).map(move |b| (a, b))).collect();
+    room
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let out = args.first().expect("out.jsonl");
     let first: u64 = args.get(1).map_or(1, |a| a.parse().unwrap());
     let rooms: u64 = args.get(2).map_or(10, |a| a.parse().unwrap());
     let boards: usize = args.get(3).map_or(2, |a| a.parse().unwrap());
+    let small = args.get(4).is_some_and(|a| a == "small");
     let mut file = BufWriter::new(File::create(out).unwrap());
     for seed in first..first + rooms {
-        let room = random_room(
-            &mut seeded(seed, 0),
-            &RoomOptions {
-                boards,
-                mesh: true,
-                smart_placement: false,
-            },
-        );
+        let options = RoomOptions { boards, mesh: true, smart_placement: false };
+        let room = if small { small_room(seed, &options) } else { random_room(&mut seeded(seed, 0), &options) };
         let mut rng = seeded(seed, 7);
         let plan = if seed % 2 == 1 { plan() } else { random_plan(&mut rng, 240.0) };
         let options = RoomSimOptions {

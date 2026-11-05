@@ -9,6 +9,9 @@ the line, place along it, link length), and is scored. Rooms are flipped at rand
 no favourite spot can be learnt; a room with nothing moving should land near its centre.
 
     LINK_NET_WIDTH=192 LINK_NET_LAYERS=3 LINK_NET_EPOCHS=36 .venv/bin/python -I tools/link_net.py <out.pt> cache/tracking/v2_part*.jsonl cache/tracking/v3_part*.jsonl cache/tracking/v2four_p*.jsonl cache/tracking/v3four_p*.jsonl
+
+LINK_NET_START=<model.pt> starts from a trained model; with LINK_NET_EPOCHS=0 it is only scored on
+each file's unseen rooms.
 """
 import json
 import os
@@ -29,6 +32,9 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 WIDTH = int(os.environ.get("LINK_NET_WIDTH", 128))
 LAYERS = int(os.environ.get("LINK_NET_LAYERS", 2))
 EPOCHS = int(os.environ.get("LINK_NET_EPOCHS", 30))
+# Start from a trained model (fine-tuning); with LINK_NET_EPOCHS=0 only score it, file by file.
+START = os.environ.get("LINK_NET_START")
+LEARNING_RATE = float(os.environ.get("LINK_NET_LR", 5e-4))
 
 
 def to_bins(values):
@@ -83,6 +89,7 @@ def load(paths):
             row = json.loads(line)
             current.setdefault(row["room"], []).append(row)
         for room_id, rows in current.items():
+            rows = both_directions_averaged(rows)
             first = rows[0]
             rooms[(path, room_id)] = {
                 "tokens": link_tokens(np.array([r["motion"] for r in rows]), np.array([r["shadowing"] for r in rows]),
@@ -96,6 +103,26 @@ def load(paths):
             }
         print(f"loaded {path}: {len(current)} rooms", flush=True)
     return rooms
+
+
+def both_directions_averaged(rows):
+    """A pair measured both ways becomes one link, its readings averaged, as the live view does
+    (crates/app/src/link_net.rs: add_second)."""
+    links = [tuple(l) for l in rows[0]["links"]]
+    pairs = sorted({tuple(sorted(l)) for l in links})
+    if len(pairs) == len(links):
+        return rows
+    members = [[i for i, l in enumerate(links) if tuple(sorted(l)) == p] for p in pairs]
+    merged = []
+    for row in rows:
+        row = dict(row)
+        for key in ("motion", "shadowing"):
+            row[key] = [float(np.mean([row[key][i] for i in m])) for m in members]
+        for key in ("spread", "shape"):
+            row[key] = [np.mean([row[key][i] for i in m], axis=0).tolist() for m in members]
+        row["links"] = [list(p) for p in pairs]
+        merged.append(row)
+    return merged
 
 
 class LinkNet(nn.Module):
@@ -196,7 +223,14 @@ def main():
     print(f"{len(train)} rooms to learn from, {len(test)} never seen; {features} inputs per link; {DEVICE}", flush=True)
     torch.manual_seed(0)
     model = LinkNet(features).to(DEVICE)
-    optimiser = torch.optim.AdamW(model.parameters(), lr=5e-4, weight_decay=1e-4)
+    if START:
+        model.load_state_dict(torch.load(START, map_location=DEVICE))
+    if EPOCHS == 0:
+        for path in by_path:
+            print(path, flush=True)
+            evaluate(model, [r for r in test if r["path"] == path])
+        return
+    optimiser = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
     epochs = EPOCHS
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimiser, epochs)
     for epoch in range(epochs):

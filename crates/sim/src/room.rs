@@ -210,9 +210,14 @@ impl Default for RoomOptions {
 
 /// Port of scenes3d.py::random_room.
 pub fn random_room(rng: &mut SimRng, options: &RoomOptions) -> Room {
+    random_room_sized(rng, options, (3.0, 5.5), (3.0, 5.0))
+}
+
+/// A bedroom whose width and depth are drawn from the given ranges (m); `random_room` is 3-5.5 by 3-5.
+pub fn random_room_sized(rng: &mut SimRng, options: &RoomOptions, width_m: (f64, f64), depth_m: (f64, f64)) -> Room {
     let shape = RoomShape {
-        width: uniform(rng, 3.0, 5.5),
-        depth: uniform(rng, 3.0, 5.0),
+        width: uniform(rng, width_m.0, width_m.1),
+        depth: uniform(rng, depth_m.0, depth_m.1),
         height: uniform(rng, 2.7, 3.2),
     };
     let (w, d) = (shape.width, shape.depth);
