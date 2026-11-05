@@ -1,5 +1,5 @@
 //! A camera that orbits the room: drag to turn, scroll to zoom, 1/2/3 for set views, space for a slow
-//! turn of its own, which also starts after a while without input.
+//! turn of its own (off until asked for), which then also starts after a while without input.
 
 use std::f32::consts::FRAC_PI_2;
 
@@ -58,7 +58,7 @@ impl Orbit {
             2 => View { yaw: 0.0, pitch: 1.5, zoom: 0.95 },
             3 => View { yaw: self.shown.yaw + 0.9, pitch: 0.2, zoom: 0.7 },
             4 => View { yaw: self.shown.yaw, pitch: 0.3, zoom: 0.6 },
-            _ => View { yaw: 0.7, pitch: 0.62, zoom: 1.0 },
+            _ => View { yaw: 0.3, pitch: 0.62, zoom: 1.0 },
         }
     }
 }
@@ -75,8 +75,8 @@ fn spawn_camera(mut commands: Commands, latest: Res<Latest>, first: Res<FirstVie
         following: first.0 == 4,
         shown: View { yaw: 0.0, pitch: 0.0, zoom: 1.0 },
         goal: View { yaw: 0.0, pitch: 0.0, zoom: 1.0 },
-        auto: true,
-        idle_seconds: IDLE_BEFORE_AUTO_SECONDS,
+        auto: false,
+        idle_seconds: 0.0,
         room_span: width.max(depth),
     };
     orbit.goal = orbit.preset(first.0);

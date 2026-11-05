@@ -11,6 +11,8 @@ pub const FAINT: Color = Color::srgb_u8(58, 57, 55);
 pub const MUTED: Color = Color::srgb_u8(122, 120, 116);
 pub const TEXT: Color = Color::srgb_u8(232, 228, 220);
 pub const RED: Color = Color::srgb_u8(229, 72, 77);
+/// The ESP32 DevKit's blue LED, lit.
+pub const LED_BLUE: Color = Color::srgb_u8(60, 140, 255);
 
 pub const BACKGROUND_RGB: [u8; 3] = [9, 9, 9];
 pub const PANEL_RGB: [u8; 3] = [16, 16, 16];

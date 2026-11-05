@@ -19,7 +19,8 @@
  *     <device mac>|P,<rssi>,<rx timestamp us>,<128 hex chars = 64 subcarriers x [imag, real] int8>
  * Lines go over USB, and as UDP datagrams to whoever sent anything to CSI_PORT in the last
  * LISTENER_TIMEOUT_MS (asking first lets the reply through the laptop's firewall).
- * The blue LED is on while at least one device is connected.
+ * The blue LED tells the boards apart: the hub's is on while a device is connected; a node blinks
+ * as many times as its number on the hub's network (192.168.4.2 once, .3 twice, ...), then rests.
  *
  * With home_wifi.h (HOME_SSID, HOME_PASSWORD, WUJUD_PASSWORD; not in git), the board also joins the
  * home router and passes the internet on to the devices that join it, so a phone keeps working
@@ -65,6 +66,8 @@
 
 #define WUJUD_SSID "wujud"
 #define DEFAULT_CHANNEL 9
+/// Long enough for a preferred hub that rebooted at the same moment to have opened its network.
+#define PREFERRED_HUB_HEAD_START_MS 3000
 #define DEFAULT_PING_HZ 100
 #define LED_PIN 2
 #define CSI_PORT 5005
@@ -108,6 +111,8 @@ struct Settings {
   int ping_hz;
   int no_11b;
   int ping_len;
+  int home_wifi;
+  int prefer_hub;
 };
 
 struct Listener {
@@ -419,7 +424,6 @@ static void device_joined(const uint8_t *mac, esp_ip4_addr_t ip) {
     d.ping_len = {};
     d.ping = start_ping(ip);
     d.connected = true;
-    digitalWrite(LED_PIN, HIGH);
     report("I,wujud-room,joined=" MACSTR ",devices=%d", MAC2STR(mac), connected_devices());
     return;
   }
@@ -435,7 +439,6 @@ static void device_left(const uint8_t *mac) {
     esp_ping_delete_session(d.ping);
     d.ping = nullptr;
   }
-  digitalWrite(LED_PIN, connected_devices() > 0);
   report("I,wujud-room,left=" MACSTR ",devices=%d", MAC2STR(mac), connected_devices());
 }
 
@@ -455,10 +458,8 @@ static void on_hub_wifi_event(arduino_event_t *event) {
 static void on_node_wifi_event(arduino_event_t *event) {
   if (event->event_id == ARDUINO_EVENT_WIFI_STA_GOT_IP) {
     node_lost_since_ms = 0;
-    digitalWrite(LED_PIN, HIGH);
   } else if (event->event_id == ARDUINO_EVENT_WIFI_STA_DISCONNECTED) {
     if (!node_lost_since_ms) node_lost_since_ms = millis();
-    digitalWrite(LED_PIN, LOW);
   }
 }
 
@@ -468,6 +469,8 @@ static void load_settings() {
   settings.ping_hz = stored.getInt("ping_hz", DEFAULT_PING_HZ);
   settings.no_11b = stored.getInt("no_11b", 1);
   settings.ping_len = stored.getInt("ping_len", 0);
+  settings.home_wifi = stored.getInt("home_wifi", 1);
+  settings.prefer_hub = stored.getInt("prefer_hub", 0);
 }
 
 static bool authorised() {
@@ -486,8 +489,9 @@ static void serve_node_status() {
   char json[260];
   snprintf(json, sizeof(json),
            "{\"role\":\"node\",\"uptime_s\":%lu,\"mac\":\"" MACSTR "\",\"hub\":\"" MACSTR
-           "\",\"rssi\":%d,\"ping_len\":%d,\"csi_per_s\":%lu,\"rejected_per_s\":%lu,\"free_heap\":%lu}\n",
+           "\",\"rssi\":%d,\"ping_len\":%d,\"prefer_hub\":%d,\"csi_per_s\":%lu,\"rejected_per_s\":%lu,\"free_heap\":%lu}\n",
            (unsigned long)(millis() / 1000), MAC2STR(own_mac), MAC2STR(hub_mac), WiFi.RSSI(), settings.ping_len,
+           settings.prefer_hub,
            (unsigned long)node_csi_per_second, (unsigned long)node_rejected_per_second,
            (unsigned long)ESP.getFreeHeap());
   web.send(200, "application/json", json);
@@ -497,7 +501,8 @@ static void serve_status() {
   if (role == NODE) return serve_node_status();
   String json = "{\"role\":\"hub\",\"uptime_s\":" + String(millis() / 1000) + ",\"channel\":" + String(settings.channel) +
                 ",\"ping_hz\":" + String(settings.ping_hz) +
-                ",\"no_11b\":" + String(settings.no_11b) + ",\"ping_len\":" + String(settings.ping_len) + ",\"free_heap\":" + String(ESP.getFreeHeap()) +
+                ",\"no_11b\":" + String(settings.no_11b) + ",\"ping_len\":" + String(settings.ping_len) + ",\"home_wifi\":" + String(settings.home_wifi) +
+                ",\"prefer_hub\":" + String(settings.prefer_hub) + ",\"free_heap\":" + String(ESP.getFreeHeap()) +
                 ",\"devices\":[";
   bool first = true;
   for (const Device &d : devices) {
@@ -541,6 +546,14 @@ static void serve_set() {
     stored.putInt("ping_len", web.arg("ping_len").toInt());
     changed = true;
   }
+  if (web.hasArg("home_wifi")) {
+    stored.putInt("home_wifi", web.arg("home_wifi").toInt() ? 1 : 0);
+    changed = true;
+  }
+  if (web.hasArg("prefer_hub")) {
+    stored.putInt("prefer_hub", web.arg("prefer_hub").toInt() ? 1 : 0);
+    changed = true;
+  }
   if (web.hasArg("no_11b")) {
     stored.putInt("no_11b", web.arg("no_11b").toInt() ? 1 : 0);
     changed = true;
@@ -551,7 +564,7 @@ static void serve_set() {
     stored.putInt("ping_hz", hz);
     changed = true;
   }
-  if (!changed) return web.send(400, "text/plain", "nothing to set (channel, ping_hz, no_11b, ping_len)\n");
+  if (!changed) return web.send(400, "text/plain", "nothing to set (channel, ping_hz, no_11b, ping_len, home_wifi, prefer_hub)\n");
   web.send(200, "text/plain", "saved, rebooting\n");
   reboot_soon();
 }
@@ -641,12 +654,12 @@ static void start_hub() {
   WiFi.mode(WIFI_AP_STA);
   xTaskCreate(hub_send_lines, "send_lines", 4096, nullptr, 5, nullptr);
 #ifdef SHARE_INTERNET
-  int home_channel = join_home();
+  int home_channel = settings.home_wifi ? join_home() : 0;
   if (home_channel) {
     settings.channel = home_channel;
     open_network(home_channel);
   } else {
-    report("I,wujud-room,cannot reach \"%s\": no internet for the devices", HOME_SSID);
+    if (settings.home_wifi) report("I,wujud-room,cannot reach \"%s\": no internet for the devices", HOME_SSID);
     // Retrying in the background would keep the radio scanning other channels and drop the pings.
     WiFi.setAutoReconnect(false);
     WiFi.disconnect();
@@ -690,12 +703,13 @@ void setup() {
   Serial.begin(921600);
   outgoing = xQueueCreate(96, sizeof(CsiLine));
   // Boards switched on together wait different times, so usually the first one's network is up
-  // before the others look for it.
-  delay(esp_random() % 2500);
+  // before the others look for it; the preferred hub opens its network at once.
   WiFi.mode(WIFI_STA);
   uint8_t bssid[6];
   int channel;
-  if (find_hub(bssid, &channel))
+  if (settings.prefer_hub)
+    start_hub();
+  else if ((delay(PREFERRED_HUB_HEAD_START_MS + esp_random() % 2500), find_hub(bssid, &channel)))
     start_node(bssid, channel);
   else
     start_hub();
@@ -724,6 +738,23 @@ static void count_last_second() {
   node_csi_lines = node_rejected = 0;
 }
 
+/// A node's number on the hub's network: 192.168.4.2 is 1, .3 is 2; 0 while it has no address.
+static int node_number() {
+  IPAddress ip = WiFi.localIP();
+  return ip[3] >= 2 ? ip[3] - 1 : 0;
+}
+
+static const uint32_t BLINK_MS = 250, REST_MS = 1500;
+
+static bool led_should_be_on(uint32_t now) {
+  if (role == HUB) return connected_devices() > 0;
+  int blinks = node_lost_since_ms ? 0 : node_number();
+  if (blinks == 0) return false;
+  uint32_t cycle = blinks * 2 * BLINK_MS + REST_MS;
+  uint32_t at = now % cycle;
+  return at < blinks * 2 * BLINK_MS && (at / BLINK_MS) % 2 == 0;
+}
+
 void loop() {
   static uint32_t last_count_ms = 0, last_rival_check_ms = 0;
   static int rival_checks = 0;
@@ -733,8 +764,9 @@ void loop() {
     last_count_ms = now;
     count_last_second();
   }
+  digitalWrite(LED_PIN, led_should_be_on(now));
   if (role == NODE && node_lost_since_ms && now - node_lost_since_ms > NODE_LOST_MS) ESP.restart();
-  if (role == HUB && rival_checks < HUB_RIVAL_CHECKS && now - last_rival_check_ms >= HUB_RIVAL_CHECK_MS) {
+  if (role == HUB && !settings.prefer_hub && rival_checks < HUB_RIVAL_CHECKS && now - last_rival_check_ms >= HUB_RIVAL_CHECK_MS) {
     last_rival_check_ms = now;
     rival_checks++;
     if (rival_hub_wins()) {

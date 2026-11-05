@@ -139,7 +139,7 @@ pub fn room_engine(
     anyhow::ensure!(!kept.is_empty(), "no link has both ends placed in the room");
     let node_names: Vec<String> = node_ids
         .iter()
-        .map(|id| room.names.get(id).cloned().unwrap_or_else(|| id.clone()))
+        .map(|id| room.names.get(id).cloned().unwrap_or_else(|| default_name(id)))
         .collect();
     let star = nodes_among(links).is_empty();
     let link_names = kept
@@ -273,7 +273,7 @@ fn default_room(links: &[String]) -> RoomFile {
     } else {
         let mut names: BTreeMap<String, String> = nodes
             .iter()
-            .map(|mac| (mac.clone(), format!("ESP32 · {}", mac_tail(mac))))
+            .map(|mac| (mac.clone(), board_name(mac)))
             .collect();
         names.insert(HUB.to_owned(), "ESP32 hub".to_owned());
         let boards = nodes
@@ -309,7 +309,7 @@ pub const ESP32_RADIO: Radio = Radio {
 };
 
 /// How far one board's antenna and amplifier may be from another's; a phone sends at its own power.
-/// research/rec/layout_room_20261105.csv: boards in a square, the hub (30:c0) heard 9 dB below the
+/// research/rec/layout_room_20261105.csv: boards in a square, the hub (on the laptop) heard 9 dB below the
 /// others; with 3 dB the square came out as a line.
 const BOARD_GAIN_SPREAD_DB: f64 = 6.0;
 const COMMON_GAIN_SPREAD_DB: f64 = 1.0;
@@ -386,7 +386,7 @@ fn auto_layout(links: &[String], rssi: &BTreeMap<String, f64>, radio: Radio) -> 
     let (width, depth) = board_layout::extent(&points);
     let mut names: BTreeMap<String, String> = nodes
         .iter()
-        .map(|mac| (mac.clone(), format!("ESP32 · {}", mac_tail(mac))))
+        .map(|mac| (mac.clone(), board_name(mac)))
         .collect();
     names.insert(HUB.to_owned(), "ESP32 hub".to_owned());
     for phone in &phones {
@@ -431,8 +431,8 @@ fn auto_layout(links: &[String], rssi: &BTreeMap<String, f64>, radio: Radio) -> 
 }
 
 /// A board this far below the others' typical gain is worth a look: its antenna, its cable, or
-/// something metal next to it. research/rec/layout_room_20261105.csv: 30:c0 12 dB below the median;
-/// with another board in its place (layout_room_20261105_swapped.csv) no board was more than 5 dB off.
+/// something next to it. research/rec/layout_room_20261105.csv: the board on the laptop's USB 12 dB
+/// below the median; moved away from the laptop the same board read +6 dB (_swapped.csv).
 const WEAK_BOARD_DB: f64 = 8.0;
 
 fn weak_boards(boards: &[String], ids: &[String], gains_db: &[f64]) -> Vec<String> {
@@ -452,7 +452,7 @@ fn weak_boards(boards: &[String], ids: &[String], gains_db: &[f64]) -> Vec<Strin
     board_gains
         .iter()
         .filter(|(_, g)| typical - g >= WEAK_BOARD_DB)
-        .map(|(id, g)| format!("{} hears {:.0} dB low: check its antenna", short_name(id), typical - g))
+        .map(|(id, g)| format!("{} hears {:.0} dB low: move it from the laptop or check its antenna", short_name(id), typical - g))
         .collect()
 }
 
@@ -474,6 +474,76 @@ fn print_placement(boards: &BTreeMap<String, [f64; 3]>, names: &BTreeMap<String,
     for (mac, [x, y, _]) in boards {
         println!("  {:<16} ({x:.1}, {y:.1}) m", names[mac]);
     }
+}
+
+/// Each node's number on the hub's network, read once from the hub (`hub_status`): the number of
+/// times its blue LED blinks.
+static BLINKS: std::sync::OnceLock<BTreeMap<String, u8>> = std::sync::OnceLock::new();
+
+pub fn remember_blinks(blinks: BTreeMap<String, u8>) {
+    let _ = BLINKS.set(blinks);
+}
+
+/// A board's MAC as its short name; anything else (a serial port, a link) as it is.
+fn default_name(id: &str) -> String {
+    if wujud_proto::MacAddress::parse(id).is_some() {
+        board_name(id)
+    } else {
+        id.to_owned()
+    }
+}
+
+fn board_name(mac: &str) -> String {
+    format!("ESP32 · {}", mac_tail(mac))
+}
+
+/// How a board's blue LED shows itself (research/firmware/wujud_room: the hub's is on, a node blinks
+/// its number), when the hub said; None for a board it did not list.
+pub fn led_of(id: &str) -> Option<Led> {
+    if id == HUB {
+        return BLINKS.get().map(|_| Led::Steady);
+    }
+    BLINKS.get()?.get(id).map(|&n| Led::Blinks(n))
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Led {
+    Steady,
+    Blinks(u8),
+}
+
+/// The hub's nodes and how many times each blinks, from `http://<hub>/status`
+/// (a node at 192.168.4.2 blinks once, .3 twice, ...). A node sending nothing is left out: just
+/// after a reboot the hub can list a stale entry with another node's address.
+pub fn hub_blinks(hub_address: &str) -> BTreeMap<String, u8> {
+    use std::io::{Read, Write};
+    let mut body = String::new();
+    let fetched = std::net::TcpStream::connect_timeout(
+        &match format!("{hub_address}:80").parse() {
+            Ok(address) => address,
+            Err(_) => return BTreeMap::new(),
+        },
+        std::time::Duration::from_secs(2),
+    )
+    .and_then(|mut stream| {
+        stream.set_read_timeout(Some(std::time::Duration::from_secs(3)))?;
+        write!(stream, "GET /status HTTP/1.0\r\nHost: {hub_address}\r\n\r\n")?;
+        stream.read_to_string(&mut body)
+    });
+    let Some(json) = fetched.ok().and_then(|_| body.split_once("\r\n\r\n").map(|(_, j)| j.to_owned())) else {
+        return BTreeMap::new();
+    };
+    let Ok(status) = serde_json::from_str::<serde_json::Value>(&json) else { return BTreeMap::new() };
+    status["devices"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|d| d["node"].as_bool() == Some(true) && d["csi_per_s"].as_u64().unwrap_or(0) > 0)
+        .filter_map(|d| {
+            let last: u8 = d["ip"].as_str()?.rsplit('.').next()?.parse().ok()?;
+            Some((d["mac"].as_str()?.to_owned(), last.checked_sub(1)?))
+        })
+        .collect()
 }
 
 /// What fits in a link's title: `hub`, or the end of a MAC.

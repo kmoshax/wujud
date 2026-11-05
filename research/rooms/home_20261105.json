@@ -1,0 +1,32 @@
+{
+ "_comment": "The bedroom of 2026-11-05, from the owner's sketch (approximate). Seen as the owner sits at the laptop, facing the hub and board 2: x from left to right, y from behind the chair to that wall. Hub (74:ec, on the laptop's USB) ahead right, 2 (30:c0) ahead left, 3 (b5:14) behind left, 4 (d9:bc) behind right. Hub-2 and 3-4 2.7 m, 2-3 1.9 m, hub-4 2.2-2.6 m.",
+ "W": 3.1,
+ "D": 2.8,
+ "H": 2.8,
+ "hub": [
+  2.9,
+  2.6,
+  0.9
+ ],
+ "devices": {
+  "ec:e3:34:21:30:c0": [
+   0.2,
+   2.6,
+   0.9
+  ],
+  "ec:e3:34:21:b5:14": [
+   0.2,
+   0.7,
+   0.9
+  ],
+  "ec:e3:34:21:d9:bc": [
+   2.9,
+   0.2,
+   0.9
+  ]
+ },
+ "names": {
+  "router": "ESP32 hub"
+ },
+ "furniture": []
+}

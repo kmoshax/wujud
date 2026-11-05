@@ -7,6 +7,7 @@ use std::f32::consts::FRAC_PI_2;
 use bevy::prelude::*;
 
 use crate::live_core::{RoomStatus, Snapshot};
+use crate::room_setup::Led;
 
 use super::palette::{self, RED, EDGE, FAINT, GRID, TEXT};
 use super::{ease, floor, world, Latest};
@@ -28,7 +29,7 @@ pub struct RoomPlugin;
 impl Plugin for RoomPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Layout>()
-            .add_systems(Update, (rebuild_on_new_layout, beams, fresnel_zones, outlines).chain());
+            .add_systems(Update, (rebuild_on_new_layout, beams, fresnel_zones, outlines, blink_leds).chain());
     }
 }
 
@@ -43,6 +44,37 @@ pub struct Layout {
 
 #[derive(Component)]
 struct RoomPart;
+
+/// A board's cube, lit the way its blue LED is (research/firmware/wujud_room: `led_should_be_on`).
+#[derive(Component)]
+struct BoardLed {
+    led: Led,
+    material: Handle<StandardMaterial>,
+}
+
+const BLINK_SECONDS: f32 = 0.25;
+const REST_SECONDS: f32 = 1.5;
+
+fn led_is_on(led: Led, seconds: f32) -> bool {
+    match led {
+        Led::Steady => true,
+        Led::Blinks(0) => false,
+        Led::Blinks(n) => {
+            let blinking = f32::from(n) * 2.0 * BLINK_SECONDS;
+            let at = seconds % (blinking + REST_SECONDS);
+            at < blinking && ((at / BLINK_SECONDS) as u32).is_multiple_of(2)
+        }
+    }
+}
+
+fn blink_leds(time: Res<Time>, leds: Query<&BoardLed>, mut materials: ResMut<Assets<StandardMaterial>>) {
+    let seconds = time.elapsed_secs();
+    for board in &leds {
+        if let Some(material) = materials.get_mut(&board.material) {
+            material.base_color = if led_is_on(board.led, seconds) { palette::LED_BLUE } else { FAINT };
+        }
+    }
+}
 
 #[derive(Component)]
 struct Beam {
@@ -99,7 +131,16 @@ fn rebuild_on_new_layout(
     let board_mesh = meshes.add(Cuboid::new(0.1, 0.1, 0.1));
     let board_material = materials.add(flat(TEXT));
     for board in &snapshot.boards {
-        commands.spawn((RoomPart, Mesh3d(board_mesh.clone()), MeshMaterial3d(board_material.clone()), Transform::from_translation(world(board.at))));
+        let transform = Transform::from_translation(world(board.at));
+        match board.led {
+            Some(led) => {
+                let material = materials.add(flat(TEXT));
+                commands.spawn((RoomPart, Mesh3d(board_mesh.clone()), MeshMaterial3d(material.clone()), transform, BoardLed { led, material }));
+            }
+            None => {
+                commands.spawn((RoomPart, Mesh3d(board_mesh.clone()), MeshMaterial3d(board_material.clone()), transform));
+            }
+        }
     }
     let beam_mesh = meshes.add(Cylinder::new(1.0, 1.0));
     let zone_mesh = meshes.add(Circle::new(1.0).mesh().resolution(96));

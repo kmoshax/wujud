@@ -574,6 +574,7 @@ impl LiveCore {
             .map(|(index, at)| BoardView {
                 name: self.node_names.get(index).cloned().unwrap_or_else(|| format!("board {index}")),
                 at: at.map(|v| v as f32),
+                led: self.node_ids.get(index).and_then(|id| room_setup::led_of(id)),
             })
             .collect();
         let links = self
@@ -688,6 +689,8 @@ impl Snapshot {
 pub struct BoardView {
     pub name: String,
     pub at: [f32; 3],
+    /// Its blue LED as the real board shows it; None in the simulator or before the hub said.
+    pub led: Option<room_setup::Led>,
 }
 
 pub struct FurnitureView {

@@ -20,6 +20,8 @@ is_hub_port() {
 }
 
 find_hub() {
+    # The laptop on the hub's own network: Wi-Fi carries every line, USB only about half of them.
+    curl -s -m 1 http://192.168.4.1/status 2>/dev/null | grep -q '"role":"hub"' && { echo "udp:192.168.4.1"; return; }
     for port in /dev/ttyACM* /dev/ttyUSB*; do
         [[ -e $port ]] && is_hub_port "$port" && { echo "$port"; return; }
     done

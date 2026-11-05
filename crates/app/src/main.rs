@@ -187,6 +187,9 @@ fn boards_core(
 ) -> anyhow::Result<live_core::LiveCore> {
     let recorded = ports.iter().any(|port| port.starts_with("replay:"));
     let (ports, rssi) = serial::discover(&ports);
+    if let Some(hub) = ports.iter().find_map(|p| p.strip_prefix("udp:")).map(|p| p.split('@').next().unwrap_or(p)) {
+        room_setup::remember_blinks(room_setup::hub_blinks(hub));
+    }
     let live = room_setup::room_engine(&ports, room, &rssi)?;
     println!("links: {}", live.links.join(", "));
     let reading = std::sync::Arc::new(std::sync::Mutex::new(live.links.clone()));
